@@ -21,6 +21,7 @@ const string kAssistantDetailStorageToolName = "assistant_detail_storage";
 const string kMemoryStorageToolName = "memory_storage_tool";
 const string kCodeExecutionToolName = "code_execution_tool";
 const string kSemanticHistorySearchToolName = "semantic_history_search";
+const string kExtractDocumentFieldsToolName = "extract_document_fields";
 
 [EnableIf=enable_ai_chat_tab_management_tool]
 const string kTabManagementToolName = "tab_management";
@@ -34,6 +35,7 @@ const string kScrollElementToolName = "scroll_element";
 const string kSelectDropdownToolName = "select_dropdown";
 const string kTypeTextToolName = "type_text";
 const string kWaitToolName = "wait";
+const string kProposeFormFillPlanToolName = "propose_form_fill_plan";
 
 // Server side tools
 const string kBraveNewsSearchToolName = "brave_news_search";

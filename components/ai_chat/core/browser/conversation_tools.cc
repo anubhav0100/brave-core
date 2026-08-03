@@ -10,6 +10,7 @@
 
 #include "base/feature_list.h"
 #include "base/no_destructor.h"
+#include "brave/components/ai_chat/core/browser/tools/extract_document_fields_tool.h"
 #include "brave/components/ai_chat/core/browser/tools/tool_input_properties.h"
 #include "brave/components/ai_chat/core/browser/tools/tool_utils.h"
 #include "brave/components/ai_chat/core/common/features.h"
@@ -152,6 +153,10 @@ const std::vector<Tool*>& StaticTools() {
     static base::NoDestructor<AssistantDetailStorageTool>
         assistant_detail_storage_tool;
     tools.push_back(assistant_detail_storage_tool.get());
+
+    static base::NoDestructor<ExtractDocumentFieldsTool>
+        extract_document_fields_tool;
+    tools.push_back(extract_document_fields_tool.get());
 
     return tools;
   }());

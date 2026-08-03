@@ -15,6 +15,7 @@
 #include "brave/browser/ai_chat/tools/history_tool.h"
 #include "brave/browser/ai_chat/tools/move_mouse_tool.h"
 #include "brave/browser/ai_chat/tools/navigation_tool.h"
+#include "brave/browser/ai_chat/tools/propose_form_fill_plan_tool.h"
 #include "brave/browser/ai_chat/tools/scroll_tool.h"
 #include "brave/browser/ai_chat/tools/select_tool.h"
 #include "brave/browser/ai_chat/tools/type_tool.h"
@@ -236,6 +237,7 @@ void ContentAgentToolProvider::CreateTools() {
   tools_.push_back(std::make_unique<HistoryTool>(this));
   tools_.push_back(std::make_unique<MoveMouseTool>(this));
   tools_.push_back(std::make_unique<NavigationTool>(this));
+  tools_.push_back(std::make_unique<ProposeFormFillPlanTool>());
   tools_.push_back(std::make_unique<ScrollTool>(this));
   tools_.push_back(std::make_unique<SelectTool>(this));
   tools_.push_back(std::make_unique<TypeTool>(this));
