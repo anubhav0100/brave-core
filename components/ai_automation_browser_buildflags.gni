@@ -1,0 +1,10 @@
+# Copyright (c) 2026 The Brave Authors. All rights reserved.
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this file,
+# You can obtain one at https://mozilla.org/MPL/2.0/.
+
+# Branding-only flag (no feature differences from the default Brave build,
+# unlike is_brave_origin_branded which also gates several features off).
+declare_args() {
+  is_ai_automation_browser_branded = false
+}

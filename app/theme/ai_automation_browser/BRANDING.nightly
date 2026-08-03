@@ -1,0 +1,10 @@
+COMPANY_FULLNAME=AI Automation Browser
+COMPANY_SHORTNAME=AI Automation Browser
+PRODUCT_FULLNAME=AI Automation Browser Nightly
+PRODUCT_SHORTNAME=AI Automation Nightly
+PRODUCT_INSTALLER_FULLNAME=AI Automation Browser Installer
+PRODUCT_INSTALLER_SHORTNAME=AI Automation Browser Installer
+COPYRIGHT=Copyright 2016 The Brave Authors. All rights reserved.
+MAC_BUNDLE_ID=com.aiautomationbrowser.Browser.nightly
+MAC_CREATOR_CODE=Cr24
+MAC_TEAM_ID=PLACEHOLDR0

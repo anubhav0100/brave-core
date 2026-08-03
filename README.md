@@ -1,4 +1,4 @@
-![Brave Browser](./docs/images/brave.svg)
+![AI Automation Browser](./docs/images/ai_automation_browser.svg)
 
 # Brave Core
 
