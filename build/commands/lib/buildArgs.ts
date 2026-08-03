@@ -34,6 +34,7 @@ const FORWARD_ENV_CONFIG_VARS_TO_GN_ARGS = [
   'use_clang_coverage',
   'coverage_instrumentation_input_file',
   'is_brave_origin_branded',
+  'is_ai_automation_browser_branded',
 ]
 
 export function getBuildArgs(config: Config) {
@@ -68,6 +69,10 @@ export function getBuildArgs(config: Config) {
     if (config.isBraveOriginBranded) {
       args['import("//brave/build/args/brave_origin/branding_defaults.gni")'] =
         null
+    } else if (config.isAiAutomationBrowserBranded) {
+      args[
+        'import("//brave/build/args/ai_automation_browser/branding_defaults.gni")'
+      ] = null
     } else {
       args['import("//brave/build/args/branding_defaults.gni")'] = null
     }
