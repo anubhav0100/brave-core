@@ -106,6 +106,11 @@ void BraveBrowserActions::InitializeBrowserActions() {
                         IDS_CHAT_UI_TITLE, kLeoProductBraveLeoIcon,
                         kActionSidePanelShowChatUI, bwi, true)
             .Build());
+    root_action_item_->AddChild(
+        SidePanelAction(SidePanelEntryId::kPageCapture, IDS_PAGE_CAPTURE_TITLE,
+                        IDS_PAGE_CAPTURE_TITLE, kLeoProductBraveLeoIcon,
+                        kActionSidePanelShowPageCapture, bwi, true)
+            .Build());
   }
 #endif
 

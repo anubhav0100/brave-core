@@ -24,7 +24,7 @@ type Props = FeatureButtonMenuProps & {
 
 const Logo = ({ isPremium }: { isPremium: boolean }) => (
   <div className={styles.logo}>
-    <div className={styles.logoTitle}>Leo AI</div>
+    <div className={styles.logoTitle}>AI Assistant</div>
     {isPremium && (
       <Label
         mode='default'

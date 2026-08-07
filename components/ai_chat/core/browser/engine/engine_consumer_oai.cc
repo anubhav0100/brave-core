@@ -113,10 +113,13 @@ void EngineConsumerOAIRemote::GenerateRewriteSuggestion(
   messages->push_back(BuildOAISeedMessage(
       "Here is the requested rewritten version of the excerpt "
       "in <response> tags:\n<response>"));
+  // Some providers - notably OpenAI's newer reasoning-tier models - reject
+  // requests containing "stop" entirely (HTTP 400: "Unsupported parameter:
+  // 'stop' is not supported with this model"), so it's omitted rather than
+  // relied on to end generation at </response>.
   api_->PerformRequest(*model_options_, std::move(*messages), std::nullopt,
                        std::move(received_callback),
-                       std::move(completed_callback),
-                       std::vector<std::string>{"</response>"});
+                       std::move(completed_callback), std::nullopt);
 }
 
 void EngineConsumerOAIRemote::GenerateQuestionSuggestions(

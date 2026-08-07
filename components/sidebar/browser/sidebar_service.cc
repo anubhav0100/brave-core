@@ -761,6 +761,16 @@ SidebarItem SidebarService::GetBuiltInItemForType(
       }
       return SidebarItem();
     }
+    case SidebarItem::BuiltInItemType::kPageCapture: {
+      if (ai_chat::IsAIChatEnabled(prefs_)) {
+        return SidebarItem::Create(
+            l10n_util::GetStringUTF16(IDS_PAGE_CAPTURE_TITLE),
+            SidebarItem::Type::kTypeBuiltIn,
+            SidebarItem::BuiltInItemType::kPageCapture,
+            /* open_in_panel = */ true);
+      }
+      return SidebarItem();
+    }
 #endif  // BUILDFLAG(ENABLE_AI_CHAT)
 #if BUILDFLAG(ENABLE_BRAVE_NEWS)
     case SidebarItem::BuiltInItemType::kBraveNews: {

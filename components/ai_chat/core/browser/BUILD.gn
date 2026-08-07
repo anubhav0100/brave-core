@@ -111,6 +111,8 @@ static_library("browser") {
     "tools/tool_provider_factory.h",
     "tools/tool_utils.cc",
     "tools/tool_utils.h",
+    "tools/webhook_tool.cc",
+    "tools/webhook_tool.h",
     "types.h",
     "utils.cc",
     "utils.h",

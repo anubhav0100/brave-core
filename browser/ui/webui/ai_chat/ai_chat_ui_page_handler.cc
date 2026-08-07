@@ -19,6 +19,8 @@
 #include "base/strings/utf_string_conversions.h"
 #include "base/task/thread_pool.h"
 #include "brave/browser/ai_chat/ai_chat_service_factory.h"
+#include "brave/browser/ai_chat/workflows/workflow_repository.h"
+#include "brave/browser/ai_chat/workflows/workflow_repository_factory.h"
 #include "brave/browser/brave_tab_helpers.h"
 #include "brave/browser/misc_metrics/profile_misc_metrics_service.h"
 #include "brave/browser/misc_metrics/profile_misc_metrics_service_factory.h"
@@ -360,6 +362,21 @@ void AIChatUIPageHandler::GetPluralString(const std::string& key,
                                 &webui::LocalizedString::name);
   CHECK(iter != webui::kAiChatStrings.end());
   std::move(callback).Run(l10n_util::GetPluralStringFUTF8(iter->id, count));
+}
+
+void AIChatUIPageHandler::GetWorkflows(GetWorkflowsCallback callback) {
+  std::vector<mojom::WorkflowSummaryPtr> workflows;
+  if (auto* repository =
+          WorkflowRepositoryFactory::GetForBrowserContext(profile_)) {
+    for (const auto& workflow : repository->ListWorkflows()) {
+      auto summary = mojom::WorkflowSummary::New();
+      summary->id = workflow.id;
+      summary->name = workflow.name;
+      summary->status = WorkflowStatusToString(workflow.status);
+      workflows.push_back(std::move(summary));
+    }
+  }
+  std::move(callback).Run(std::move(workflows));
 }
 
 void AIChatUIPageHandler::OpenAIChatSettings() {

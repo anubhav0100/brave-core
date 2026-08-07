@@ -46,6 +46,8 @@
 #if BUILDFLAG(ENABLE_AI_CHAT)
 #include "brave/browser/ai_chat/ai_chat_service_factory.h"
 #include "brave/browser/ai_chat/model_service_factory.h"
+#include "brave/browser/ai_chat/webhook_tool_service_factory.h"
+#include "brave/browser/ai_chat/workflows/workflow_repository_factory.h"
 #include "brave/browser/ai_chat/ollama/ollama_service_factory.h"
 #include "brave/browser/ai_chat/tab_tracker_service_factory.h"
 #include "brave/components/ai_chat/core/common/features.h"
@@ -224,6 +226,8 @@ void EnsureBrowserContextKeyedServiceFactoriesBuilt() {
     ai_chat::ModelServiceFactory::GetInstance();
     ai_chat::OllamaServiceFactory::GetInstance();
     ai_chat::TabTrackerServiceFactory::GetInstance();
+    ai_chat::WebhookToolServiceFactory::GetInstance();
+    ai_chat::WorkflowRepositoryFactory::GetInstance();
   }
 #endif
 

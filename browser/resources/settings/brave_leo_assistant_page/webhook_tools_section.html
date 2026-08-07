@@ -1,0 +1,228 @@
+<!-- Copyright (c) 2026 The Brave Authors. All rights reserved.
+This Source Code Form is subject to the terms of the Mozilla Public
+License, v. 2.0. If a copy of the MPL was not distributed with this file,
+You can obtain one at https://mozilla.org/MPL/2.0/. -->
+
+<style include="cr-shared-style settings-shared">
+  .header {
+    padding: var(--leo-spacing-2xl) var(--leo-spacing-2xl) 0 var(--leo-spacing-2xl);
+  }
+
+  .main-header {
+    font: var(--leo-font-heading-h4);
+  }
+
+  .list-container {
+    padding: var(--leo-spacing-l) var(--leo-spacing-2xl);
+  }
+
+  .list {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    border: 1px solid var(--leo-color-divider-subtle);
+    border-radius: var(--leo-radius-m);
+  }
+
+  .tool-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: var(--leo-spacing-l);
+    padding: var(--leo-spacing-l) var(--leo-spacing-xl);
+    border-bottom: 1px solid var(--leo-color-divider-subtle);
+  }
+
+  .tool-row:last-of-type {
+    border-bottom: none;
+  }
+
+  .tool-name {
+    font-weight: 600;
+  }
+
+  .tool-description {
+    color: var(--leo-color-text-secondary);
+    font: var(--leo-font-small-regular);
+    margin-top: var(--leo-spacing-s);
+  }
+
+  .tool-url {
+    color: var(--leo-color-text-tertiary);
+    font: var(--leo-font-small-regular);
+    margin-top: var(--leo-spacing-xs);
+    word-break: break-all;
+  }
+
+  .tool-actions {
+    display: flex;
+    align-items: center;
+    gap: var(--leo-spacing-m);
+    flex-shrink: 0;
+  }
+
+  .action-box {
+    display: flex;
+    justify-content: flex-start;
+    padding: 0 var(--leo-spacing-2xl) var(--leo-spacing-xl) var(--leo-spacing-2xl);
+  }
+
+  .empty-state {
+    color: var(--leo-color-text-tertiary);
+    text-align: center;
+    padding: var(--leo-spacing-2xl) 0;
+    border: 1px solid var(--leo-color-divider-subtle);
+    border-radius: var(--leo-radius-m);
+  }
+
+  cr-dialog [slot="title"] {
+    color: var(--leo-color-text-primary);
+    font: var(--leo-font-heading-h3);
+    padding: var(--leo-spacing-2xl);
+  }
+
+  cr-dialog [slot="body"] {
+    display: flex;
+    padding: var(--leo-spacing-m) var(--leo-spacing-2xl);
+    flex-direction: column;
+    gap: var(--leo-spacing-l);
+  }
+
+  cr-dialog [slot="button-container"] {
+    display: flex;
+    justify-content: flex-end;
+    gap: var(--leo-spacing-m);
+    padding: var(--leo-spacing-l) var(--leo-spacing-2xl);
+  }
+
+  .field-label {
+    font: var(--leo-font-small-semibold);
+    color: var(--leo-color-text-secondary);
+  }
+
+  .field-hint {
+    font: var(--leo-font-small-regular);
+    color: var(--leo-color-text-tertiary);
+    margin-top: var(--leo-spacing-xs);
+  }
+
+  textarea.params-input {
+    width: 100%;
+    min-height: 80px;
+    font-family: monospace;
+    font-size: 13px;
+    padding: var(--leo-spacing-m);
+    border-radius: var(--leo-radius-s);
+    border: 1px solid var(--leo-color-divider-subtle);
+    resize: vertical;
+  }
+</style>
+
+<div class="settings-box header">
+  <div class="flex">
+    <div class="main-header">$i18n{webhookToolsSectionTitle}</div>
+    <div class="label secondary">$i18n{webhookToolsSectionDesc}</div>
+  </div>
+</div>
+
+<div class="list-container">
+  <template is="dom-if" if="[[!hasTools_(tools_)]]">
+    <div class="empty-state">$i18n{webhookToolsNoToolsLabel}</div>
+  </template>
+  <template is="dom-if" if="[[hasTools_(tools_)]]">
+    <div class="list">
+      <template is="dom-repeat" items="[[tools_]]">
+        <div class="tool-row">
+          <div class="flex">
+            <div class="tool-name">[[item.name]]</div>
+            <div class="tool-description">[[item.description]]</div>
+            <div class="tool-url">[[item.url]]</div>
+          </div>
+          <div class="tool-actions">
+            <leo-toggle checked="[[item.enabled]]" on-change="handleToggleEnabled_">
+            </leo-toggle>
+            <leo-button kind="plain-faint" fab size="medium" on-click="handleEditClick_">
+              <leo-icon name="edit-pencil"></leo-icon>
+            </leo-button>
+            <leo-button kind="plain-faint" fab size="medium" on-click="handleDeleteClick_">
+              <leo-icon name="trash"></leo-icon>
+            </leo-button>
+          </div>
+        </div>
+      </template>
+    </div>
+  </template>
+</div>
+
+<div class="action-box">
+  <leo-button on-click="handleAddNewClick_" kind="outline">
+    $i18n{webhookToolsAddNewButtonLabel}
+  </leo-button>
+</div>
+
+<template is="dom-if" if="[[showEditDialog_]]" restamp>
+  <cr-dialog id="editDialog" show-on-attach show-close-button on-close="onDialogCancel_">
+    <div slot="title">[[getDialogTitle_(editingId_)]]</div>
+    <div slot="body">
+      <div>
+        <div class="field-label">$i18n{webhookToolNameLabel}</div>
+        <cr-input value="[[editName_]]" on-input="onNameInput_"
+          placeholder="$i18n{webhookToolNamePlaceholder}">
+        </cr-input>
+        <div class="field-hint">$i18n{webhookToolNameHint}</div>
+      </div>
+      <div>
+        <div class="field-label">$i18n{webhookToolDescriptionLabel}</div>
+        <cr-input value="[[editDescription_]]" on-input="onDescriptionInput_"
+          placeholder="$i18n{webhookToolDescriptionPlaceholder}">
+        </cr-input>
+      </div>
+      <div>
+        <div class="field-label">$i18n{webhookToolUrlLabel}</div>
+        <cr-input value="[[editUrl_]]" on-input="onUrlInput_"
+          placeholder="https://example.com/webhook">
+        </cr-input>
+      </div>
+      <div>
+        <div class="field-label">$i18n{webhookToolSecretLabel}</div>
+        <cr-input type="password" value="[[editSecret_]]" on-input="onSecretInput_"
+          placeholder="$i18n{webhookToolSecretPlaceholder}">
+        </cr-input>
+        <template is="dom-if" if="[[isEditingExisting_]]">
+          <div class="field-hint">$i18n{webhookToolSecretEditHint}</div>
+        </template>
+      </div>
+      <div>
+        <div class="field-label">$i18n{webhookToolParametersLabel}</div>
+        <textarea class="params-input" value="{{editParametersText_::input}}"
+          placeholder="location | The city to check&#10;units | celsius or fahrenheit | yes">
+        </textarea>
+        <div class="field-hint">$i18n{webhookToolParametersHint}</div>
+      </div>
+      <settings-toggle-button
+        label="$i18n{webhookToolEnabledLabel}"
+        checked="{{editEnabled_}}">
+      </settings-toggle-button>
+    </div>
+    <div slot="button-container">
+      <leo-button kind="plain-faint" on-click="onDialogCancel_">$i18n{cancel}</leo-button>
+      <leo-button on-click="onDialogSave_"
+        isDisabled="[[isSaveDisabled_(editName_, editUrl_)]]">
+        $i18n{save}
+      </leo-button>
+    </div>
+  </cr-dialog>
+</template>
+
+<template is="dom-if" if="[[showDeleteDialog_]]" restamp>
+  <cr-dialog show-on-attach show-close-button on-close="onDeleteDialogCancel_">
+    <div slot="title">$i18n{webhookToolDeleteConfirmationTitle}</div>
+    <div slot="body">$i18n{webhookToolDeleteConfirmation}</div>
+    <div slot="button-container">
+      <leo-button kind="plain-faint" on-click="onDeleteDialogCancel_">$i18n{cancel}</leo-button>
+      <leo-button class="delete-button" on-click="onDeleteDialogConfirm_">
+        $i18n{delete}
+      </leo-button>
+    </div>
+  </cr-dialog>
+</template>

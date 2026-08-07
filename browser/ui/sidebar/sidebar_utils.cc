@@ -174,6 +174,8 @@ SidePanelEntryId SidePanelIdFromSideBarItemType(BuiltInItemType type) {
 #if BUILDFLAG(ENABLE_AI_CHAT)
     case BuiltInItemType::kChatUI:
       return SidePanelEntryId::kChatUI;
+    case BuiltInItemType::kPageCapture:
+      return SidePanelEntryId::kPageCapture;
 #endif
 #if BUILDFLAG(ENABLE_BRAVE_NEWS)
     case BuiltInItemType::kBraveNews:
@@ -215,6 +217,8 @@ std::optional<BuiltInItemType> BuiltInItemTypeFromSidePanelId(
 #if BUILDFLAG(ENABLE_AI_CHAT)
     case SidePanelEntryId::kChatUI:
       return BuiltInItemType::kChatUI;
+    case SidePanelEntryId::kPageCapture:
+      return BuiltInItemType::kPageCapture;
 #endif
 #if BUILDFLAG(ENABLE_BRAVE_NEWS)
     case SidePanelEntryId::kBraveNews:
@@ -276,6 +280,9 @@ void SetLastUsedSidePanel(PrefService* prefs,
       case SidePanelEntryId::kChatUI:
         type = BuiltInItemType::kChatUI;
         break;
+      case SidePanelEntryId::kPageCapture:
+        type = BuiltInItemType::kPageCapture;
+        break;
 #endif
 #if BUILDFLAG(ENABLE_BRAVE_NEWS)
       case SidePanelEntryId::kBraveNews:
@@ -315,6 +322,7 @@ bool IsDisabledItemForPrivate(SidebarItem::BuiltInItemType type) {
   switch (type) {
 #if BUILDFLAG(ENABLE_AI_CHAT)
     case SidebarItem::BuiltInItemType::kChatUI:
+    case SidebarItem::BuiltInItemType::kPageCapture:
       return true;
 #endif
 #if BUILDFLAG(ENABLE_PLAYLIST)
@@ -338,6 +346,7 @@ bool IsDisabledItemForGuest(SidebarItem::BuiltInItemType type) {
       return true;
 #if BUILDFLAG(ENABLE_AI_CHAT)
     case SidebarItem::BuiltInItemType::kChatUI:
+    case SidebarItem::BuiltInItemType::kPageCapture:
       return true;
 #endif
 #if BUILDFLAG(ENABLE_PLAYLIST)

@@ -13,6 +13,8 @@
 #include "base/no_destructor.h"
 #include "brave/browser/ai_chat/ai_chat_utils.h"
 #include "brave/browser/ai_chat/browser_tool_provider_factory.h"
+#include "brave/browser/ai_chat/webhook_tool_provider_factory.h"
+#include "brave/browser/ai_chat/webhook_tool_service_factory.h"
 #include "brave/browser/ai_chat/model_service_factory.h"
 #include "brave/browser/ai_chat/tab_tracker_service_factory.h"
 #include "brave/browser/brave_browser_process.h"
@@ -112,6 +114,11 @@ AIChatServiceFactory::BuildServiceInstanceForBrowserContext(
   tool_provider_factories.push_back(
       std::make_unique<BrowserToolProviderFactory>(
           Profile::FromBrowserContext(context)));
+
+  tool_provider_factories.push_back(
+      std::make_unique<WebhookToolProviderFactory>(
+          Profile::FromBrowserContext(context),
+          WebhookToolServiceFactory::GetForBrowserContext(context)));
 
   auto service = std::make_unique<AIChatService>(
       ModelServiceFactory::GetForBrowserContext(context),

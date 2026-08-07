@@ -7,7 +7,7 @@
     Wallet
   </message>
   <message name="IDS_CUSTOMIZE_TOOLBAR_TOGGLE_AI_CHAT" desc="Title for a toggle button to show or hide AI Chat">
-    Leo AI
+    AI Assistant
   </message>
   <message name="IDS_CUSTOMIZE_TOOLBAR_TOGGLE_VPN" desc="Title for a toggle button to show or hide VPN">
     VPN

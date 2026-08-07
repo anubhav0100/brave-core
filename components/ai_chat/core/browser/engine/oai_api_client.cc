@@ -352,7 +352,25 @@ void OAIAPIClient::PerformRequest(
       &request_body);
   base::flat_map<std::string, std::string> headers;
   if (!opts.api_key.empty()) {
-    headers.emplace("Authorization", base::StrCat({"Bearer ", opts.api_key}));
+    // Azure OpenAI's key-based auth (as opposed to Azure AD/Entra ID token
+    // auth) uses a plain "api-key" header - a subscription key isn't a
+    // valid Bearer token there, so sending it as one gets a 401. Detect
+    // Azure's own endpoint hosts (both the classic
+    // "<resource>.openai.azure.com" shape and the newer Azure AI Foundry
+    // "<resource>.cognitiveservices.azure.com" shape) and use the header
+    // they actually expect.
+    std::string_view host = opts.endpoint.host();
+    bool is_azure_endpoint =
+        base::EndsWith(host, ".openai.azure.com",
+                       base::CompareCase::INSENSITIVE_ASCII) ||
+        base::EndsWith(host, ".cognitiveservices.azure.com",
+                       base::CompareCase::INSENSITIVE_ASCII);
+    if (is_azure_endpoint) {
+      headers.emplace("api-key", opts.api_key);
+    } else {
+      headers.emplace("Authorization",
+                      base::StrCat({"Bearer ", opts.api_key}));
+    }
   }
 
   if (is_sse_enabled) {
@@ -391,7 +409,21 @@ void OAIAPIClient::OnQueryCompleted(
     const int status_code = result.IsResponseCodeValid()
                                 ? result.response_code()
                                 : result.error_code();
-    auto details = mojom::APIErrorDetails::New(status_code, /*error_type=*/"",
+    // Most OpenAI-compatible providers return {"error": {"message": ...}}
+    // on failure - surface that instead of discarding it, since it's often
+    // the only clue as to what a 400/404/etc. actually meant.
+    std::string error_type;
+    if (result.value_body().is_dict()) {
+      if (const std::string* message =
+              result.value_body().GetDict().FindStringByDottedPath(
+                  "error.message")) {
+        error_type = *message;
+      }
+    }
+    if (error_type.empty() && !result.value_body().is_none()) {
+      base::JSONWriter::Write(result.value_body(), &error_type);
+    }
+    auto details = mojom::APIErrorDetails::New(status_code, error_type,
                                                /*inner_status_code=*/0);
     std::move(callback).Run(base::unexpected(EngineConsumer::Error(
         MapResponseCodeToError(result.response_code()), std::move(details))));

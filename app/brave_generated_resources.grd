@@ -245,7 +245,7 @@
         Wallet
       </message>
       <message name="IDS_TOGGLE_AI_CHAT" desc="The show Brave Leo AI Chat menu item (app menu)">
-        Leo AI
+        AI Assistant
       </message>
       <message name="IDS_OPEN_MORE_OTHER_DEVICES_SESSIONS" desc="The history sub-menu item to show sessions from other devices">
         More…
@@ -389,7 +389,7 @@
         </message>
       </if>
       <message name="IDS_WIDEVINE_INSTALL_MESSAGE" desc="Bubble info text when Widevine is not installed. 'Widevine' is the name of a plugin and should not be translated.">
-        Widevine is sometimes needed to play media on a webpage. It's a Google extension loaded from Google servers, which Brave cannot inspect. By installing, you'll agree to Google's terms of use.
+        Widevine is sometimes needed to play media on a webpage. It's a Google extension loaded from Google servers, which AI Automation Browser cannot inspect. By installing, you'll agree to Google's terms of use.
       </message>
       <message name="IDS_WIDEVINE_PERMISSIONS_BUBBLE_FOOTNOTE_TEXT" desc="Message shown on the bottom of the widevine permissions bubble.">
         <ph name="LEARN_MORE_ABOUT_WIDEVINE">$1<ex>Learn more about Widevine</ex></ph>.
@@ -418,7 +418,7 @@ Or change later at <ph name="SETTINGS_EXTENIONS_LINK">$2<ex>brave://settings/ext
 
       <!-- Extensions -->
       <message name="IDS_UNVETTED_EXTENSION_INSTALL_PROMPT_TITLE" desc="Titlebar of the extension or app installation prompt which was not vetted by Brave. Asks the user if they want to install a particular extension or app.">
-        Brave does not review extensions for security and safety. Install this extension only if you trust the developer.
+        AI Automation Browser does not review extensions for security and safety. Install this extension only if you trust the developer.
       </message>
 
       <!-- Permissions -->
@@ -530,7 +530,7 @@ Or change later at <ph name="SETTINGS_EXTENIONS_LINK">$2<ex>brave://settings/ext
           Open Link in Private Window with Tor
         </message>
         <message name="IDS_CONTENT_CONTEXT_OPENLINKTOR_INAPP" desc="Title case: The name of the open a link in private window with Tor command">
-          Open Link in Brave Private Window with Tor
+          Open Link in AI Automation Browser Private Window with Tor
         </message>
       </if>
       <if expr="not use_titlecase">
@@ -541,7 +541,7 @@ Or change later at <ph name="SETTINGS_EXTENIONS_LINK">$2<ex>brave://settings/ext
           Open link in private window with Tor
         </message>
         <message name="IDS_CONTENT_CONTEXT_OPENLINKTOR_INAPP" desc="The name of the open a link in private window with Tor command">
-          Open link in Brave private window with Tor
+          Open link in AI Automation Browser private window with Tor
         </message>
       </if>
       <!-- Mac Menubar Menus -->
@@ -580,37 +580,37 @@ Or change later at <ph name="SETTINGS_EXTENIONS_LINK">$2<ex>brave://settings/ext
 
       <if expr="use_titlecase">
         <message name="IDS_HIDE_BRAVE_AI_CHAT_ICON_ON_TOOLBAR" desc="The description for hiding the Brave AI Chat icon on the toolbar">
-          Hide Leo AI Icon
+          Hide AI Assistant Icon
         </message>
         <message name="IDS_OPEN_BRAVE_AI_CHAT_FULL_PAGE" desc="The description for opening the Brave AI Chat in a new tab">
-          Open Leo AI in a New Tab
+          Open AI Assistant in a New Tab
         </message>
         <message name="IDS_OPEN_BRAVE_AI_CHAT_SIDE_PANEL" desc="The description for opening the Brave AI Chat in the sidebar">
-          Open Leo AI in the Sidebar
+          Open AI Assistant in the Sidebar
         </message>
         <message name="IDS_MANAGE_BRAVE_AI_CHAT" desc="The description for opening the Brave AI Chat settings">
-          Manage Leo AI Settings
+          Manage AI Assistant Settings
         </message>
       </if>
       <if expr="not use_titlecase">
         <message name="IDS_HIDE_BRAVE_AI_CHAT_ICON_ON_TOOLBAR" desc="The description for hiding the Brave AI Chat icon on the toolbar">
-          Hide Leo AI icon
+          Hide AI Assistant icon
         </message>
         <message name="IDS_OPEN_BRAVE_AI_CHAT_FULL_PAGE" desc="The description for opening the Brave AI Chat in a new tab">
-          Open Leo AI in a new tab
+          Open AI Assistant in a new tab
         </message>
         <message name="IDS_OPEN_BRAVE_AI_CHAT_SIDE_PANEL" desc="The description for opening the Brave AI Chat in the sidebar">
-          Open Leo AI in the sidebar
+          Open AI Assistant in the sidebar
         </message>
         <message name="IDS_MANAGE_BRAVE_AI_CHAT" desc="The description for opening the Brave AI Chat settings">
-          Manage Leo AI settings
+          Manage AI Assistant settings
         </message>
       </if>
       <message name="IDS_ABOUT_BRAVE_AI_CHAT" desc="The description for loading the Brave AI Chat about page">
-        About Leo AI
+        About AI Assistant
       </message>
       <message name="IDS_TOOLTIP_AI_CHAT_TOOLBAR_BUTTON" desc="Text for Leo toolbar button for toggling Leo side panel">
-        Leo AI
+        AI Assistant
       </message>
 
       <!-- Screenshot feature strings -->
@@ -638,7 +638,7 @@ Or change later at <ph name="SETTINGS_EXTENIONS_LINK">$2<ex>brave://settings/ext
         View in Web Extensions Store
       </message>
       <message name="IDS_EXTENSIONS_BRAVE_PRIVATE_WARNING" desc="Warns the user that Brave cannot prevent extensions from recording history in private mode and Tor mode">
-        Warning: Brave cannot prevent extensions from recording your browsing history.
+        Warning: AI Automation Browser cannot prevent extensions from recording your browsing history.
       </message>
       <message name="IDS_EXTENSIONS_BRAVE_SPANNING_WARNING" desc="Warns the user that extension will make network connection not through Tor when it is in spanning mode">
         If this extension makes network requests, they will not use Tor or private mode.
@@ -647,25 +647,25 @@ Or change later at <ph name="SETTINGS_EXTENIONS_LINK">$2<ex>brave://settings/ext
         To disable this extension in private mode and Tor mode, unselect this option.
       </message>
       <message name="IDS_EXTENSIONS_BRAVE_HOSTED" desc="Displayed in extensions management UI if an extension is hosted on the Brave server.">
-        Brave-hosted
+        AI Automation Browser-hosted
       </message>
 
       <!-- App shortcuts -->
       <if expr="not is_win">
         <message name="IDS_APP_SHORTCUTS_SUBDIR_NAME_BRAVE_NIGHTLY" desc="Name for the Brave Apps Start Menu folder name.">
-          Brave Browser Nightly Apps
+          AI Automation Browser Nightly Apps
         </message>
         <message name="IDS_APP_SHORTCUTS_SUBDIR_NAME_BRAVE_BETA" desc="Name for the Brave Apps Start Menu folder name.">
-          Brave Browser Beta Apps
+          AI Automation Browser Beta Apps
         </message>
         <message name="IDS_APP_SHORTCUTS_SUBDIR_NAME_BRAVE_DEV" desc="Name for the Brave Apps Start Menu folder name.">
-          Brave Browser Dev Apps
+          AI Automation Browser Dev Apps
         </message>
         <message name="IDS_APP_SHORTCUTS_SUBDIR_NAME_BRAVE_STABLE" desc="Name for the Brave Apps Start Menu folder name.">
-          Brave Browser Apps
+          AI Automation Browser Apps
         </message>
         <message name="IDS_APP_SHORTCUTS_SUBDIR_NAME_BRAVE_DEVELOPMENT" desc="Name for the Brave Apps Start Menu folder name.">
-          Brave Browser Development Apps
+          AI Automation Browser Development Apps
         </message>
       </if>
 
@@ -681,13 +681,13 @@ Or change later at <ph name="SETTINGS_EXTENIONS_LINK">$2<ex>brave://settings/ext
           Don't ask again
         </message>
         <message name="IDS_CRASH_REPORT_PERMISSION_ASK_DIALOG_CONTENT_TEXT" desc="The contents for crash report ask dialog">
-          Help improve Brave's product stability by automatically sending diagnostic reports when the Brave Browser crashes or freezes.
+          Help improve AI Automation Browser's product stability by automatically sending diagnostic reports when the AI Automation Browser crashes or freezes.
         </message>
         <message name="IDS_CRASH_REPORT_PERMISSION_ASK_DIALOG_HEADER_TEXT" desc="The header text for crash report ask dialog">
-          <ph name="BROWSER_NAME">$1<ex>Brave Browser</ex></ph> quit unexpectedly.
+          <ph name="BROWSER_NAME">$1<ex>AI Automation Browser</ex></ph> quit unexpectedly.
         </message>
         <message name="IDS_CRASH_REPORT_PERMISSION_ASK_DIALOG_HEADER_TEXT_BROWSER_NAME_PART" desc="This is used for replacing BROWSER_NAME from above HEADER_TEXT.">
-          Brave Browser
+          AI Automation Browser
         </message>
         <message name="IDS_CRASH_REPORT_PERMISSION_ASK_DIALOG_FOOTNOTE_TEXT" desc="The footnote text for crash report ask dialog.">
           You can change <ph name="SETTING_TEXT">$1<ex>this</ex></ph> at any time in browser settings.
@@ -704,7 +704,7 @@ Or change later at <ph name="SETTINGS_EXTENIONS_LINK">$2<ex>brave://settings/ext
           This site has requested your <ph name="PART_ONE">$1</ph>precise location<ph name="PART_ONE_END">$1</ph>. <ph name="PART_TWO">$1</ph>Learn more<ph name="PART_TWO_END">$1</ph>
         </message>
         <message name="IDS_GEOLOCATION_PERMISSION_BUBBLE_HIGH_ACCURACY_WITHOUT_LOCATION_SERVICE_LABEL" desc="The text for geolocation permission bubble with high accuracy. Each part will be used to get offset in the string">
-          This site has requested your <ph name="PART_ONE">$1</ph>precise location<ph name="PART_ONE_END">$1</ph>. Brave will only able to provide <ph name="PART_TWO">$1</ph>general location<ph name="PART_TWO_END">$1</ph> data due to <ph name="PART_THREE">$1</ph>Location Services<ph name="PART_THREE_END">$1</ph> being disabled. <ph name="PART_FOUR">$1</ph>Learn more<ph name="PART_FOUR_END">$1</ph>
+          This site has requested your <ph name="PART_ONE">$1</ph>precise location<ph name="PART_ONE_END">$1</ph>. AI Automation Browser will only able to provide <ph name="PART_TWO">$1</ph>general location<ph name="PART_TWO_END">$1</ph> data due to <ph name="PART_THREE">$1</ph>Location Services<ph name="PART_THREE_END">$1</ph> being disabled. <ph name="PART_FOUR">$1</ph>Learn more<ph name="PART_FOUR_END">$1</ph>
         </message>
 
         <!-- Closing confirm dialog -->
@@ -728,7 +728,7 @@ Or change later at <ph name="SETTINGS_EXTENIONS_LINK">$2<ex>brave://settings/ext
         </message>
         <!-- Brave search conversion promotion -->
         <message name="IDS_BRAVE_SEARCH_CONVERSION_PROMOTION_BANNER_TYPE_B_TITLE" desc="The text for the banner type title">
-          Don't Google it. Can't Bing it. Just Brave it.
+          Don't Google it. Can't Bing it. Just AI Automation Browser it.
         </message>
         <message name="IDS_BRAVE_SEARCH_CONVERSION_PROMOTION_BANNER_TYPE_B_DESC" desc="The text for the banner type description">
           Brave Search doesn't profile you. And it's 100% independent.
@@ -764,7 +764,7 @@ Or change later at <ph name="SETTINGS_EXTENIONS_LINK">$2<ex>brave://settings/ext
           Dismiss
         </message>
         <message name="IDS_BRAVE_SEARCH_CONVERSION_SET_AS_DEFAULT_BUTTON_LABEL" desc="The text for the set as default button in a promotion match">
-          Set Brave as default
+          Set AI Automation Browser as default
         </message>
         <message name="IDS_BRAVE_SEARCH_CONVERSION_MAYBE_LATER_BUTTON_TOOLTIP" desc="The tooltip text for the maybe later button in a promotion match">
           Maybe later
@@ -773,7 +773,7 @@ Or change later at <ph name="SETTINGS_EXTENIONS_LINK">$2<ex>brave://settings/ext
           Maybe later
         </message>
         <message name="IDS_ACC_BRAVE_SEARCH_CONVERSION_DISMISS_BUTTON" desc="Announcement when the dismiss button is focused.">
-          Dismiss Brave search conversion, press Enter to remove this suggestion
+          Dismiss AI Automation Browser search conversion, press Enter to remove this suggestion
         </message>
         <message name="IDS_BRAVE_SEARCH_CONVERSION_BUTTON_LABEL" desc="The text for the search conversion promotion button">
           Switch to Brave Search
@@ -803,12 +803,12 @@ Or change later at <ph name="SETTINGS_EXTENIONS_LINK">$2<ex>brave://settings/ext
         </if>
         <if expr="is_win">
           <message name="IDS_OBSOLETE_SYSTEM_CONFIRM_DIALOG_CONTENT" desc="The text for obsolete system confirm dialog">
-            By clicking OK, you acknowledge that your installation of Brave will NOT receive critical security fixes until you update to Windows 10 or later. This warning will NOT show again.
+            By clicking OK, you acknowledge that your installation of AI Automation Browser will NOT receive critical security fixes until you update to Windows 10 or later. This warning will NOT show again.
           </message>
         </if>
         <if expr="is_macosx">
           <message name="IDS_OBSOLETE_SYSTEM_CONFIRM_DIALOG_CONTENT" desc="The text for obsolete system confirm dialog">
-            By clicking OK, you acknowledge that your installation of Brave will NOT receive critical security fixes until you update to macOS 13 or later. This warning will NOT show again.
+            By clicking OK, you acknowledge that your installation of AI Automation Browser will NOT receive critical security fixes until you update to macOS 13 or later. This warning will NOT show again.
           </message>
         </if>
 
@@ -831,7 +831,7 @@ Or change later at <ph name="SETTINGS_EXTENIONS_LINK">$2<ex>brave://settings/ext
         Close
       </message>
       <message name="IDS_BRAVE_ADS_NOTIFICATION_AD_ACCESSIBLE_NAME" desc="Text to be spoken when a notification ad is shown">
-        Brave Notification Ad
+        AI Automation Browser Notification Ad
       </message>
       <message name="IDS_BRAVE_ADS_SEARCH_RESULT_AD_CLICKED_INFOBAR_MESSAGE" desc="The text label of creative search result ad infobar message">
         Thanks for supporting Brave Search by clicking a private ad. Unlike Big Tech, we measure ad performance anonymously to preserve your privacy.
@@ -840,7 +840,7 @@ Or change later at <ph name="SETTINGS_EXTENIONS_LINK">$2<ex>brave://settings/ext
         Learn more / opt out choices
       </message>
       <message name="IDS_NEW_TAB_TAKEOVER_INFOBAR_MESSAGE" desc="The text label of new tab takeover infobar message">
-        Sponsored background images support Brave's mission to build an independent, user-first Web. And unlike Big Tech, we measure ad performance anonymously to preserve your privacy.
+        Sponsored background images support AI Automation Browser's mission to build an independent, user-first Web. And unlike Big Tech, we measure ad performance anonymously to preserve your privacy.
       </message>
       <message name="IDS_NEW_TAB_TAKEOVER_INFOBAR_LEARN_MORE_OPT_OUT_CHOICES" desc="The text of new tab takeover infobar learn more / opt out choices link">
         Learn more / opt out choices
@@ -856,7 +856,7 @@ Or change later at <ph name="SETTINGS_EXTENIONS_LINK">$2<ex>brave://settings/ext
 
       <!-- Brave Tooltips -->
       <message name="IDS_BRAVE_TOOLTIPS_BRAVE_TOOLTIP_ACCESSIBLE_NAME" desc="Text to be spoken when a tooltip is shown">
-        Brave Tooltip
+        AI Automation Browser Tooltip
       </message>
 
       <!-- Sidebar -->
@@ -987,15 +987,15 @@ Or change later at <ph name="SETTINGS_EXTENIONS_LINK">$2<ex>brave://settings/ext
 
       <!-- Stats -->
       <message name="IDS_BRAVE_STATS_USAGE_PING_SETTING" desc="Description that shows in settings for toggling stats usage pings">
-        Automatically send daily usage ping to Brave
+        Automatically send daily usage ping to AI Automation Browser
       </message>
       <message name="IDS_BRAVE_STATS_USAGE_PING_SETTING_SUBITEM" desc="Description that shows under main toggle setting for usage pings">
-        This private ping lets Brave estimate active users
+        This private ping lets AI Automation Browser estimate active users
       </message>
 
       <!-- P3A -->
       <message name="IDS_BRAVE_CONFIRM_P3A_INFO_BAR" desc="Text that shows on the info bar where user acknowledges the P3A message">
-        Brave uses privacy-preserving product analytics to estimate the overall usage of certain features
+        AI Automation Browser uses privacy-preserving product analytics to estimate the overall usage of certain features
       </message>
       <message name="IDS_BRAVE_CONFIRM_P3A_INFO_BAR_ACKNOWLEDGE" desc="OK button that shows on the info bar where user acknowledges the P3A message">
         Got it
@@ -1007,7 +1007,7 @@ Or change later at <ph name="SETTINGS_EXTENIONS_LINK">$2<ex>brave://settings/ext
         Allow privacy-preserving product analytics (P3A)
       </message>
       <message name="IDS_BRAVE_P3A_ENABLE_SETTING_SUBITEM" desc="Description that shows under main toggle setting for P3A">
-        These private responses help Brave estimate the overall usage of certain features and make them better for you
+        These private responses help AI Automation Browser estimate the overall usage of certain features and make them better for you
       </message>
 
       <!-- Web3 detection -->
@@ -1042,7 +1042,7 @@ Or change later at <ph name="SETTINGS_EXTENIONS_LINK">$2<ex>brave://settings/ext
 
       <!-- Brave's copyright statement -->
       <message name="IDS_BRAVE_VERSION_UI_LICENSE" desc="The label below the copyright message, containing the URLs.">
-        Brave is made available to you under the <ph name="BEGIN_LINK_MPL">&lt;a target="_blank" href="$1"&gt;</ph>Mozilla Public License 2.0<ph name="END_LINK_MPL">&lt;/a&gt;</ph> (MPL) and includes <ph name="BEGIN_LINK_OSS">&lt;a target="_blank" href="$2"&gt;</ph>open source software<ph name="END_LINK_OSS">&lt;/a&gt;</ph> under a variety of other licenses.
+        AI Automation Browser is made available to you under the <ph name="BEGIN_LINK_MPL">&lt;a target="_blank" href="$1"&gt;</ph>Mozilla Public License 2.0<ph name="END_LINK_MPL">&lt;/a&gt;</ph> (MPL) and includes <ph name="BEGIN_LINK_OSS">&lt;a target="_blank" href="$2"&gt;</ph>open source software<ph name="END_LINK_OSS">&lt;/a&gt;</ph> under a variety of other licenses.
         You can read <ph name="BEGIN_LINK_BUILD_INSTRUCTIONS">&lt;a target="_blank" href="$3"&gt;</ph>instructions on how to download and build for yourself<ph name="END_LINK_BUILD_INSTRUCTIONS">&lt;/a&gt;</ph> the specific <ph name="BEGIN_LINK_SOURCE_CODE">&lt;a target="_blank" href="$4"&gt;</ph>source code used to create this copy<ph name="END_LINK_SOURCE_CODE">&lt;/a&gt;</ph>.
       </message>
 
@@ -1243,7 +1243,7 @@ Or change later at <ph name="SETTINGS_EXTENIONS_LINK">$2<ex>brave://settings/ext
         Full Disk Access required
       </message>
       <message name="IDS_FULL_DISK_ACCESS_CONFIRM_DIALOG_MESSAGE" desc="The label for full disk access dialog message">
-        Brave needs Full Disk Access to import your Bookmarks from Safari.
+        AI Automation Browser needs Full Disk Access to import your Bookmarks from Safari.
       </message>
       <message name="IDS_FULL_DISK_ACCESS_CONFIRM_DIALOG_LINK_TEXT" desc="The label for full disk access dialog link text">
         Learn how to grant Full Disk Access from your System Preferences.
@@ -1279,7 +1279,7 @@ Or change later at <ph name="SETTINGS_EXTENIONS_LINK">$2<ex>brave://settings/ext
         Imported from <ph name="BROWSER_NAME">$1<ex>Chrome</ex></ph>.
       </message>
       <!-- These strings below are used by the Chromium importer. Chromium only
-           builds the importer on Desktop, but Brave also has the importer - and
+           builds the importer on Desktop, but AI Automation Browser also has the importer - and
            builds the code - on Android. In Chromium's generated_resources.grd
            this strings are under `<if expr="not is_android">`. To avoid
            patching generated_resources.grd we add these strings to our own
@@ -1563,7 +1563,7 @@ Or change later at <ph name="SETTINGS_EXTENIONS_LINK">$2<ex>brave://settings/ext
         New window created for <ph name="TOPIC">$1<ex>Social media</ex></ph>
       </message>
       <message name="IDS_BRAVE_ORGANIZE_TAB_SEND_TAB_DATA_MESSAGE" desc="Description of how tab data is shared with Leo">
-        This feature sends data about your open tabs to Leo, Brave's AI-powered browser assistant.
+        This feature sends data about your open tabs to AI Assistant, AI Automation Browser's AI-powered browser assistant.
       </message>
       <message name="IDS_BRAVE_ORGANIZE_TAB_LEARN_MORE_LABEL" desc="Text of the learn more link">
         Learn more
@@ -1575,7 +1575,7 @@ Or change later at <ph name="SETTINGS_EXTENIONS_LINK">$2<ex>brave://settings/ext
         Dismiss
       </message>
       <message name="IDS_BRAVE_ORGANIZE_TAB_PRIVACY_DISCLAIMER" desc="Disclaimer text for enabling the tab focus feature">
-        When opened, this will automatically send the titles and origin of all non-private tabs to Leo to classify them.
+        When opened, this will automatically send the titles and origin of all non-private tabs to AI Assistant to classify them.
       </message>
       <message name="IDS_BRAVE_ORGANIZE_TAB_ENABLE_BUTTON_LABEL" desc="Text of enable tab focus button">
         Enable
@@ -1583,7 +1583,7 @@ Or change later at <ph name="SETTINGS_EXTENIONS_LINK">$2<ex>brave://settings/ext
 
       <!--PSST -->
       <message name="IDS_BRAVE_PSST_INFOBAR_MESSAGE" desc="Infobar message body informing the user that Brave's Privacy Settings Suggestion Tool (PSST) can optimize their privacy settings on this site.">
-        Brave can help you optimize this site's privacy settings. Would you like to review Brave's suggestions?
+        AI Automation Browser can help you optimize this site's privacy settings. Would you like to review AI Automation Browser's suggestions?
       </message>
       <message name="IDS_BRAVE_PSST_INFO_BAR_REVIEW_SUGGESTIONS" desc="Button label for the infobar action that starts the review of Privacy Settings Suggestion Tool (PSST) recommendations.">
         Review Suggestions
@@ -1600,7 +1600,7 @@ Or change later at <ph name="SETTINGS_EXTENIONS_LINK">$2<ex>brave://settings/ext
 
       <!-- Brave policy -->
       <message name="IDS_BRAVE_CONTROLLED_SETTING_POLICY" desc="Text displayed in the controlled settings bubble when a setting's value is managed by policy.">
-        This setting is managed by your administrator or by another Brave policy.
+        This setting is managed by your administrator or by another AI Automation Browser policy.
       </message>
 
       <!--Customize Chrome Panel -->
@@ -1613,10 +1613,10 @@ Or change later at <ph name="SETTINGS_EXTENIONS_LINK">$2<ex>brave://settings/ext
 
       <!--Password Manager -->
       <message name="IDS_BRAVE_PASSWORD_MANAGER_UI_EMPTY_STATE_SIGNEDOUT_USERS" desc="A label shown if there are no saved passwords prompting user to import them.">
-        Saved passwords will appear here. To import passwords to <ph name="BRAND">$1<ex>Brave Password Manager</ex></ph> on this device, <ph name="BEGIN_LINK">&lt;a href="#" &gt;</ph> select a CSV file<ph name="END_LINK">&lt;/a&gt;</ph>
+        Saved passwords will appear here. To import passwords to <ph name="BRAND">$1<ex>AI Automation Browser Password Manager</ex></ph> on this device, <ph name="BEGIN_LINK">&lt;a href="#" &gt;</ph> select a CSV file<ph name="END_LINK">&lt;/a&gt;</ph>
       </message>
       <message name="IDS_BRAVE_PASSWORD_MANAGER_UI_IMPORT_DESCRIPTION_SIGNEDOUT_USERS" desc="The description for the password import banner in Password Manager settings.">
-        To import passwords to <ph name="BRAND">$1<ex>Brave Password Manager</ex></ph> on this device, select a CSV file
+        To import passwords to <ph name="BRAND">$1<ex>AI Automation Browser Password Manager</ex></ph> on this device, select a CSV file
       </message>
       <message name="IDS_LOCAL_AI_TASK_MANAGER_TITLE" desc="The label for the on-device AI background process in the Task Manager.">
         On-Device AI
@@ -1626,12 +1626,12 @@ Or change later at <ph name="SETTINGS_EXTENIONS_LINK">$2<ex>brave://settings/ext
       </message>
 
       <!-- History semantic search disclaimer. Upstream's text implies a
-           round-trip to the vendor with human review; Brave's implementation
+           round-trip to the vendor with human review; AI Automation Browser's implementation
            runs entirely on-device (see
            brave/browser/history_embeddings/README.md), so we ship our own
            string and swap the IDS in chromium_src overrides. -->
       <message name="IDS_BRAVE_HISTORY_EMBEDDINGS_DISCLAIMER" desc="Disclaimer shown on chrome://history and in the history search IPH promo, indicating that history semantic search runs entirely on-device.">
-        Your searches and page contents are processed on this device. Nothing is sent to Brave or seen by human reviewers.
+        Your searches and page contents are processed on this device. Nothing is sent to AI Automation Browser or seen by human reviewers.
       </message>
 
       <!-- Semantic History Search toggle in the chrome://history side bar. -->

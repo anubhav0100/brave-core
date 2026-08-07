@@ -257,7 +257,7 @@
     Dev tools inspect
   </message>
   <message name="IDS_IDC_UPGRADE_DIALOG">
-    Upgrade Brave
+    Upgrade AI Automation Browser
   </message>
   <message name="IDS_IDC_SHOW_AVATAR_MENU">
     Show avatar menu
@@ -353,7 +353,7 @@
     Toggle live captions
   </message>
   <message name="IDS_IDC_TOGGLE_AI_CHAT">
-    Toggle Leo AI
+    Toggle AI Assistant
   </message>
   <message name="IDS_IDC_SHOW_BRAVE_WALLET_PANEL">
     Show Brave Wallet panel

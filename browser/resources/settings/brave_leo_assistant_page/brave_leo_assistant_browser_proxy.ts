@@ -14,6 +14,63 @@
  export * from '../customization_settings.mojom-webui.js'
  export {OLLAMA_ENDPOINT} from '../ollama.mojom-webui.js'
 
+ export interface WebhookToolParameter {
+  name: string
+  description: string
+  required: boolean
+ }
+
+ export interface WebhookToolDto {
+  id?: string
+  name: string
+  description: string
+  url: string
+  secret: string
+  enabled: boolean
+  parameters: WebhookToolParameter[]
+ }
+
+ export interface WebhookToolListItem {
+  id: string
+  name: string
+  description: string
+  url: string
+  enabled: boolean
+  hasSecret: boolean
+  parameters: WebhookToolParameter[]
+ }
+
+ export interface AIChatConversationListItem {
+  uuid: string
+  title: string
+  updatedTimeMs: number
+ }
+
+ export interface WorkflowListItem {
+  id: string
+  name: string
+  version: string
+  status: string
+  definitionJson: string
+ }
+
+ export interface WorkflowValidationError {
+  stepId: string
+  message: string
+ }
+
+ export interface SaveWorkflowResult {
+  id?: string
+  errors: WorkflowValidationError[]
+ }
+
+ export interface RunWorkflowResult {
+  success: boolean
+  errorMessage: string
+  executedStepIds: string[]
+  outputs: Record<string, string>
+ }
+
  export interface BraveLeoAssistantBrowserProxy {
   resetLeoData(): void
   getLeoIconVisibility(): Promise<boolean>
@@ -25,6 +82,22 @@
   getCustomizationSettingsCallbackRouter():
     mojomCustomizationSettings.CustomizationSettingsUICallbackRouter
   checkOllamaConnection(): Promise<{connected: boolean}>
+  fetchAvailableModels(endpoint: string, apiKey: string): Promise<string[]>
+  getPageCaptureData(): Promise<{
+    entries: {heading: string, preview: string}[],
+    log: {timestampMs: number, message: string}[]
+  }>
+  getWebhookTools(): Promise<WebhookToolListItem[]>
+  addWebhookTool(tool: WebhookToolDto): Promise<string>
+  updateWebhookTool(tool: WebhookToolDto): Promise<boolean>
+  deleteWebhookTool(id: string): Promise<boolean>
+  getAIChatConversations(): Promise<AIChatConversationListItem[]>
+  openAIChatConversation(uuid: string): Promise<boolean>
+  getWorkflows(): Promise<WorkflowListItem[]>
+  saveWorkflow(definitionJson: string): Promise<SaveWorkflowResult>
+  publishWorkflow(id: string): Promise<boolean>
+  deleteWorkflow(id: string): Promise<boolean>
+  runWorkflow(id: string): Promise<RunWorkflowResult>
  }
 
  export class BraveLeoAssistantBrowserProxyImpl
@@ -90,6 +163,63 @@
      return {
        connected: result.connected
      }
+   }
+
+   fetchAvailableModels(endpoint: string, apiKey: string) {
+     return sendWithPromise<string[]>(
+       'fetchAvailableModels', { endpoint, apiKey })
+   }
+
+   getPageCaptureData() {
+     return sendWithPromise<{
+       entries: {heading: string, preview: string}[],
+       log: {timestampMs: number, message: string}[]
+     }>('getPageCaptureData')
+   }
+
+   getWebhookTools() {
+     return sendWithPromise<WebhookToolListItem[]>('getWebhookTools')
+   }
+
+   addWebhookTool(tool: WebhookToolDto) {
+     return sendWithPromise<string>('addWebhookTool', tool)
+   }
+
+   updateWebhookTool(tool: WebhookToolDto) {
+     return sendWithPromise<boolean>('updateWebhookTool', tool)
+   }
+
+   deleteWebhookTool(id: string) {
+     return sendWithPromise<boolean>('deleteWebhookTool', id)
+   }
+
+   getAIChatConversations() {
+     return sendWithPromise<AIChatConversationListItem[]>(
+       'getAIChatConversations')
+   }
+
+   openAIChatConversation(uuid: string) {
+     return sendWithPromise<boolean>('openAIChatConversation', uuid)
+   }
+
+   getWorkflows() {
+     return sendWithPromise<WorkflowListItem[]>('getWorkflows')
+   }
+
+   saveWorkflow(definitionJson: string) {
+     return sendWithPromise<SaveWorkflowResult>('saveWorkflow', definitionJson)
+   }
+
+   publishWorkflow(id: string) {
+     return sendWithPromise<boolean>('publishWorkflow', id)
+   }
+
+   deleteWorkflow(id: string) {
+     return sendWithPromise<boolean>('deleteWorkflow', id)
+   }
+
+   runWorkflow(id: string) {
+     return sendWithPromise<RunWorkflowResult>('runWorkflow', id)
    }
  }
 

@@ -105,6 +105,7 @@ class AIChatUIPageHandler : public mojom::AIChatUIHandler,
   void GetPluralString(const std::string& key,
                        int32_t count,
                        GetPluralStringCallback callback) override;
+  void GetWorkflows(GetWorkflowsCallback callback) override;
   void CloseUI() override;
   void SetChatUI(mojo::PendingRemote<mojom::ChatUI> chat_ui,
                  SetChatUICallback callback) override;

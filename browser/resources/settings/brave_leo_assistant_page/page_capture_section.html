@@ -1,0 +1,125 @@
+<!-- Copyright (c) 2026 The Brave Authors. All rights reserved.
+This Source Code Form is subject to the terms of the Mozilla Public
+License, v. 2.0. If a copy of the MPL was not distributed with this file,
+You can obtain one at https://mozilla.org/MPL/2.0/. -->
+
+<style include="cr-shared-style settings-shared">
+  .header {
+    padding: var(--leo-spacing-2xl) var(--leo-spacing-2xl) 0 var(--leo-spacing-2xl);
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: var(--leo-spacing-l);
+  }
+
+  .main-header {
+    font: var(--leo-font-heading-h4);
+  }
+
+  .section-title {
+    font: var(--leo-font-heading-h4);
+    padding: var(--leo-spacing-xl) var(--leo-spacing-2xl) var(--leo-spacing-m) var(--leo-spacing-2xl);
+  }
+
+  .list-container {
+    padding: 0 var(--leo-spacing-2xl) var(--leo-spacing-xl) var(--leo-spacing-2xl);
+  }
+
+  .list {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    border: 1px solid var(--leo-color-divider-subtle);
+    border-radius: var(--leo-radius-m);
+    max-height: 320px;
+    overflow-y: auto;
+  }
+
+  .entry {
+    padding: var(--leo-spacing-l) var(--leo-spacing-xl);
+    border-bottom: 1px solid var(--leo-color-divider-subtle);
+  }
+
+  .entry:last-of-type, .log-row:last-of-type {
+    border-bottom: none;
+  }
+
+  .entry-heading {
+    font-weight: 600;
+  }
+
+  .entry-preview {
+    color: var(--leo-color-text-secondary);
+    font: var(--leo-font-small-regular);
+    margin-top: var(--leo-spacing-s);
+    white-space: pre-wrap;
+  }
+
+  .log-row {
+    display: flex;
+    gap: var(--leo-spacing-l);
+    padding: var(--leo-spacing-m) var(--leo-spacing-xl);
+    border-bottom: 1px solid var(--leo-color-divider-subtle);
+    font: var(--leo-font-small-regular);
+  }
+
+  .log-time {
+    color: var(--leo-color-text-tertiary);
+    flex-shrink: 0;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .log-message {
+    color: var(--leo-color-text-secondary);
+  }
+
+  .empty-state {
+    color: var(--leo-color-text-tertiary);
+    text-align: center;
+    padding: var(--leo-spacing-2xl) 0;
+  }
+</style>
+
+<div class="settings-box header">
+  <div class="flex">
+    <div class="main-header">$i18n{pageCaptureSectionTitle}</div>
+    <div class="label secondary">$i18n{pageCaptureSectionDesc}</div>
+  </div>
+  <leo-button kind="outline" size="small" on-click="onRefreshClick_" isLoading="[[isLoading_]]">
+    $i18n{pageCaptureRefreshButtonLabel}
+  </leo-button>
+</div>
+
+<div class="section-title">$i18n{pageCaptureSessionEntriesTitle}</div>
+<div class="list-container">
+  <template is="dom-if" if="[[!hasEntries_(entries_)]]">
+    <div class="empty-state">$i18n{pageCaptureNoEntriesLabel}</div>
+  </template>
+  <template is="dom-if" if="[[hasEntries_(entries_)]]">
+    <div class="list">
+      <template is="dom-repeat" items="[[entries_]]">
+        <div class="entry">
+          <div class="entry-heading">[[item.heading]]</div>
+          <div class="entry-preview">[[item.preview]]</div>
+        </div>
+      </template>
+    </div>
+  </template>
+</div>
+
+<div class="section-title">$i18n{pageCaptureActivityLogTitle}</div>
+<div class="list-container">
+  <template is="dom-if" if="[[!hasLog_(log_)]]">
+    <div class="empty-state">$i18n{pageCaptureNoLogLabel}</div>
+  </template>
+  <template is="dom-if" if="[[hasLog_(log_)]]">
+    <div class="list">
+      <template is="dom-repeat" items="[[log_]]">
+        <div class="log-row">
+          <div class="log-time">[[item.time]]</div>
+          <div class="log-message">[[item.message]]</div>
+        </div>
+      </template>
+    </div>
+  </template>
+</div>

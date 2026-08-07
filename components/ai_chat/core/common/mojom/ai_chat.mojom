@@ -37,6 +37,17 @@ const string kTypeTextToolName = "type_text";
 const string kWaitToolName = "wait";
 const string kProposeFormFillPlanToolName = "propose_form_fill_plan";
 
+const string kCreateWordDocumentToolName = "create_word_document";
+const string kReadWordDocumentToolName = "read_word_document";
+const string kCapturePageToSessionToolName = "capture_page_to_session";
+const string kSaveCapturedSessionAsWordDocumentToolName =
+    "save_captured_session_as_word_document";
+const string kClearCapturedSessionToolName = "clear_captured_session";
+const string kRunWorkflowToolName = "run_workflow";
+const string kCreateSpreadsheetToolName = "create_spreadsheet";
+const string kCreatePresentationToolName = "create_presentation";
+const string kCreatePdfDocumentToolName = "create_pdf_document";
+
 // Server side tools
 const string kBraveNewsSearchToolName = "brave_news_search";
 const string kBraveWebSearchToolName = "brave_web_search";
@@ -207,6 +218,16 @@ interface ServiceObserver {
   OnSkillsChanged(array<Skill> skills);
 };
 
+// Summary of one saved workflow (see the workflow orchestration engine
+// design doc and workflow_definition.h), for the "run a workflow" picker in
+// the chat UI - enough to display and to reference via run_workflow's
+// workflow_id, nothing more.
+struct WorkflowSummary {
+  string id;
+  string name;
+  string status;
+};
+
 // Browser-side handler for general AI Chat UI functions, implemented
 // per-platform
 interface AIChatUIHandler {
@@ -250,6 +271,11 @@ interface AIChatUIHandler {
 
   // Get a plural string for the given key and count.
   GetPluralString(string key, int32 count) => (string plural_string);
+
+  // Lists workflows saved via the "Workflows" Settings section, for a
+  // picker that lets the user ask the assistant to run one - the assistant
+  // itself runs it via the run_workflow tool once asked.
+  GetWorkflows() => (array<WorkflowSummary> workflows);
 
   // This might be a no-op if the UI isn't closeable
   CloseUI();

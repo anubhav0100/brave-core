@@ -6,7 +6,7 @@
 
   <!-- Strings not associated with a particular section-->
   <message name="IDS_SETTINGS_RESTART_NOTICE" desc="Notifies the user that they need to relaunch Brave">
-    Your changes will take effect the next time you relaunch Brave.
+    Your changes will take effect the next time you relaunch AI Automation Browser.
   </message>
   <message name="IDS_SETTINGS_RELAUNCH_BUTTON_LABEL" desc="Notifies the user that they need to relaunch Brave">
     Relaunch Now
@@ -47,7 +47,7 @@
 
   <!-- Settings / Appearance -->
   <message name="IDS_SETTINGS_APPEARANCE_SETTINGS_BRAVE_THEMES" desc="The label for brave theme change setting options">
-    Brave colors
+    AI Automation Browser colors
   </message>
   <message name="IDS_BRAVE_THEME_TYPE_LIGHT" desc="Text for light theme type">
     Light
@@ -83,7 +83,7 @@
     Get more themes
   </message>
   <message name="IDS_SETTINGS_APPEARANCE_SETTINGS_BRAVE_DEFAULT_IMAGES_OPTION_LABEL" desc="The label for choosing default images over super referral">
-    Brave default images
+    AI Automation Browser default images
   </message>
   <message name="IDS_SETTINGS_APPEARANCE_SETTINGS_TOOLBAR_SECTION" desc="The label for section containing settings related to toolbar">
     Toolbar
@@ -238,13 +238,13 @@
     Quick commands
   </message>
   <message name="IDS_SETTINGS_APPEARANCE_SETTINGS_USE_AUTOCOMPLETE_LEO" desc="The label for settings checkbox en/disabling autcomplete provider with Leo assistant">
-    Leo AI Assistant
+    AI Assistant
   </message>
   <message name="IDS_SETTINGS_SHOW_BRAVE_NEWS_BUTTON_LABEL" desc="The label for the settings switch controlling whether the Brave News button is shown in the toolbar">
     Show Brave News button
   </message>
   <message name="IDS_SETTINGS_SHOW_LEO_BUTTON_LABEL" desc="The label for the settings switch controlling whether the Leo button is shown in the toolbar">
-    Show Leo AI button
+    Show AI Assistant button
   </message>
   <message name="IDS_SETTINGS_SHOW_BOOKMARK_BAR" desc="The label for settings switch controlling the permanent visibility of bookmarks bar">
     Show bookmarks bar
@@ -351,7 +351,7 @@
         Click Pin and confirm in the following Windows notification
       </message>
       <message name="IDS_SETTINGS_SHORTCUT_PINNED" desc="The label for pinned state description">
-        Brave is already pinned
+        AI Automation Browser is already pinned
       </message>
     </if>
     <if expr="is_macosx">
@@ -362,7 +362,7 @@
         Dock
       </message>
       <message name="IDS_SETTINGS_SHORTCUT_PINNED" desc="The label for docked state description">
-        Brave is already in Dock
+        AI Automation Browser is already in Dock
       </message>
     </if>
   </if>
@@ -632,7 +632,7 @@
     Features
   </message>
   <message name="IDS_SETTINGS_BRAVE_ORIGIN_LEO_AI_TOGGLE_TITLE" desc="The title for toggling the 'Leo AI' feature on/off for Brave Origin">
-    Leo AI
+    AI Assistant
   </message>
   <message name="IDS_SETTINGS_BRAVE_ORIGIN_LOCAL_AI_TOGGLE_TITLE" desc="The title for toggling the 'On-Device AI' master switch (history embeddings and any future on-device AI features) on/off for Brave Origin">
     On-Device AI
@@ -685,10 +685,10 @@
     Brave Origin
   </message>
   <message name="IDS_SETTINGS_BRAVE_ORIGIN_ONBOARDING_HEADING_TITLE" desc="The heading title for the Brave Origin onboarding section">
-    Customize your browser while still supporting Brave
+    Customize your browser while still supporting AI Automation Browser
   </message>
   <message name="IDS_SETTINGS_BRAVE_ORIGIN_ONBOARDING_DESCRIPTION" desc="The first paragraph describing Brave Origin in the onboarding section">
-    Brave Origin is a paid version of the browser for users who don't need all the features that support Brave as a business, but still want the privacy that only Brave offers. Origin users will continue to benefit from our industry-leading privacy, adblock, and speed (via Shields), as well as regular software updates, Chromium patches, and security and privacy improvements.
+    Brave Origin is a paid version of the browser for users who don't need all the features that support AI Automation Browser as a business, but still want the privacy that only AI Automation Browser offers. Origin users will continue to benefit from our industry-leading privacy, adblock, and speed (via Shields), as well as regular software updates, Chromium patches, and security and privacy improvements.
   </message>
   <message name="IDS_SETTINGS_BRAVE_ORIGIN_ONBOARDING_BUY_NOW" desc="The label for the Buy now button in Brave Origin onboarding">
     Buy now
@@ -725,7 +725,7 @@
     Use Adblock-Only mode
   </message>
   <message name="IDS_SETTINGS_AD_BLOCK_ONLY_MODE_DESC" desc="The description for settings option to enable shields Adblock-Only mode">
-    Adblock-Only mode retains core ad blocking rules of Brave Shields. Warning: removes all privacy protections. Please note that for individual websites broken by Brave's privacy protections, you can set Shields to DOWN. This is an experimental mode. <ph name="BEGIN_LINK">&lt;a target="_blank" href="$1"&gt;</ph>Learn more<ph name="END_LINK">&lt;/a&gt;</ph>
+    Adblock-Only mode retains core ad blocking rules of Brave Shields. Warning: removes all privacy protections. Please note that for individual websites broken by AI Automation Browser's privacy protections, you can set Shields to DOWN. This is an experimental mode. <ph name="BEGIN_LINK">&lt;a target="_blank" href="$1"&gt;</ph>Learn more<ph name="END_LINK">&lt;/a&gt;</ph>
   </message>
   <message name="IDS_SETTINGS_AD_BLOCK_ONLY_MODE_ALERT_TITLE" desc="Title for the alert shown when Adblock-Only mode is enabled">
     Shields options are currently disabled.
@@ -793,7 +793,7 @@
     Local history retention
   </message>
   <message name="IDS_SETTINGS_HISTORY_RETENTION_SUB_LABEL" desc="Description for the setting that controls how long browsing history is retained">
-    How long Brave stores your browsing history locally
+    How long AI Automation Browser stores your browsing history locally
   </message>
   <message name="IDS_SETTINGS_HISTORY_RETENTION_ONE_DAY" desc="Dropdown option that keeps browsing history for one day">
     1 day
@@ -824,7 +824,7 @@
     Automatically send diagnostic reports
   </message>
   <message name="IDS_BRAVE_DIAGNOSTIC_REPORTS_PREF_DESC" desc="The description of the checkbox to enable/disable sending diagnostic reports (crashes, hangs).">
-    Help improve Brave's product stability by automatically sending diagnostic reports when the Brave Browser crashes or freezes
+    Help improve AI Automation Browser's product stability by automatically sending diagnostic reports when the AI Automation Browser crashes or freezes
   </message>
   <!-- Request OTR -->
   <if expr="enable_request_otr">
@@ -849,7 +849,7 @@
       Show Privacy settings tuning notification on compatible sites
     </message>
     <message name="IDS_SETTINGS_PSST_SUB_LABEL" desc="Privacy settings tuning sub-label">
-      Allows Brave to automatically suggest (and adjust) site-specific privacy settings.
+      Allows AI Automation Browser to automatically suggest (and adjust) site-specific privacy settings.
     </message>
   </if>
   <if expr="is_win">
@@ -857,7 +857,7 @@
       Block Microsoft Recall
     </message>
     <message name="IDS_SETTINGS_WINDOWS_RECALL_DISABLED_SUBLABEL" desc="Windows Recall setting sub-label">
-      Block the Recall feature on Microsoft Windows computers from automatically taking screenshots of any open Brave tabs.
+      Block the Recall feature on Microsoft Windows computers from automatically taking screenshots of any open AI Automation Browser tabs.
     </message>
   </if>
   <!-- Data collection -->
@@ -962,7 +962,7 @@
   <!-- Settings / Privacy and security / Security -->
   <!-- Safe browsing -->
   <message name="IDS_SETTINGS_BRAVE_SAFEBROWSING_STANDARD_BULLET_TWO" desc="Second bullet point under the safe browsing standard protection mode">
-    Checks URLs with a list of unsafe sites stored in Brave.
+    Checks URLs with a list of unsafe sites stored in AI Automation Browser.
   </message>
   <message name="IDS_SETTINGS_BRAVE_SAFEBROWSING_NONE_DESC" desc="Description for safe browsing no protection mode">
     Does not protect you against dangerous websites, downloads, and extensions.
@@ -1034,13 +1034,13 @@
 
   <!-- AI chat setting -->
   <message name="IDS_SETTINGS_SITE_SETTINGS_BRAVE_OPEN_AI_CHAT" desc="Label for opening Leo AI chat site settings.">
-    Leo AI chat
+    AI Assistant chat
   </message>
   <message name="IDS_SETTINGS_SITE_SETTINGS_BRAVE_OPEN_AI_CHAT_ASK" desc="Label for the enabled option of opening Leo AI chat site settings.">
-    Sites can ask to open Leo AI chat
+    Sites can ask to open AI Assistant chat
   </message>
   <message name="IDS_SETTINGS_SITE_SETTINGS_BRAVE_OPEN_AI_CHAT_BLOCK" desc="Label for the disabled option of opening Leo AI chat site settings.">
-    Don't allow site to open Leo AI chat
+    Don't allow site to open AI Assistant chat
   </message>
 
   <!-- Settings / Sync -->
@@ -1054,13 +1054,13 @@
     Sync Setup
   </message>
   <message name="IDS_SETTINGS_BRAVE_SYNC_SETUP_SUBTITLE" desc="Subtitle for the Brave Sync settings setup section">
-    To start, you will need Brave installed on all the devices you plan to sync. Then, securely link them together with a sync code.
+    To start, you will need AI Automation Browser installed on all the devices you plan to sync. Then, securely link them together with a sync code.
   </message>
   <message name="IDS_SETTINGS_BRAVE_SYNC_MANAGE_ACTION_LABEL" desc="Brave Sync manage action label">
     Manage your synced devices
   </message>
   <message name="IDS_SETTINGS_BRAVE_SYNC_COULD_NOT_SYNC_ACTION_LABEL" desc="Could not sync devices action label. It is displayed in the case when Brave Sync could not decrypt code words and start work">
-    Could not sync Brave on your devices
+    Could not sync AI Automation Browser on your devices
   </message>
   <message name="IDS_SETTINGS_BRAVE_SYNC_MANAGER_TITLE" desc="Brave Sync manager title">
     Sync Manager
@@ -1105,7 +1105,7 @@
     There was an error displaying the QR code, please refresh and try again.
   </message>
   <message name="IDS_BRAVE_SYNC_SETUP_DESCRIPTION" desc="The Sync phrase explaining what happens when you start a new sync chain. Appears when sync is disabled.">
-    To start, you will need Brave installed on all the devices you plan to sync. To chain them together, start a sync chain that you will use to securely link all of your devices together.
+    To start, you will need AI Automation Browser installed on all the devices you plan to sync. To chain them together, start a sync chain that you will use to securely link all of your devices together.
   </message>
   <message name="IDS_BRAVE_SYNC_START_NEW_CHAIN_BUTTON" desc="The Sync button that triggers a modal to start a new sync chian">
     Start a new Sync Chain
@@ -1183,7 +1183,7 @@
     Internal account delete error
   </message>
   <message name="IDS_BRAVE_SYNC_CODE_FROM_DEPRECATED_VERSION" desc="Text for error when trying to use old version sync code after v1 sunset date.">
-    This code was generated by a deprecated version of Brave, please upgrade your other device first
+    This code was generated by a deprecated version of AI Automation Browser, please upgrade your other device first
   </message>
   <message name="IDS_BRAVE_SYNC_CODE_EXPIRED" desc="Text for error when trying to use the sync code which has expired.">
     This code has expired. Please generate a new one on your other device and try again.
@@ -1201,14 +1201,14 @@
     Are you sure you want to remove the selected device from the sync chain?
   </message>
   <message name="IDS_BRAVE_SYNC_FINAL_SECURITY_WARNING_TEXT" desc="Confirmation message prompt to make sure the user aware his data will be shared with other devices in chain">
-    Warning: this will share your Brave data, including potentially your passwords, with the device that generated these code words.
+    Warning: this will share your AI Automation Browser data, including potentially your passwords, with the device that generated these code words.
 
     Please double check that these code words were generated by a device that you own.
 
     Are you sure you want to do this?
   </message>
   <message name="IDS_BRAVE_SYNC_PASSPHRASE_DECRYPTION_ERROR_MESSAGE" desc="Warning message that informs user about Brave Sync is not running and browser needs to have access to secure OS passwords store">
-    Brave could not access your operating system's safe storage. This is what's used to secure data such as passwords and cookies; it's also required for Brave Sync to connect your browser profile between devices. This means Brave Sync is not running. To resolve this issue, please see the <ph name="BEGIN_LINK_SYNC_GUIDE">&lt;a target="_blank" href="$1"&gt;</ph>Brave Sync troubleshooting guide<ph name="END_LINK_SYNC_GUIDE">&lt;/a&gt;</ph>.
+    AI Automation Browser could not access your operating system's safe storage. This is what's used to secure data such as passwords and cookies; it's also required for Brave Sync to connect your browser profile between devices. This means Brave Sync is not running. To resolve this issue, please see the <ph name="BEGIN_LINK_SYNC_GUIDE">&lt;a target="_blank" href="$1"&gt;</ph>Brave Sync troubleshooting guide<ph name="END_LINK_SYNC_GUIDE">&lt;/a&gt;</ph>.
   </message>
   <message name="IDS_BRAVE_SYNC_PASSPHRASE_DECRYPTION_SS_UNLOCKED_ERROR_MESSAGE" desc="Warning">
     It looks like the sync encryption key is different from the one used when you first set up Brave Sync. The easiest fix here is to reset and re-join the sync chain using the passphrase from one of your other synced devices.
@@ -1223,7 +1223,7 @@
     Permanently delete account
   </message>
   <message name="IDS_BRAVE_SYNC_DELETE_ACCOUNT_DESCRIPTION_PARTIAL_1" desc="">
-    Deleting your account will remove your encrypted data from Brave servers and disable Sync on all of your connected devices.
+    Deleting your account will remove your encrypted data from AI Automation Browser servers and disable Sync on all of your connected devices.
   </message>
   <message name="IDS_BRAVE_SYNC_DELETE_ACCOUNT_DESCRIPTION_PARTIAL_2" desc="">
     It will not however delete the data that is stored locally on those devices.
@@ -1248,7 +1248,7 @@
     Passwords
   </message>
   <message name="IDS_SETTINGS_AI_CHAT_CHECKBOX_LABEL" desc="Label for the checkbox which enables or disables syncing Leo AI Chat conversation history between multiple browser instances.">
-    Leo AI Conversations
+    AI Assistant Conversations
   </message>
 
   <!-- Settings / Search engine -->
@@ -1256,7 +1256,7 @@
     Improve search suggestions
   </message>
   <message name="IDS_SETTINGS_BRAVE_SEARCH_ENGINES_SEARCH_SUGGEST_DESC" desc="The desc of the option to enable/disable sending omnibox input to the user's default search engine to get additional suggestions.">
-    When on, Brave sends what you type in the address bar or search box to your default search engine to get better suggestions. When off, Brave only shows suggestions generated on your device. This is always off in private windows.
+    When on, AI Automation Browser sends what you type in the address bar or search box to your default search engine to get better suggestions. When off, AI Automation Browser only shows suggestions generated on your device. This is always off in private windows.
   </message>
   <message name="IDS_SETTINGS_NORMAL_PROFILE_SEARCH_EXPLANATION" desc="Explanation for the search engine setting.">
     Search engine used in the address bar.
@@ -1274,10 +1274,10 @@
     Search engine for Private Windows
   </message>
   <message name="IDS_SETTINGS_PRIVATE_PROFILE_SEARCH_ENGINE_CHOICE_SETTINGS_CONFIRMATION_TOAST_LABEL" desc="This confirmation message is intended to help users understand that their choice is now saved. It appears after the user changes their default private search engine in Brave settings. (A search engine provides answers to search queries; this is different from a browser, which displays web pages. A search engine powers many experiences within a browser.)">
-    <ph name="SEARCH_ENGINE_NAME">$1<ex>Brave</ex></ph> is now your default search engine for private windows
+    <ph name="SEARCH_ENGINE_NAME">$1<ex>AI Automation Browser</ex></ph> is now your default search engine for private windows
   </message>
   <message name="IDS_SETTINGS_SEARCH_ENGINE_LIST_BRAVE_SEARCH_DESCRIPTION" desc="The description shown with the Brave Search radio button in the search engines list.">
-    Brave Search is recommended for the best browsing experience while using Brave browser.
+    Brave Search is recommended for the best browsing experience while using AI Automation Browser.
   </message>
   <message name="IDS_SETTINGS_SEARCH_ENGINE_LIST_BRAVE_SEARCH_RECOMMENDED" desc="The label shown in the Brave Search radio button in the search engines list.">
     Recommended
@@ -1396,10 +1396,10 @@
     Manifest V2 extensions
   </message>
   <message name="IDS_SETTINGS_MANAGE_EXTENSIONS_V2_SUBLABEL" desc="The sub label of manage v2 extensions link in settings">
-    The following Manifest V2 extensions will be removed from the Chrome Web Store, but are still supported in Brave. Toggle to download and install, or to uninstall.
+    The following Manifest V2 extensions will be removed from the Chrome Web Store, but are still supported in AI Automation Browser. Toggle to download and install, or to uninstall.
   </message>
   <message name="IDS_SETTINGS_MANAGE_EXTENSIONS_V2_WARN" desc="The warning message in v2 extensions in settings.">
-    Brave hosts these Manifest V2 extensions on Brave servers, but does not review or verify their content, security, or behavior. Please see each extension's official page for help. Read Brave's plans for Manifest V2 <ph name="BEGIN_LINK">&lt;a target="_blank" rel="noreferrer" href="$1"&gt;</ph>here<ph name="END_LINK">&lt;/a&gt;</ph>.
+    AI Automation Browser hosts these Manifest V2 extensions on AI Automation Browser servers, but does not review or verify their content, security, or behavior. Please see each extension's official page for help. Read AI Automation Browser's plans for Manifest V2 <ph name="BEGIN_LINK">&lt;a target="_blank" rel="noreferrer" href="$1"&gt;</ph>here<ph name="END_LINK">&lt;/a&gt;</ph>.
   </message>
   <message name="IDS_SETTINGS_MANAGE_EXTENSIONS_V2_TOAST_CONFIRM" desc="The label of the error toast button in settings">
     Close
@@ -1672,22 +1672,22 @@
 
   <!-- Settings / Leo Assistant -->
   <message name="IDS_SETTINGS_LEO_ASSISTANT" desc="Title for an item in the 'Leo Assistant' section of Brave Settings">
-    Leo
+    AI Assistant
   </message>
   <message name="IDS_SETTINGS_LEO_ASSISTANT_SHOW_ICON_ON_TOOLBAR_LABEL" desc="The text for settings option">
-    Show Leo icon in the sidebar
+    Show AI Assistant icon in the sidebar
   </message>
   <message name="IDS_SETTINGS_LEO_ASSISTANT_SHOW_IN_CONTEXT_MENU_LABEL" desc="The text for settings option to show Leo in context menu">
-    Show Leo in the context menu on websites
+    Show AI Assistant in the context menu on websites
   </message>
   <message name="IDS_SETTINGS_LEO_ASSISTANT_SHOW_IN_CONTEXT_MENU_DESC" desc="The description for settings option to show Leo in context menu">
-    Leo will appear in the context menu when you right-click on a website. This will send context from the current web page to Leo.
+    AI Assistant will appear in the context menu when you right-click on a website. This will send context from the current web page to AI Assistant.
   </message>
   <message name="IDS_SETTINGS_LEO_ASSISTANT_TAB_ORGANIZATION_LABEL" desc="The text for settings option to enable tab focus mode">
     Tab Focus Mode
   </message>
   <message name="IDS_SETTINGS_LEO_ASSISTANT_TAB_ORGANIZATION_DESC" desc="The description for settings option to enable tab focus mode">
-    Enable tab organization in Tab Search page. When opened, this will automatically send the titles and origins of all non-private tabs to Leo to classify them. <ph name="BEGIN_LINK">&lt;a target="_blank" href="$1"&gt;</ph>Learn more<ph name="END_LINK">&lt;/a&gt;</ph>
+    Enable tab organization in Tab Search page. When opened, this will automatically send the titles and origins of all non-private tabs to AI Assistant to classify them. <ph name="BEGIN_LINK">&lt;a target="_blank" href="$1"&gt;</ph>Learn more<ph name="END_LINK">&lt;/a&gt;</ph>
   </message>
   <message name="IDS_SETTINGS_LEO_ASSISTANT_TAB_ORGANIZATION_MODEL_LABEL" desc="The label for the tab organization model selection dropdown">
     Default model for tab focus
@@ -1705,28 +1705,28 @@
     Disabling conversation storage will permanently erase all previously stored conversations. This action can't be undone.
   </message>
   <message name="IDS_SETTINGS_LEO_ASSISTANT_RESET_AND_CLEAR_DATA_LABEL" desc="The button label for resetting AI Chat data">
-    Clear Leo data
+    Clear AI Assistant data
   </message>
   <message name="IDS_SETTINGS_LEO_ASSISTANT_RESET_AND_CLEAR_DATA_CONFIRMATION_LABEL" desc="The confirmation window message for reset option">
-    Resetting Leo AI will require you to opt-in to use Brave Leo AI in the future and will also clear your chat history, customizations, and memories. Clearing your chat history will delete all your previous conversations with Brave Leo AI. This action can't be undone.
+    Resetting AI Assistant will require you to opt-in to use AI Automation Browser AI Assistant in the future and will also clear your chat history, customizations, and memories. Clearing your chat history will delete all your previous conversations with AI Automation Browser AI Assistant. This action can't be undone.
   </message>
   <message name="IDS_SETTINGS_LEO_ASSISTANT_AUTOCOMPLETE_LINK" desc="A label for a link to settings page to adjust autocomplete suggestion based on Leo">
     Adjust autocomplete suggestions
   </message>
   <message name="IDS_SETTINGS_AI_CHAT_CLEAR_HISTORY_DATA_LABEL" desc="Label for checkbox to select AI assistant conversations for deletion when deleting browser data">
-    Leo AI
+    AI Assistant
   </message>
   <message name="IDS_SETTINGS_AI_CHAT_CLEAR_HISTORY_DATA_SUBLABEL" desc="Label description for checkbox to select AI assistant conversations for deletion when deleting browser data">
     Chat history
   </message>
   <message name="IDS_SETTINGS_LEO_ASSISTANT_ABOUT_LEO_LABEL" desc="Label for the about Leo assistant section">
-    About Leo AI
+    About AI Assistant
   </message>
   <message name="IDS_SETTINGS_LEO_ASSISTANT_ABOUT_LEO_DESC_1" desc="Description for the about Leo assistant section">
-    Brave Leo provides privacy-first AI chat and other AI-powered interfaces in the browser. Leo never learns from your data or uses it for model training. All requests are proxied through an anonymizing server.
+    AI Automation Browser AI Assistant provides privacy-first AI chat and other AI-powered interfaces in the browser. AI Assistant never learns from your data or uses it for model training. All requests are proxied through an anonymizing server.
   </message>
   <message name="IDS_SETTINGS_LEO_ASSISTANT_ABOUT_LEO_DESC_2" desc="Description for learning more about Leo privacy policy">
-    Read more about how Brave protects your use of AI in Leo's privacy policy. <ph name="BEGIN_LINK">&lt;a target="_blank" href="$1"&gt;</ph>Learn more<ph name="END_LINK">&lt;/a&gt;</ph>
+    Read more about how AI Automation Browser protects your use of AI in AI Assistant's privacy policy. <ph name="BEGIN_LINK">&lt;a target="_blank" href="$1"&gt;</ph>Learn more<ph name="END_LINK">&lt;/a&gt;</ph>
   </message>
   <message name="IDS_SETTINGS_LEO_ASSISTANT_MODEL_SELECTION_LABEL" desc="Label for selecting default model">
     Default model for new conversations
@@ -1735,7 +1735,7 @@
     Personalization
   </message>
   <message name="IDS_SETTINGS_LEO_ASSISTANT_CUSTOMIZATION_LINK_LABEL" desc="Label for a link to Leo customization page">
-    Customize Leo's responses and memories
+    Customize AI Assistant's responses and memories
   </message>
   <message name="IDS_SETTINGS_LEO_ASSISTANT_MANAGE_URL" desc="Label for managing accounts url">
     Manage premium subscription
@@ -1744,7 +1744,7 @@
     Bring your own model
   </message>
   <message name="IDS_SETTINGS_LEO_ASSISTANT_DELETE_MODEL_CONFIRMATION" desc="Confirmation message for deleting a model">
-    Are you sure you want to delete this model? If this model is being used in any active conversation then that conversation will change to use Leo's default model.
+    Are you sure you want to delete this model? If this model is being used in any active conversation then that conversation will change to use AI Assistant's default model.
   </message>
   <message name="IDS_SETTINGS_LEO_ASSISTANT_ADD_MODEL_LABEL" desc="A title for adding a custom model">
     Add model
@@ -1791,6 +1791,144 @@
   <message name="IDS_SETTINGS_LEO_ASSISTANT_INPUT_MODEL_API_KEY_TOOLTIP_INFO" desc="A brief description for the input title for adding API key">
     Some serving frameworks may require authentication credentials, such as an API key or an access token. These will be added to the request header.
   </message>
+  <message name="IDS_SETTINGS_LEO_ASSISTANT_FETCH_MODELS_BUTTON_LABEL" desc="Label for the button that fetches the list of available models from a custom model endpoint.">
+    Fetch available models
+  </message>
+  <message name="IDS_SETTINGS_LEO_ASSISTANT_FETCH_MODELS_TOOLTIP_INFO" desc="A brief description explaining what the fetch-available-models button does.">
+    Looks up the models your endpoint currently offers, so you can pick one instead of typing its exact id by hand. Requires the server endpoint and API key above to be filled in first.
+  </message>
+  <message name="IDS_SETTINGS_LEO_ASSISTANT_NO_MODELS_FOUND_ERROR" desc="Error shown when fetching available models succeeded but returned no models.">
+    No models were found at this endpoint.
+  </message>
+  <message name="IDS_SETTINGS_LEO_ASSISTANT_FETCH_MODELS_ERROR" desc="Error shown when fetching available models from a custom model endpoint fails.">
+    Could not fetch models from this endpoint. Check the server endpoint and API key.
+  </message>
+  <message name="IDS_SETTINGS_LEO_ASSISTANT_SELECT_FETCHED_MODEL_LABEL" desc="Placeholder option text for the dropdown listing models fetched from a custom model endpoint.">
+    Select a model...
+  </message>
+  <message name="IDS_SETTINGS_PAGE_CAPTURE_SECTION_TITLE" desc="Title for the settings section showing the Page Capture side panel's session history and activity log.">
+    Page Capture
+  </message>
+  <message name="IDS_SETTINGS_PAGE_CAPTURE_SECTION_DESC" desc="Description for the Page Capture settings section.">
+    Review what the Page Capture side panel has captured and a log of its recent activity, for the browser window you've most recently used it in.
+  </message>
+  <message name="IDS_SETTINGS_PAGE_CAPTURE_REFRESH_BUTTON_LABEL" desc="Label for the button that reloads Page Capture's session and log data.">
+    Refresh
+  </message>
+  <message name="IDS_SETTINGS_PAGE_CAPTURE_SESSION_ENTRIES_TITLE" desc="Heading above the list of pages captured this session.">
+    Captured this session
+  </message>
+  <message name="IDS_SETTINGS_PAGE_CAPTURE_NO_ENTRIES_LABEL" desc="Shown when nothing has been captured yet this session.">
+    Nothing captured yet this session.
+  </message>
+  <message name="IDS_SETTINGS_PAGE_CAPTURE_ACTIVITY_LOG_TITLE" desc="Heading above the Page Capture activity log.">
+    Activity log
+  </message>
+  <message name="IDS_SETTINGS_PAGE_CAPTURE_NO_LOG_LABEL" desc="Shown when there is no activity log yet.">
+    No activity yet.
+  </message>
+  <message name="IDS_SETTINGS_WEBHOOK_TOOLS_SECTION_TITLE" desc="Title for the settings section listing user-configured webhook tools the AI Assistant can call.">
+    Custom tools
+  </message>
+  <message name="IDS_SETTINGS_WEBHOOK_TOOLS_SECTION_DESC" desc="Description for the custom webhook tools settings section.">
+    Connect a webhook that AI Assistant can call during a conversation, such as a Zapier, Make, or n8n automation, or your own server endpoint.
+  </message>
+  <message name="IDS_SETTINGS_WEBHOOK_TOOLS_NO_TOOLS_LABEL" desc="Shown when no webhook tools are configured yet.">
+    No custom tools added yet.
+  </message>
+  <message name="IDS_SETTINGS_WEBHOOK_TOOLS_ADD_NEW_BUTTON_LABEL" desc="Label for the button that opens the add-webhook-tool dialog.">
+    Add new tool
+  </message>
+  <message name="IDS_SETTINGS_WEBHOOK_TOOL_ADD_DIALOG_TITLE" desc="Title for the dialog used to add a new webhook tool.">
+    Add custom tool
+  </message>
+  <message name="IDS_SETTINGS_WEBHOOK_TOOL_EDIT_DIALOG_TITLE" desc="Title for the dialog used to edit an existing webhook tool.">
+    Edit custom tool
+  </message>
+  <message name="IDS_SETTINGS_WEBHOOK_TOOL_NAME_LABEL" desc="Label for the webhook tool's name field.">
+    Name
+  </message>
+  <message name="IDS_SETTINGS_WEBHOOK_TOOL_NAME_PLACEHOLDER" desc="Placeholder text for the webhook tool's name field.">
+    e.g. get_weather
+  </message>
+  <message name="IDS_SETTINGS_WEBHOOK_TOOL_NAME_HINT" desc="Hint explaining how the webhook tool's name is used.">
+    This is how AI Assistant refers to the tool - use short, descriptive, lowercase words with underscores.
+  </message>
+  <message name="IDS_SETTINGS_WEBHOOK_TOOL_DESCRIPTION_LABEL" desc="Label for the webhook tool's description field.">
+    Description
+  </message>
+  <message name="IDS_SETTINGS_WEBHOOK_TOOL_DESCRIPTION_PLACEHOLDER" desc="Placeholder text for the webhook tool's description field.">
+    Tell AI Assistant what this tool does and when to use it
+  </message>
+  <message name="IDS_SETTINGS_WEBHOOK_TOOL_URL_LABEL" desc="Label for the webhook tool's URL field.">
+    Webhook URL
+  </message>
+  <message name="IDS_SETTINGS_WEBHOOK_TOOL_SECRET_LABEL" desc="Label for the webhook tool's optional secret/auth token field.">
+    Secret (optional)
+  </message>
+  <message name="IDS_SETTINGS_WEBHOOK_TOOL_SECRET_PLACEHOLDER" desc="Placeholder text for the webhook tool's secret field.">
+    Sent as a Bearer token, if provided
+  </message>
+  <message name="IDS_SETTINGS_WEBHOOK_TOOL_SECRET_EDIT_HINT" desc="Hint shown when editing an existing webhook tool's secret field.">
+    Leave blank to keep the existing secret unchanged.
+  </message>
+  <message name="IDS_SETTINGS_WEBHOOK_TOOL_PARAMETERS_LABEL" desc="Label for the webhook tool's parameters field.">
+    Parameters
+  </message>
+  <message name="IDS_SETTINGS_WEBHOOK_TOOL_PARAMETERS_HINT" desc="Hint explaining the parameters textarea's format.">
+    One per line: name | description | required (yes/no). These become the arguments AI Assistant can send with each call.
+  </message>
+  <message name="IDS_SETTINGS_WEBHOOK_TOOL_ENABLED_LABEL" desc="Label for the toggle controlling whether a webhook tool is available to AI Assistant.">
+    Enabled
+  </message>
+  <message name="IDS_SETTINGS_WEBHOOK_TOOL_DELETE_CONFIRMATION_TITLE" desc="Title for the dialog confirming deletion of a webhook tool.">
+    Delete this tool?
+  </message>
+  <message name="IDS_SETTINGS_WEBHOOK_TOOL_DELETE_CONFIRMATION" desc="Body text for the dialog confirming deletion of a webhook tool.">
+    AI Assistant will no longer be able to use this tool. This cannot be undone.
+  </message>
+  <message name="IDS_SETTINGS_AI_CHAT_HISTORY_SECTION_TITLE" desc="Title for the settings section listing past AI Assistant conversations.">
+    Conversation history
+  </message>
+  <message name="IDS_SETTINGS_AI_CHAT_HISTORY_SECTION_DESC" desc="Description for the AI Assistant conversation history settings section.">
+    Reopen a past conversation to keep working on it.
+  </message>
+  <message name="IDS_SETTINGS_AI_CHAT_HISTORY_REFRESH_BUTTON_LABEL" desc="Label for the button that reloads the conversation history list.">
+    Refresh
+  </message>
+  <message name="IDS_SETTINGS_AI_CHAT_HISTORY_NO_CONVERSATIONS_LABEL" desc="Shown when there are no past AI Assistant conversations yet.">
+    No conversations yet.
+  </message>
+  <message name="IDS_SETTINGS_AI_CHAT_HISTORY_UNTITLED_LABEL" desc="Fallback label for a conversation that has no title.">
+    Untitled conversation
+  </message>
+  <message name="IDS_SETTINGS_WORKFLOWS_SECTION_TITLE" desc="Title for the settings section listing saved AI Assistant workflows.">
+    Workflows
+  </message>
+  <message name="IDS_SETTINGS_WORKFLOWS_SECTION_DESC" desc="Description for the Workflows settings section.">
+    Save a repeatable browser procedure once, then have AI Assistant run it whenever you ask.
+  </message>
+  <message name="IDS_SETTINGS_WORKFLOWS_NO_WORKFLOWS_LABEL" desc="Shown when there are no saved workflows yet.">
+    No workflows saved yet.
+  </message>
+  <message name="IDS_SETTINGS_WORKFLOWS_RUN_BUTTON_LABEL" desc="Label for the button that runs a saved workflow immediately, for testing.">
+    Run
+  </message>
+  <message name="IDS_SETTINGS_WORKFLOWS_PUBLISH_BUTTON_LABEL" desc="Label for the button that publishes a draft workflow.">
+    Publish
+  </message>
+  <message name="IDS_SETTINGS_WORKFLOWS_ADD_NEW_BUTTON_LABEL" desc="Label for the button that opens the new-workflow editor.">
+    Add new workflow
+  </message>
+  <message name="IDS_SETTINGS_WORKFLOWS_EDIT_DIALOG_TITLE" desc="Title for the dialog that edits a workflow's JSON definition.">
+    Workflow definition
+  </message>
+  <message name="IDS_SETTINGS_WORKFLOWS_DELETE_CONFIRMATION_TITLE" desc="Title for the dialog confirming deletion of a workflow.">
+    Delete this workflow?
+  </message>
+  <message name="IDS_SETTINGS_WORKFLOWS_DELETE_CONFIRMATION" desc="Body text for the dialog confirming deletion of a workflow.">
+    AI Assistant will no longer be able to run this workflow. This cannot be undone.
+  </message>
   <message name="IDS_SETTINGS_LEO_ASSISTANT_INPUT_CONTEXT_SIZE" desc="An input title for context size, which refers to the maximum number of tokens (small units of text, usually a few characters or words) that an AI model can process in one go. The context size determines how much data the model can consider simultaneously. For example, the Phi 3.5 model can process up to 131072 tokens in its context window.">
     Context size
   </message>
@@ -1798,7 +1936,7 @@
     The maximum number of tokens the model can process in a single interaction. A larger context size allows the model to handle longer conversations. Different models support different maximum context sizes.
   </message>
   <message name="IDS_SETTINGS_LEO_ASSISTANT_PROXY_NOTE" desc="A note for users when adding model server info">
-    Brave doesn't proxy these requests, please read privacy terms of the chosen provider.
+    AI Automation Browser doesn't proxy these requests, please read privacy terms of the chosen provider.
   </message>
   <message name="IDS_SETTINGS_LEO_ASSISTANT_ENDPOINT_ERROR" desc="An error note for users when url is invalidated">
     Non-local endpoints should employ the HTTPS protocol for secure data transmission.
@@ -1813,10 +1951,10 @@
     Private IPs Not Allowed
   </message>
   <message name="IDS_SETTINGS_LEO_ASSISTANT_PRIVATE_IP_NOT_ALLOWED_BODY" desc="Body text for private IP not allowed dialog">
-    The address you entered appears to be from a private network—like your router or a local server. Brave blocks these automatically to keep you safe, but you can enable them if you're confident it's secure.
+    The address you entered appears to be from a private network—like your router or a local server. AI Automation Browser blocks these automatically to keep you safe, but you can enable them if you're confident it's secure.
   </message>
   <message name="IDS_SETTINGS_LEO_ASSISTANT_PRIVATE_IP_NOT_ALLOWED_INSTRUCTIONS" desc="Instructions on how to enable private IPs">
-    To proceed, visit brave://flags/, search for "brave-ai-chat-allow-private-ips," and enable the feature. Once enabled, you can use private network addresses in Leo settings.
+    To proceed, visit brave://flags/, search for "brave-ai-chat-allow-private-ips," and enable the feature. Once enabled, you can use private network addresses in AI Assistant settings.
   </message>
   <message name="IDS_SETTINGS_LEO_ASSISTANT_ADD_NEW_BUTTON_LABEL" desc="A label for a button that opens a panel with input forms for a user to add model">
     Add new model
@@ -1828,7 +1966,7 @@
     Your models
   </message>
   <message name="IDS_SETTINGS_LEO_ASSISTANT_YOUR_MODELS_DESC_1" desc="A description explaning to connect models within the browser">
-    Connect your self-hosted or third-party hosted LLM to Leo and use them within the browser.
+    Connect your self-hosted or third-party hosted LLM to AI Assistant and use them within the browser.
   </message>
   <message name="IDS_SETTINGS_LEO_ASSISTANT_YOUR_MODELS_DESC_2" desc="A description explaning what protocols are accepted">
     Use any OpenAI Chat Protocol compatible framework such as Ollama. <ph name="BEGIN_LINK">&lt;a target="_blank" href="$1"&gt;</ph>Learn more<ph name="END_LINK">&lt;/a&gt;</ph>
@@ -1850,43 +1988,43 @@
   </message>
    <!-- Leo Customization -->
   <message name="IDS_SETTINGS_LEO_ASSISTANT_CUSTOMIZATION_PAGE_TITLE" desc="The title for Leo Assistant customization page">
-    Customize Leo
+    Customize AI Assistant
   </message>
   <message name="IDS_SETTINGS_LEO_ASSISTANT_CUSTOMIZATION_TITLE" desc="The title for Leo Assistant customization section">
     About you
   </message>
   <message name="IDS_SETTINGS_LEO_ASSISTANT_CUSTOMIZATION_DESCRIPTION" desc="The description for Leo Assistant customization section">
-    Tell Leo about yourself to get more personalized answers. <ph name="BEGIN_LINK">&lt;a target="_blank" href="$1"&gt;</ph>Learn more<ph name="END_LINK">&lt;/a&gt;</ph>
+    Tell AI Assistant about yourself to get more personalized answers. <ph name="BEGIN_LINK">&lt;a target="_blank" href="$1"&gt;</ph>Learn more<ph name="END_LINK">&lt;/a&gt;</ph>
   </message>
   <message name="IDS_SETTINGS_LEO_ASSISTANT_CUSTOMIZATION_ENABLED_LABEL" desc="The label for enabling Leo Assistant customization">
-    Enable Leo Customization
+    Enable AI Assistant Customization
   </message>
   <message name="IDS_SETTINGS_LEO_ASSISTANT_USER_MEMORY_ENABLED_LABEL" desc="The label for enabling user memory in Leo Assistant">
     Enable User Memory
   </message>
   <message name="IDS_SETTINGS_LEO_ASSISTANT_CUSTOMIZATION_NAME_LABEL" desc="Label for the input where the user specifies what Leo should call them">
-    What should Leo call you?
+    What should AI Assistant call you?
   </message>
   <message name="IDS_SETTINGS_LEO_ASSISTANT_CUSTOMIZATION_NAME_PLACEHOLDER" desc="Placeholder for the input where the user specifies what Leo should call them">
-    Enter your preferred name for Leo to call you by
+    Enter your preferred name for AI Assistant to call you by
   </message>
   <message name="IDS_SETTINGS_LEO_ASSISTANT_CUSTOMIZATION_JOB_LABEL" desc="Label for the input where the user describes what they do">
     What do you do?
   </message>
   <message name="IDS_SETTINGS_LEO_ASSISTANT_CUSTOMIZATION_JOB_PLACEHOLDER" desc="Placeholder for the input where the user describes what they do">
-    Tell Leo a little bit about what you do
+    Tell AI Assistant a little bit about what you do
   </message>
   <message name="IDS_SETTINGS_LEO_ASSISTANT_CUSTOMIZATION_TONE_LABEL" desc="Label for the input where the user describes how Leo should answer">
-    How should Leo answer your questions?
+    How should AI Assistant answer your questions?
   </message>
   <message name="IDS_SETTINGS_LEO_ASSISTANT_CUSTOMIZATION_TONE_PLACEHOLDER" desc="Placeholder for the input where the user describes how Leo should answer">
-    Describe the tone and traits you would like Leo to use when answering
+    Describe the tone and traits you would like AI Assistant to use when answering
   </message>
   <message name="IDS_SETTINGS_LEO_ASSISTANT_CUSTOMIZATION_OTHER_LABEL" desc="Label for the input where the user can add anything else Leo should know">
-    Anything else Leo should know about you?
+    Anything else AI Assistant should know about you?
   </message>
   <message name="IDS_SETTINGS_LEO_ASSISTANT_CUSTOMIZATION_OTHER_PLACEHOLDER" desc="Placeholder for the input where the user can add anything else Leo should know">
-    Let Leo know about any preferences you want it to keep in mind when answering
+    Let AI Assistant know about any preferences you want it to keep in mind when answering
   </message>
   <message name="IDS_SETTINGS_LEO_ASSISTANT_CUSTOMIZATION_SAVE_BUTTON" desc="Label for the save changes button in Leo customization">
     Save changes
@@ -1903,13 +2041,13 @@
     Memories
   </message>
   <message name="IDS_SETTINGS_LEO_ASSISTANT_YOUR_MEMORIES_DESC" desc="The description for Leo Assistant memory section">
-    All the things that Leo learned about you and won't forget about. <ph name="BEGIN_LINK">&lt;a target="_blank" href="$1"&gt;</ph>Learn more<ph name="END_LINK">&lt;/a&gt;</ph>
+    All the things that AI Assistant learned about you and won't forget about. <ph name="BEGIN_LINK">&lt;a target="_blank" href="$1"&gt;</ph>Learn more<ph name="END_LINK">&lt;/a&gt;</ph>
   </message>
   <message name="IDS_SETTINGS_LEO_ASSISTANT_MEMORY_LIST_EMPTY_TITLE" desc="The title shown when the memory list is empty">
     No memories created yet
   </message>
   <message name="IDS_SETTINGS_LEO_ASSISTANT_MEMORY_LIST_EMPTY_DESCRIPTION" desc="The description shown when the memory list is empty">
-    Add a memory to help Leo get to know you better.
+    Add a memory to help AI Assistant get to know you better.
   </message>
   <message name="IDS_SETTINGS_LEO_ASSISTANT_ADD_NEW_MEMORY_BUTTON_LABEL" desc="The label for the button to add a new memory">
     Add new memory
@@ -1921,7 +2059,7 @@
     Create a new memory
   </message>
   <message name="IDS_SETTINGS_LEO_ASSISTANT_MEMORY_INPUT_PLACEHOLDER" desc="The placeholder text for the memory input field">
-    What do you want Leo to remember?
+    What do you want AI Assistant to remember?
   </message>
   <message name="IDS_SETTINGS_LEO_ASSISTANT_DELETE_MEMORY_CONFIRMATION_TITLE" desc="The title for delete memory dialog">
     Delete this memory
@@ -1953,10 +2091,10 @@
     Survey Panelist
   </message>
   <message name="IDS_SETTINGS_SURVEY_PANELIST_LABEL" desc="The text for settings option to enable survey panelist">
-    Allow Brave surveys
+    Allow AI Automation Browser surveys
   </message>
   <message name="IDS_SETTINGS_SURVEY_PANELIST_DESC" desc="The description for settings option to enable survey panelist">
-    Allows Brave to show links to private surveys in the new tab page. Surveys help us build better features and measure the effectiveness of browser-based ad campaigns. <ph name="BEGIN_LINK">&lt;a target="_blank" href="$1"&gt;</ph>Learn more<ph name="END_LINK">&lt;/a&gt;</ph>
+    Allows AI Automation Browser to show links to private surveys in the new tab page. Surveys help us build better features and measure the effectiveness of browser-based ad campaigns. <ph name="BEGIN_LINK">&lt;a target="_blank" href="$1"&gt;</ph>Learn more<ph name="END_LINK">&lt;/a&gt;</ph>
   </message>
 
   <!-- Settings / Playlist -->
@@ -1993,7 +2131,7 @@
   </message>
   <if expr="not is_android">
     <message name="IDS_BRAVE_AVATAR_LABEL_56" desc="The label for the avatar_edgy_brave.png avatar.">
-      Avatar Edgy Brave
+      Avatar Edgy AI Automation Browser
     </message>
     <message name="IDS_BRAVE_AVATAR_LABEL_57" desc="The label for the avatar_edgy_ocean.png avatar.">
       Avatar Edgy Ocean
@@ -2014,7 +2152,7 @@
       Avatar Paladin Rewards
     </message>
     <message name="IDS_BRAVE_AVATAR_LABEL_63" desc="The label for the avatar_paladin_brave.png avatar.">
-      Avatar Paladin Brave
+      Avatar Paladin AI Automation Browser
     </message>
     <message name="IDS_BRAVE_AVATAR_LABEL_64" desc="The label for the avatar_paladin_ocean.png avatar.">
       Avatar Paladin Ocean
@@ -2035,7 +2173,7 @@
       Avatar Gleam Rewards
     </message>
     <message name="IDS_BRAVE_AVATAR_LABEL_70" desc="The label for the avatar_gleam_brave.png avatar.">
-      Avatar Gleam Brave
+      Avatar Gleam AI Automation Browser
     </message>
     <message name="IDS_BRAVE_AVATAR_LABEL_71" desc="The label for the avatar_gleam_ocean.png avatar.">
       Avatar Gleam Ocean
@@ -2056,7 +2194,7 @@
       Avatar Oval Rewards
     </message>
     <message name="IDS_BRAVE_AVATAR_LABEL_77" desc="The label for the avatar_oval_brave.png avatar.">
-      Avatar Oval Brave
+      Avatar Oval AI Automation Browser
     </message>
     <message name="IDS_BRAVE_AVATAR_LABEL_78" desc="The label for the avatar_oval_ocean.png avatar.">
       Avatar Oval Ocean
@@ -2077,7 +2215,7 @@
       Avatar Bonbon Rewards
     </message>
     <message name="IDS_BRAVE_AVATAR_LABEL_84" desc="The label for the avatar_bonbon_brave.png avatar.">
-      Avatar Bonbon Brave
+      Avatar Bonbon AI Automation Browser
     </message>
     <message name="IDS_BRAVE_AVATAR_LABEL_85" desc="The label for the avatar_bonbon_ocean.png avatar.">
       Avatar Bonbon Ocean

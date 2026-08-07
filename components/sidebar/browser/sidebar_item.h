@@ -44,6 +44,9 @@ struct SidebarItem {
 #if BUILDFLAG(ENABLE_BRAVE_NEWS)
     kBraveNews = 8,
 #endif
+#if BUILDFLAG(ENABLE_AI_CHAT)
+    kPageCapture = 9,
+#endif
   };
 
   // Count of built-in items based on enabled features.
@@ -57,6 +60,7 @@ struct SidebarItem {
 #endif
 #if BUILDFLAG(ENABLE_AI_CHAT)
       + 1  // kChatUI
+      + 1  // kPageCapture
 #endif
 #if BUILDFLAG(ENABLE_BRAVE_NEWS)
       + 1  // kBraveNews

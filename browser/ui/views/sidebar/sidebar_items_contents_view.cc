@@ -608,6 +608,8 @@ ui::ImageModel SidebarItemsContentsView::GetImageForBuiltInItems(
 #if BUILDFLAG(ENABLE_AI_CHAT)
     case sidebar::SidebarItem::BuiltInItemType::kChatUI:
       return get_image_model(kLeoProductBraveLeoIcon, state);
+    case sidebar::SidebarItem::BuiltInItemType::kPageCapture:
+      return get_image_model(kLeoHistoryIcon, state);
 #endif
 #if BUILDFLAG(ENABLE_BRAVE_NEWS)
     case sidebar::SidebarItem::BuiltInItemType::kBraveNews:

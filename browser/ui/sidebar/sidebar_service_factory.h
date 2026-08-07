@@ -44,6 +44,7 @@ class SidebarServiceFactory : public BrowserContextKeyedServiceFactory {
       std::to_array<SidebarItem::BuiltInItemType>({
 #if BUILDFLAG(ENABLE_AI_CHAT)
           SidebarItem::BuiltInItemType::kChatUI,
+          SidebarItem::BuiltInItemType::kPageCapture,
 #endif
 #if BUILDFLAG(ENABLE_BRAVE_TALK)
           SidebarItem::BuiltInItemType::kBraveTalk,

@@ -1,0 +1,95 @@
+<!-- Copyright (c) 2026 The Brave Authors. All rights reserved.
+This Source Code Form is subject to the terms of the Mozilla Public
+License, v. 2.0. If a copy of the MPL was not distributed with this file,
+You can obtain one at https://mozilla.org/MPL/2.0/. -->
+
+<style include="cr-shared-style settings-shared">
+  .header {
+    padding: var(--leo-spacing-2xl) var(--leo-spacing-2xl) 0 var(--leo-spacing-2xl);
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: var(--leo-spacing-l);
+  }
+
+  .main-header {
+    font: var(--leo-font-heading-h4);
+  }
+
+  .list-container {
+    padding: var(--leo-spacing-m) var(--leo-spacing-2xl) var(--leo-spacing-xl) var(--leo-spacing-2xl);
+  }
+
+  .list {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    border: 1px solid var(--leo-color-divider-subtle);
+    border-radius: var(--leo-radius-m);
+    max-height: 320px;
+    overflow-y: auto;
+  }
+
+  .conversation-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: var(--leo-spacing-l);
+    padding: var(--leo-spacing-l) var(--leo-spacing-xl);
+    border-bottom: 1px solid var(--leo-color-divider-subtle);
+    cursor: pointer;
+  }
+
+  .conversation-row:last-of-type {
+    border-bottom: none;
+  }
+
+  .conversation-row:hover {
+    background: var(--leo-color-container-highlight);
+  }
+
+  .conversation-title {
+    font-weight: 600;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .conversation-time {
+    color: var(--leo-color-text-tertiary);
+    font: var(--leo-font-small-regular);
+    flex-shrink: 0;
+  }
+
+  .empty-state {
+    color: var(--leo-color-text-tertiary);
+    text-align: center;
+    padding: var(--leo-spacing-2xl) 0;
+  }
+</style>
+
+<div class="settings-box header">
+  <div class="flex">
+    <div class="main-header">$i18n{aiChatHistorySectionTitle}</div>
+    <div class="label secondary">$i18n{aiChatHistorySectionDesc}</div>
+  </div>
+  <leo-button kind="outline" size="small" on-click="onRefreshClick_" isLoading="[[isLoading_]]">
+    $i18n{aiChatHistoryRefreshButtonLabel}
+  </leo-button>
+</div>
+
+<div class="list-container">
+  <template is="dom-if" if="[[!hasConversations_(conversations_)]]">
+    <div class="empty-state">$i18n{aiChatHistoryNoConversationsLabel}</div>
+  </template>
+  <template is="dom-if" if="[[hasConversations_(conversations_)]]">
+    <div class="list">
+      <template is="dom-repeat" items="[[conversations_]]">
+        <div class="conversation-row" on-click="onConversationClick_">
+          <div class="conversation-title">[[getConversationTitle_(item)]]</div>
+          <div class="conversation-time">[[item.updatedTimeLabel]]</div>
+        </div>
+      </template>
+    </div>
+  </template>
+</div>

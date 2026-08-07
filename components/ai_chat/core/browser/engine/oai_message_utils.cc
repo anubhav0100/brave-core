@@ -569,6 +569,11 @@ std::optional<std::vector<OAIMessage>> BuildOAIRewriteSuggestionMessages(
           mojom::SimpleRequestContentBlock::New(
               mojom::SimpleRequestType::kExpand)));
       break;
+    case mojom::ActionType::SUMMARIZE_SELECTED_TEXT:
+      msg.content.push_back(mojom::ContentBlock::NewSimpleRequestContentBlock(
+          mojom::SimpleRequestContentBlock::New(
+              mojom::SimpleRequestType::kRequestSummary)));
+      break;
     default:
       return std::nullopt;
   }

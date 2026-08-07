@@ -17,6 +17,7 @@
 #include "brave/browser/ai_chat/ai_chat_service_factory.h"
 #include "brave/browser/ui/side_panel/ai_chat/ai_chat_side_panel_utils.h"
 #include "brave/browser/ui/views/side_panel/ai_chat/ai_chat_side_panel_web_view.h"
+#include "brave/browser/ui/views/side_panel/page_capture/page_capture_side_panel_coordinator.h"
 #endif
 
 #if BUILDFLAG(ENABLE_BRAVE_NEWS)
@@ -61,6 +62,11 @@ void SidePanelHelper::PopulateGlobalEntries(
                             browser->GetProfile(),
                             /*is_tab_associated=*/false),
         base::NullCallback()));
+  }
+
+  if (auto* page_capture_coordinator =
+          browser->GetFeatures().page_capture_side_panel_coordinator()) {
+    page_capture_coordinator->CreateAndRegisterEntry(global_registry);
   }
 #endif
 

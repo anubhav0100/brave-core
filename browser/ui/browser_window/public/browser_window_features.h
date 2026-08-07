@@ -22,6 +22,10 @@ class TreeTabSessionManager;
 class VerticalTabController;
 class WorkspacesBubbleController;
 
+namespace page_capture {
+class PageCaptureSidePanelCoordinator;
+}  // namespace page_capture
+
 namespace brave_rewards {
 class RewardsPanelCoordinator;
 }  // namespace brave_rewards
@@ -73,6 +77,11 @@ class BrowserWindowFeatures : public BrowserWindowFeatures_ChromiumImpl {
   // this is a normal window with AI Chat available.
   AIChatSidePanelTabTransferBridge* ai_chat_side_panel_tab_transfer_bridge() {
     return ai_chat_side_panel_tab_transfer_bridge_.get();
+  }
+
+  page_capture::PageCaptureSidePanelCoordinator*
+  page_capture_side_panel_coordinator() {
+    return page_capture_side_panel_coordinator_.get();
   }
 #endif
 
@@ -135,6 +144,8 @@ class BrowserWindowFeatures : public BrowserWindowFeatures_ChromiumImpl {
 #if BUILDFLAG(ENABLE_AI_CHAT)
   std::unique_ptr<AIChatSidePanelTabTransferBridge>
       ai_chat_side_panel_tab_transfer_bridge_;
+  std::unique_ptr<page_capture::PageCaptureSidePanelCoordinator>
+      page_capture_side_panel_coordinator_;
 #endif
 #if BUILDFLAG(ENABLE_EMAIL_ALIASES)
   std::unique_ptr<email_aliases::EmailAliasesController>

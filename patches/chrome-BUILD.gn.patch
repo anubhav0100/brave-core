@@ -6,7 +6,7 @@ index 973a46b2a34bb170e49417f4f76f8b2d899317d8..4567bc0ff3550ba984a971f6c8835717
          "app/main_dll_loader_win.cc",
          "app/main_dll_loader_win.h",
        ]
-+      sources -= [ "app/chrome_exe.rc", ] sources += [ "//brave/app/brave_exe.rc", ] import("//brave/components/brave_origin/buildflags/buildflags.gni") if (is_brave_origin_branded) { defines += [ "IS_BRAVE_ORIGIN_BRANDED" ] }
++      sources -= [ "app/chrome_exe.rc", ] sources += [ "//brave/app/brave_exe.rc", ] import("//brave/components/brave_origin/buildflags/buildflags.gni") if (is_brave_origin_branded) { defines += [ "IS_BRAVE_ORIGIN_BRANDED" ] } import("//brave/components/ai_automation_browser_buildflags.gni") if (is_ai_automation_browser_branded) { defines += [ "IS_AI_AUTOMATION_BROWSER_BRANDED" ] }
  
        deps += [
          ":chrome_dll",

@@ -13,6 +13,7 @@
 #include "brave/components/ai_chat/core/browser/tools/tool.h"
 #include "brave/components/ai_chat/core/browser/tools/tool_provider.h"
 #include "brave/components/ai_chat/core/common/buildflags/buildflags.h"
+#include "printing/buildflags/buildflags.h"
 
 class Profile;
 
@@ -22,8 +23,20 @@ class BrowserContext;
 
 namespace ai_chat {
 
+class CapturePageToSessionTool;
+class ClearCapturedSessionTool;
 class CodeExecutionTool;
+#if BUILDFLAG(ENABLE_PRINTING)
+class CreatePdfDocumentTool;
+#endif
+class CreatePresentationTool;
+class CreateSpreadsheetTool;
+class CreateWordDocumentTool;
+class ReadWordDocumentTool;
 class HistorySearchTool;
+class PageCaptureSession;
+class RunWorkflowTool;
+class SaveCapturedSessionAsWordDocumentTool;
 class TabManagementTool;
 
 // Implementation of ToolProvider that provides browser-specific
@@ -49,6 +62,19 @@ class BrowserToolProvider : public ToolProvider {
 
   // Browser-specific tools owned by this provider
   std::unique_ptr<CodeExecutionTool> code_execution_tool_;
+  std::unique_ptr<CreateWordDocumentTool> create_word_document_tool_;
+  std::unique_ptr<ReadWordDocumentTool> read_word_document_tool_;
+  std::unique_ptr<PageCaptureSession> page_capture_session_;
+  std::unique_ptr<CapturePageToSessionTool> capture_page_to_session_tool_;
+  std::unique_ptr<SaveCapturedSessionAsWordDocumentTool>
+      save_captured_session_as_word_document_tool_;
+  std::unique_ptr<ClearCapturedSessionTool> clear_captured_session_tool_;
+  std::unique_ptr<RunWorkflowTool> run_workflow_tool_;
+  std::unique_ptr<CreateSpreadsheetTool> create_spreadsheet_tool_;
+  std::unique_ptr<CreatePresentationTool> create_presentation_tool_;
+#if BUILDFLAG(ENABLE_PRINTING)
+  std::unique_ptr<CreatePdfDocumentTool> create_pdf_document_tool_;
+#endif
   std::unique_ptr<HistorySearchTool> history_search_tool_;
 #if BUILDFLAG(ENABLE_AI_CHAT_TAB_MANAGEMENT_TOOL)
   std::unique_ptr<TabManagementTool> tab_management_tool_;

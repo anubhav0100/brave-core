@@ -1,0 +1,349 @@
+<!-- Copyright (c) 2026 The Brave Authors. All rights reserved.
+This Source Code Form is subject to the terms of the Mozilla Public
+License, v. 2.0. If a copy of the MPL was not distributed with this file,
+You can obtain one at https://mozilla.org/MPL/2.0/. -->
+
+<style include="cr-shared-style settings-shared">
+  .header {
+    padding: var(--leo-spacing-2xl) var(--leo-spacing-2xl) 0 var(--leo-spacing-2xl);
+  }
+
+  .main-header {
+    font: var(--leo-font-heading-h4);
+  }
+
+  .list-container {
+    padding: var(--leo-spacing-l) var(--leo-spacing-2xl);
+  }
+
+  .list {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    border: 1px solid var(--leo-color-divider-subtle);
+    border-radius: var(--leo-radius-m);
+  }
+
+  .workflow-row {
+    display: flex;
+    flex-direction: column;
+    gap: var(--leo-spacing-s);
+    padding: var(--leo-spacing-l) var(--leo-spacing-xl);
+    border-bottom: 1px solid var(--leo-color-divider-subtle);
+  }
+
+  .workflow-row:last-of-type {
+    border-bottom: none;
+  }
+
+  .workflow-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: var(--leo-spacing-l);
+  }
+
+  .workflow-name {
+    font-weight: 600;
+  }
+
+  .workflow-meta {
+    color: var(--leo-color-text-tertiary);
+    font: var(--leo-font-small-regular);
+  }
+
+  .workflow-actions {
+    display: flex;
+    align-items: center;
+    gap: var(--leo-spacing-m);
+    flex-shrink: 0;
+  }
+
+  .run-result {
+    font: var(--leo-font-small-regular);
+    color: var(--leo-color-text-secondary);
+    white-space: pre-wrap;
+  }
+
+  .action-box {
+    display: flex;
+    justify-content: flex-start;
+    padding: 0 var(--leo-spacing-2xl) var(--leo-spacing-xl) var(--leo-spacing-2xl);
+  }
+
+  .empty-state {
+    color: var(--leo-color-text-tertiary);
+    text-align: center;
+    padding: var(--leo-spacing-2xl) 0;
+    border: 1px solid var(--leo-color-divider-subtle);
+    border-radius: var(--leo-radius-m);
+  }
+
+  cr-dialog {
+    --cr-dialog-width: 640px;
+  }
+
+  cr-dialog [slot="title"] {
+    color: var(--leo-color-text-primary);
+    font: var(--leo-font-heading-h3);
+    padding: var(--leo-spacing-2xl);
+  }
+
+  cr-dialog [slot="body"] {
+    display: flex;
+    padding: var(--leo-spacing-m) var(--leo-spacing-2xl);
+    flex-direction: column;
+    gap: var(--leo-spacing-l);
+    max-height: 60vh;
+    overflow-y: auto;
+  }
+
+  cr-dialog [slot="button-container"] {
+    display: flex;
+    justify-content: flex-end;
+    gap: var(--leo-spacing-m);
+    padding: var(--leo-spacing-l) var(--leo-spacing-2xl);
+  }
+
+  .form-row {
+    display: flex;
+    gap: var(--leo-spacing-l);
+  }
+
+  .form-row cr-input {
+    flex: 1;
+  }
+
+  .field-label {
+    font: var(--leo-font-small-semibold);
+    color: var(--leo-color-text-secondary);
+    margin-top: var(--leo-spacing-m);
+  }
+
+  .steps-title {
+    font: var(--leo-font-heading-h4);
+    margin-top: var(--leo-spacing-l);
+  }
+
+  .step-card {
+    border: 1px solid var(--leo-color-divider-subtle);
+    border-radius: var(--leo-radius-m);
+    padding: var(--leo-spacing-l);
+    display: flex;
+    flex-direction: column;
+    gap: var(--leo-spacing-m);
+  }
+
+  .step-top-row {
+    display: flex;
+    gap: var(--leo-spacing-m);
+    align-items: center;
+  }
+
+  .step-top-row cr-input {
+    flex: 1;
+  }
+
+  .step-type-select, .step-input {
+    padding: var(--leo-spacing-s) var(--leo-spacing-m);
+    border-radius: var(--leo-radius-s);
+    border: 1px solid var(--leo-color-divider-subtle);
+    font: var(--leo-font-default-regular);
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .step-fields {
+    display: flex;
+    flex-direction: column;
+    gap: var(--leo-spacing-s);
+  }
+
+  textarea.step-input {
+    min-height: 50px;
+    font-family: monospace;
+    font-size: 12px;
+    resize: vertical;
+  }
+
+  .steps-hint {
+    font: var(--leo-font-small-regular);
+    color: var(--leo-color-text-tertiary);
+  }
+
+  .save-errors {
+    color: var(--leo-color-systemfeedback-error-text);
+    font: var(--leo-font-small-regular);
+  }
+</style>
+
+<div class="settings-box header">
+  <div class="flex">
+    <div class="main-header">$i18n{workflowsSectionTitle}</div>
+    <div class="label secondary">$i18n{workflowsSectionDesc}</div>
+  </div>
+</div>
+
+<div class="list-container">
+  <template is="dom-if" if="[[!hasWorkflows_(workflows_)]]">
+    <div class="empty-state">$i18n{workflowsNoWorkflowsLabel}</div>
+  </template>
+  <template is="dom-if" if="[[hasWorkflows_(workflows_)]]">
+    <div class="list">
+      <template is="dom-repeat" items="[[workflows_]]">
+        <div class="workflow-row">
+          <div class="workflow-top">
+            <div class="flex">
+              <div class="workflow-name">[[item.name]]</div>
+              <div class="workflow-meta">[[item.id]] &middot; v[[item.version]] &middot; [[item.status]]</div>
+            </div>
+            <div class="workflow-actions">
+              <leo-button kind="plain-faint" size="small" on-click="handleRunClick_">
+                $i18n{workflowsRunButtonLabel}
+              </leo-button>
+              <leo-button kind="plain-faint" size="small" on-click="handlePublishClick_">
+                $i18n{workflowsPublishButtonLabel}
+              </leo-button>
+              <leo-button kind="plain-faint" fab size="medium" on-click="handleEditClick_">
+                <leo-icon name="edit-pencil"></leo-icon>
+              </leo-button>
+              <leo-button kind="plain-faint" fab size="medium" on-click="handleDeleteClick_">
+                <leo-icon name="trash"></leo-icon>
+              </leo-button>
+            </div>
+          </div>
+          <template is="dom-if" if="[[hasRunResult_(item)]]">
+            <div class="run-result">[[formatRunResult_(item)]]</div>
+          </template>
+        </div>
+      </template>
+    </div>
+  </template>
+</div>
+
+<div class="action-box">
+  <leo-button on-click="handleAddNewClick_" kind="outline">
+    $i18n{workflowsAddNewButtonLabel}
+  </leo-button>
+</div>
+
+<template is="dom-if" if="[[showEditDialog_]]" restamp>
+  <cr-dialog id="editDialog" show-on-attach show-close-button on-close="onDialogCancel_">
+    <div slot="title">$i18n{workflowsEditDialogTitle}</div>
+    <div slot="body">
+      <div class="form-row">
+        <cr-input value="[[editId_]]" on-input="onIdInput_" label="ID">
+        </cr-input>
+        <cr-input value="[[editName_]]" on-input="onNameInput_" label="Name">
+        </cr-input>
+        <cr-input value="[[editVersion_]]" on-input="onVersionInput_" label="Version">
+        </cr-input>
+      </div>
+
+      <div class="steps-title">Steps</div>
+      <template is="dom-repeat" items="[[editSteps_]]" as="step">
+        <div class="step-card">
+          <div class="step-top-row">
+            <cr-input value="[[step.id]]" on-input="onStepIdInput_" label="Step id">
+            </cr-input>
+            <select class="step-type-select" on-change="onStepTypeChange_">
+              <template is="dom-repeat" items="[[stepTypes_]]" as="stepType">
+                <option value="[[stepType]]" selected$="[[isSelected_(stepType, step.type)]]">
+                  [[stepType]]
+                </option>
+              </template>
+            </select>
+            <leo-button kind="plain-faint" fab size="small" on-click="handleRemoveStepClick_">
+              <leo-icon name="trash"></leo-icon>
+            </leo-button>
+          </div>
+
+          <div class="step-fields">
+            <template is="dom-if" if="[[needsNext_(step.type)]]">
+              <div class="field-label">Next step id</div>
+              <input class="step-input" value="[[step.next]]" on-input="onStepNextInput_">
+            </template>
+
+            <template is="dom-if" if="[[isSetVariable_(step.type)]]">
+              <div class="field-label">Variable name</div>
+              <input class="step-input" value="[[step.variableName]]" on-input="onStepVariableNameInput_">
+              <div class="field-label">Value (supports ${var.x} / ${input.x})</div>
+              <input class="step-input" value="[[step.variableValue]]" on-input="onStepVariableValueInput_">
+            </template>
+
+            <template is="dom-if" if="[[isCondition_(step.type)]]">
+              <div class="field-label">Expression, e.g. ${var.x} == some value</div>
+              <input class="step-input" value="[[step.conditionExpression]]" on-input="onStepConditionExpressionInput_">
+              <div class="field-label">Step id if true</div>
+              <input class="step-input" value="[[step.onTrue]]" on-input="onStepOnTrueInput_">
+              <div class="field-label">Step id if false</div>
+              <input class="step-input" value="[[step.onFalse]]" on-input="onStepOnFalseInput_">
+            </template>
+
+            <template is="dom-if" if="[[isBrowserNavigate_(step.type)]]">
+              <div class="field-label">URL</div>
+              <input class="step-input" value="[[step.url]]" on-input="onStepUrlInput_">
+            </template>
+
+            <template is="dom-if" if="[[isBrowserClick_(step.type)]]">
+              <div class="field-label">CSS selector</div>
+              <input class="step-input" value="[[step.selector]]" on-input="onStepSelectorInput_">
+            </template>
+
+            <template is="dom-if" if="[[isBrowserType_(step.type)]]">
+              <div class="field-label">CSS selector</div>
+              <input class="step-input" value="[[step.selector]]" on-input="onStepSelectorInput_">
+              <div class="field-label">Text to type (supports ${var.x} / ${input.x})</div>
+              <input class="step-input" value="[[step.text]]" on-input="onStepTextInput_">
+            </template>
+
+            <template is="dom-if" if="[[isBrowserWait_(step.type)]]">
+              <div class="field-label">Seconds</div>
+              <input class="step-input" type="number" min="1" value="[[step.seconds]]" on-input="onStepSecondsInput_">
+            </template>
+
+            <template is="dom-if" if="[[isFail_(step.type)]]">
+              <div class="field-label">Reason</div>
+              <input class="step-input" value="[[step.failReason]]" on-input="onStepFailReasonInput_">
+            </template>
+
+            <template is="dom-if" if="[[isComplete_(step.type)]]">
+              <div class="field-label">Outputs, one "name=expression" per line</div>
+              <textarea class="step-input" value="[[step.outputsText]]" on-input="onStepOutputsInput_"></textarea>
+            </template>
+          </div>
+        </div>
+      </template>
+
+      <leo-button kind="outline" size="small" on-click="handleAddStepClick_">
+        Add step
+      </leo-button>
+      <div class="steps-hint">[[knownStepIdsHint_(editSteps_)]]</div>
+
+      <template is="dom-if" if="[[hasSaveErrors_(saveErrors_)]]">
+        <div class="save-errors">
+          <template is="dom-repeat" items="[[saveErrors_]]">
+            <div>[[formatError_(item)]]</div>
+          </template>
+        </div>
+      </template>
+    </div>
+    <div slot="button-container">
+      <leo-button kind="plain-faint" on-click="onDialogCancel_">$i18n{cancel}</leo-button>
+      <leo-button on-click="onDialogSave_">$i18n{save}</leo-button>
+    </div>
+  </cr-dialog>
+</template>
+
+<template is="dom-if" if="[[showDeleteDialog_]]" restamp>
+  <cr-dialog show-on-attach show-close-button on-close="onDeleteDialogCancel_">
+    <div slot="title">$i18n{workflowsDeleteConfirmationTitle}</div>
+    <div slot="body">$i18n{workflowsDeleteConfirmation}</div>
+    <div slot="button-container">
+      <leo-button kind="plain-faint" on-click="onDeleteDialogCancel_">$i18n{cancel}</leo-button>
+      <leo-button class="delete-button" on-click="onDeleteDialogConfirm_">
+        $i18n{delete}
+      </leo-button>
+    </div>
+  </cr-dialog>
+</template>

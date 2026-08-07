@@ -76,6 +76,7 @@ class BraveVPNController {};
 #if BUILDFLAG(ENABLE_AI_CHAT)
 #include "brave/browser/ai_chat/ai_chat_service_factory.h"
 #include "brave/browser/ui/views/side_panel/ai_chat/ai_chat_side_panel_tab_transfer_bridge.h"
+#include "brave/browser/ui/views/side_panel/page_capture/page_capture_side_panel_coordinator.h"
 #include "brave/components/ai_chat/core/common/features.h"
 #endif
 
@@ -210,6 +211,14 @@ void BrowserWindowFeatures::InitPostBrowserViewConstruction(
     ai_chat_side_panel_tab_transfer_bridge_ =
         std::make_unique<AIChatSidePanelTabTransferBridge>(browser_);
   }
+
+  if (browser_->GetType() == BrowserWindowInterface::Type::TYPE_NORMAL &&
+      ai_chat::AIChatServiceFactory::GetForBrowserContext(
+          browser_->GetProfile())) {
+    page_capture_side_panel_coordinator_ =
+        std::make_unique<page_capture::PageCaptureSidePanelCoordinator>(
+            browser_, browser_->GetProfile());
+  }
 #endif
 
   BrowserWindowFeatures_ChromiumImpl::InitPostBrowserViewConstruction(
@@ -221,6 +230,7 @@ void BrowserWindowFeatures::TearDownPreBrowserWindowDestruction() {
   screenshot_controller_.reset();
 #if BUILDFLAG(ENABLE_AI_CHAT)
   ai_chat_side_panel_tab_transfer_bridge_.reset();
+  page_capture_side_panel_coordinator_.reset();
 #endif
 #if BUILDFLAG(ENABLE_BRAVE_VPN)
   brave_vpn_controller_.reset();

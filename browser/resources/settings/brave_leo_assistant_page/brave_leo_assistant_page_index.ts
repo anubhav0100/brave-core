@@ -21,6 +21,10 @@ import {getTemplate} from './brave_leo_assistant_page_index.html.js';
 // Subpages
 import './brave_leo_assistant_page.js';
 import './model_config_subpage.js';
+import './page_capture_section.js';
+import './webhook_tools_section.js';
+import './ai_chat_history_section.js';
+import './workflows_section.js';
 
 
 export interface BraveLeoAssistantPageIndexElement {
@@ -52,7 +56,9 @@ export class BraveLeoAssistantPageIndexElement extends
 
   private showDefaultViews_() {
     this.$.viewManager.switchViews(
-        ['assistant', 'personalization', 'model-list'], 'no-animation', 'no-animation');
+        ['assistant', 'personalization', 'model-list', 'page-capture',
+         'webhook-tools', 'ai-chat-history', 'workflows'],
+        'no-animation', 'no-animation');
   }
 
   override currentRouteChanged(newRoute: Route, oldRoute?: Route) {

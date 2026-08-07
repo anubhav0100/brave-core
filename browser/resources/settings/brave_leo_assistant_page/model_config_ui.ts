@@ -76,6 +76,18 @@ export class ModelConfigUI extends ModelConfigUIBase {
         type: String,
         value: ''
       },
+      fetchedModels_: {
+        type: Array,
+        value: () => [],
+      },
+      isFetchingModels_: {
+        type: Boolean,
+        value: false,
+      },
+      modelFetchError_: {
+        type: String,
+        value: '',
+      },
       modelItem: {
         type: Object,
         value: null,
@@ -119,6 +131,9 @@ export class ModelConfigUI extends ModelConfigUIBase {
   declare invalidUrlErrorMessage: string
   declare hasVisionSupport: boolean
   declare supportsTools: boolean
+  declare fetchedModels_: string[]
+  declare isFetchingModels_: boolean
+  declare modelFetchError_: string
 
   override ready() {
     super.ready()
@@ -232,6 +247,42 @@ export class ModelConfigUI extends ModelConfigUIBase {
 
   onSupportsToolsChanged_(e: LeoToggleEvent) {
     this.supportsTools = e.checked
+  }
+
+  private hasFetchedModels_(fetchedModels: string[]) {
+    return fetchedModels.length > 0
+  }
+
+  private canFetchModels_(endpointUrl: string, isUrlInvalid: boolean) {
+    return !!endpointUrl?.trim() && !isUrlInvalid
+  }
+
+  async handleFetchModels_() {
+    this.isFetchingModels_ = true
+    this.modelFetchError_ = ''
+    this.fetchedModels_ = []
+    try {
+      const models = await sendWithPromise<string[]>(
+        'fetchAvailableModels',
+        { endpoint: this.endpointUrl.trim(), apiKey: this.apiKey })
+      this.fetchedModels_ = models
+      if (models.length === 0) {
+        this.modelFetchError_ = this.i18n(
+          'braveLeoAssistantNoModelsFoundError')
+      }
+    } catch (error) {
+      this.modelFetchError_ = this.i18n(
+        'braveLeoAssistantFetchModelsError')
+    } finally {
+      this.isFetchingModels_ = false
+    }
+  }
+
+  onFetchedModelSelected_(e: Event) {
+    const select = e.target as HTMLSelectElement
+    if (select.value) {
+      this.modelRequestName = select.value
+    }
   }
 
   private saveEnabled_() {

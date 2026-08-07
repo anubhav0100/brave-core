@@ -1159,7 +1159,12 @@ const std::vector<mojom::ModelPtr> ModelService::GetCustomModels() {
         model_pref.FindBool(kCustomModelVisionSupport).value_or(false);
     model->supports_tools =
         model_pref.FindBool(kCustomModelSupportsTools).value_or(false);
-    model->supported_capabilities = {mojom::ConversationCapability::CHAT};
+    model->supported_capabilities =
+        model->supports_tools
+            ? std::vector{mojom::ConversationCapability::CHAT,
+                          mojom::ConversationCapability::CONTENT_AGENT,
+                          mojom::ConversationCapability::DEEP_RESEARCH}
+            : std::vector{mojom::ConversationCapability::CHAT};
     model->options = mojom::ModelOptions::NewCustomModelOptions(
         std::move(custom_model_opts));
 

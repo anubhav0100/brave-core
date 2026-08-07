@@ -82,7 +82,7 @@ BASE_FEATURE(kAIChatUserChoiceTool, base::FEATURE_DISABLED_BY_DEFAULT);
 // See https://github.com/brave/brave-browser/issues/57388.
 BASE_FEATURE(kAIChatWorkspaceTools, base::FEATURE_DISABLED_BY_DEFAULT);
 
-BASE_FEATURE(kAIChatAgentProfile, base::FEATURE_DISABLED_BY_DEFAULT);
+BASE_FEATURE(kAIChatAgentProfile, base::FEATURE_ENABLED_BY_DEFAULT);
 
 bool IsAIChatAgentProfileEnabled() {
 #if BUILDFLAG(ENABLE_BRAVE_AI_CHAT_AGENT_PROFILE)

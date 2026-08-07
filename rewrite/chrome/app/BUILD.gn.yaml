@@ -26,3 +26,19 @@ substitutions:
       replace:
         '\1\n    import("//brave/components/brave_origin/buildflags/buildflags.gni")
         if (is_brave_origin_branded) { defines = [ "IS_BRAVE_ORIGIN_BRANDED" ] }'
+
+  # Same as above, for the ai_automation_browser brand (see
+  # components/ai_automation_browser_buildflags.gni). Applied as a separate
+  # substitution so it doesn't disturb the brave_origin one above; the two
+  # generated `if` blocks are independent and mutually exclusive at build
+  # time since only one branding flag is ever true in a given build.
+  - description:
+      'Add IS_AI_AUTOMATION_BROWSER_BRANDED define to chrome_dll_resources.'
+    regex:
+      re_pattern:
+        '(source_set\("chrome_dll_resources"\)
+        {[\s\S]*?"//printing/buildflags",\n    \])'
+      re_flags: [MULTILINE]
+      replace:
+        '\1\n    import("//brave/components/ai_automation_browser_buildflags.gni")
+        if (is_ai_automation_browser_branded) { defines = [ "IS_AI_AUTOMATION_BROWSER_BRANDED" ] }'
