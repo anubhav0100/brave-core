@@ -28,7 +28,10 @@ EmbeddedImage::~EmbeddedImage() = default;
 namespace {
 
 constexpr size_t kMaxImages = 12;
-constexpr size_t kMaxImageBytes = 6 * 1024 * 1024;  // 6MB
+// SimpleURLLoader::DownloadToString DCHECKs (fatally) if asked for more than
+// this, so it's a hard ceiling, not just a size preference.
+constexpr size_t kMaxImageBytes =
+    network::SimpleURLLoader::kMaxBoundedStringDownloadSize;
 
 // Returns {extension, content_type} for a recognized raster image format
 // sniffed from its magic bytes, or nullopt if unrecognized.
