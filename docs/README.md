@@ -33,6 +33,9 @@ resources outside this repository, go to:
 
 ### General Development
 
+- [Building, Running, and Distributing on Windows](build_and_distribute_windows.md) -
+  Dev builds, a non-DCHECK Release config, and producing a distributable
+  `mini_installer.exe`.
 - [Running test suites](running_test_suites.md) - Selectively execute unit,
   browser and typescript tests.
 - [`gni` notes](gni_sources.md) - Brief notes on the use of `source.gni` files
