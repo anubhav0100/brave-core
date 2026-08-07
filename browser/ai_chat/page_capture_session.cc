@@ -5,6 +5,7 @@
 
 #include "brave/browser/ai_chat/page_capture_session.h"
 
+#include <algorithm>
 #include <set>
 #include <utility>
 
@@ -60,10 +61,53 @@ std::string StripTagsAndCollapseWhitespace(std::string html_fragment) {
   return trimmed;
 }
 
+// One piece of a section's body, in the order it appeared in the page - text
+// as already tag-stripped/whitespace-collapsed prose, or the resolved URL of
+// an <img> found in between two runs of text.
+struct ContentChunk {
+  enum class Type { kText, kImage };
+  Type type = Type::kText;
+  std::string text;
+  GURL image_url;
+};
+
 struct Section {
   std::string heading;  // Empty for content appearing before any heading.
-  std::string text;
+  std::vector<ContentChunk> body_chunks;
 };
+
+// Splits `html` at each <img> tag into alternating text/image chunks, so an
+// image ends up positioned in content_paragraphs exactly where it appeared
+// on the page rather than being collected separately - see CapturedPage.
+std::vector<ContentChunk> SplitBodyIntoChunks(const std::string& html,
+                                              const GURL& base_url) {
+  std::vector<ContentChunk> chunks;
+  static const base::NoDestructor<re2::RE2> kImgRe(
+      R"((<img\b[^>]*?\bsrc\s*=\s*["']([^"']+)["'][^>]*>))");
+  re2::StringPiece input(html);
+  std::string full_match;
+  std::string src;
+  size_t pos = 0;
+  while (RE2::FindAndConsume(&input, *kImgRe, &full_match, &src)) {
+    size_t match_end = static_cast<size_t>(input.data() - html.data());
+    size_t match_start = match_end - full_match.size();
+    std::string text_before = StripTagsAndCollapseWhitespace(
+        html.substr(pos, match_start - pos));
+    if (!text_before.empty()) {
+      chunks.push_back({ContentChunk::Type::kText, text_before, GURL()});
+    }
+    GURL resolved = base_url.Resolve(src);
+    if (resolved.is_valid()) {
+      chunks.push_back({ContentChunk::Type::kImage, "", resolved});
+    }
+    pos = match_end;
+  }
+  std::string trailing = StripTagsAndCollapseWhitespace(html.substr(pos));
+  if (!trailing.empty()) {
+    chunks.push_back({ContentChunk::Type::kText, trailing, GURL()});
+  }
+  return chunks;
+}
 
 struct HeadingMatch {
   size_t tag_start = 0;
@@ -89,21 +133,22 @@ std::vector<HeadingMatch> FindHeadings(const std::string& html) {
 
 // Splits `html` into sections at each <h1>-<h3> boundary. Content before the
 // first heading becomes one section with an empty heading.
-std::vector<Section> SplitIntoSections(const std::string& html) {
+std::vector<Section> SplitIntoSections(const std::string& html,
+                                       const GURL& base_url) {
   std::vector<Section> sections;
   std::vector<HeadingMatch> headings = FindHeadings(html);
 
   if (headings.empty()) {
-    std::string text = StripTagsAndCollapseWhitespace(html);
-    if (!text.empty()) {
-      sections.push_back({"", std::move(text)});
+    std::vector<ContentChunk> chunks = SplitBodyIntoChunks(html, base_url);
+    if (!chunks.empty()) {
+      sections.push_back({"", std::move(chunks)});
     }
     return sections;
   }
 
   if (headings[0].tag_start > 0) {
-    std::string leading =
-        StripTagsAndCollapseWhitespace(html.substr(0, headings[0].tag_start));
+    std::vector<ContentChunk> leading = SplitBodyIntoChunks(
+        html.substr(0, headings[0].tag_start), base_url);
     if (!leading.empty()) {
       sections.push_back({"", std::move(leading)});
     }
@@ -115,8 +160,8 @@ std::vector<Section> SplitIntoSections(const std::string& html) {
         (i + 1 < headings.size()) ? headings[i + 1].tag_start : html.size();
     sections.push_back(
         {StripTagsAndCollapseWhitespace(headings[i].text),
-         StripTagsAndCollapseWhitespace(
-             html.substr(body_begin, body_end - body_begin))});
+         SplitBodyIntoChunks(html.substr(body_begin, body_end - body_begin),
+                             base_url)});
   }
   return sections;
 }
@@ -157,6 +202,93 @@ void AppendParagraph(base::ListValue& paragraphs,
   paragraph.Set("text", text);
   paragraph.Set("heading_level", heading_level);
   paragraphs.Append(std::move(paragraph));
+}
+
+// A placeholder for an image found at this position in the page's content -
+// resolved to a real embedded picture (or dropped, if it failed to download)
+// by ReplaceImagePlaceholdersWithEmbeddedImages at save time.
+void AppendImagePlaceholder(base::ListValue& paragraphs, const GURL& url) {
+  base::DictValue paragraph;
+  paragraph.Set("pending_image_url", url.spec());
+  paragraphs.Append(std::move(paragraph));
+}
+
+void AppendChunks(base::ListValue& paragraphs,
+                  const std::vector<ContentChunk>& chunks) {
+  for (const auto& chunk : chunks) {
+    if (chunk.type == ContentChunk::Type::kText) {
+      AppendParagraph(paragraphs, chunk.text, 0);
+    } else {
+      AppendImagePlaceholder(paragraphs, chunk.image_url);
+    }
+  }
+}
+
+// Collects every "pending_image_url" placeholder's URL across `pages`, in
+// order, for FetchImagesForEmbedding to download.
+std::vector<GURL> CollectPendingImageUrls(
+    const std::vector<CapturedPage>& pages) {
+  std::vector<GURL> urls;
+  for (const auto& page : pages) {
+    for (const auto& paragraph : page.content_paragraphs) {
+      if (!paragraph.is_dict()) {
+        continue;
+      }
+      const std::string* url_str =
+          paragraph.GetDict().FindString("pending_image_url");
+      if (url_str) {
+        urls.emplace_back(*url_str);
+      }
+    }
+  }
+  return urls;
+}
+
+// Rebuilds `paragraphs` with every "pending_image_url" placeholder swapped
+// for a real embedded-image paragraph at the same position, or dropped if
+// that URL isn't in `images` (it failed to download/wasn't a recognized
+// format - see FetchImagesForEmbedding). Non-placeholder paragraphs pass
+// through unchanged.
+base::ListValue ReplaceImagePlaceholdersWithEmbeddedImages(
+    const base::ListValue& paragraphs,
+    const std::vector<EmbeddedImage>& images,
+    int width_emu,
+    int height_emu,
+    int max_width_emu) {
+  base::ListValue result;
+  for (const auto& paragraph : paragraphs) {
+    const std::string* pending_url =
+        paragraph.is_dict() ? paragraph.GetDict().FindString(
+                                  "pending_image_url")
+                            : nullptr;
+    if (!pending_url) {
+      result.Append(paragraph.Clone());
+      continue;
+    }
+    GURL url(*pending_url);
+    auto it = std::ranges::find(images, url, &EmbeddedImage::source_url);
+    if (it == images.end()) {
+      continue;  // Failed to download - drop the placeholder silently.
+    }
+    int this_width_emu = width_emu;
+    int this_height_emu = height_emu;
+    if (it->width_px > 0 && it->height_px > 0) {
+      this_width_emu = it->width_px * 9525;    // 96 DPI.
+      this_height_emu = it->height_px * 9525;
+      if (this_width_emu > max_width_emu) {
+        this_height_emu = static_cast<int>(
+            static_cast<int64_t>(this_height_emu) * max_width_emu /
+            this_width_emu);
+        this_width_emu = max_width_emu;
+      }
+    }
+    base::DictValue image_paragraph;
+    image_paragraph.Set("image_relationship_id", it->relationship_id);
+    image_paragraph.Set("image_width_emu", this_width_emu);
+    image_paragraph.Set("image_height_emu", this_height_emu);
+    result.Append(std::move(image_paragraph));
+  }
+  return result;
 }
 
 content::WebContents* GetActiveWebContentsFor(
@@ -219,13 +351,14 @@ void PageCaptureSession::OnFullPageSourceFetched(
 
   CapturedPage page;
   page.heading = heading;
-  for (const auto& section : SplitIntoSections(source.combined_html)) {
-    if (section.text.empty()) {
+  for (const auto& section : SplitIntoSections(source.combined_html, page_url)) {
+    if (section.body_chunks.empty()) {
       continue;
     }
-    AppendParagraph(page.content_paragraphs, section.heading,
-                    section.heading.empty() ? 0 : 2);
-    AppendParagraph(page.content_paragraphs, section.text, 0);
+    if (!section.heading.empty()) {
+      AppendParagraph(page.content_paragraphs, section.heading, 2);
+    }
+    AppendChunks(page.content_paragraphs, section.body_chunks);
   }
 
   std::vector<std::pair<GURL, std::string>> links =
@@ -239,10 +372,6 @@ void PageCaptureSession::OnFullPageSourceFetched(
                         url.spec(), ")\n"});
     }
     AppendParagraph(page.content_paragraphs, links_text, 0);
-  }
-
-  for (const auto& [url, alt] : source.images) {
-    page.image_urls.push_back(url);
   }
 
   size_t page_number = pages_.size() + 1;
@@ -259,11 +388,7 @@ void PageCaptureSession::SaveAsWordDocument(const std::string& filename,
     return;
   }
 
-  std::vector<GURL> all_image_urls;
-  for (const auto& page : pages_) {
-    all_image_urls.insert(all_image_urls.end(), page.image_urls.begin(),
-                          page.image_urls.end());
-  }
+  std::vector<GURL> all_image_urls = CollectPendingImageUrls(pages_);
 
   auto url_loader_factory =
       browser_context_->GetDefaultStoragePartition()
@@ -287,22 +412,21 @@ void PageCaptureSession::OnImagesFetchedForSave(
     return;
   }
 
+  constexpr int kMaxWidthEmu = 5486400;      // 6 inches.
+  constexpr int kDefaultWidthEmu = 3657600;  // 4 inches.
+  constexpr int kDefaultHeightEmu = 2743200;  // 3 inches.
+
   base::ListValue paragraphs;
   for (const auto& page : pages_) {
     AppendParagraph(paragraphs, page.heading, 1);
-    for (const auto& paragraph : page.content_paragraphs) {
+    base::ListValue resolved = ReplaceImagePlaceholdersWithEmbeddedImages(
+        page.content_paragraphs, images, kDefaultWidthEmu, kDefaultHeightEmu,
+        kMaxWidthEmu);
+    for (const auto& paragraph : resolved) {
       paragraphs.Append(paragraph.Clone());
     }
   }
 
-  constexpr int kMaxWidthEmu = 5486400;    // 6 inches.
-  constexpr int kDefaultWidthEmu = 3657600;  // 4 inches.
-  constexpr int kDefaultHeightEmu = 2743200;  // 3 inches.
-  constexpr int kEmuPerPixel = 9525;  // 96 DPI.
-
-  if (!images.empty()) {
-    AppendParagraph(paragraphs, "Images", 1);
-  }
   std::string document_filename = base::StrCat({filename, ".docx"});
   std::vector<OoxmlPart> parts;
   parts.push_back(
@@ -313,23 +437,6 @@ void PageCaptureSession::OnImagesFetchedForSave(
         {"word/_rels/document.xml.rels", BuildDocumentRelsXml(images)});
   }
   for (const auto& image : images) {
-    int width_emu = kDefaultWidthEmu;
-    int height_emu = kDefaultHeightEmu;
-    if (image.width_px > 0 && image.height_px > 0) {
-      width_emu = image.width_px * kEmuPerPixel;
-      height_emu = image.height_px * kEmuPerPixel;
-      if (width_emu > kMaxWidthEmu) {
-        height_emu = static_cast<int>(static_cast<int64_t>(height_emu) *
-                                      kMaxWidthEmu / width_emu);
-        width_emu = kMaxWidthEmu;
-      }
-    }
-    base::DictValue image_paragraph;
-    image_paragraph.Set("image_relationship_id", image.relationship_id);
-    image_paragraph.Set("image_width_emu", width_emu);
-    image_paragraph.Set("image_height_emu", height_emu);
-    paragraphs.Append(std::move(image_paragraph));
-
     parts.push_back(
         {base::StrCat({"word/", image.media_path}),
          std::string(image.bytes.begin(), image.bytes.end())});

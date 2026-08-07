@@ -25,10 +25,13 @@ class BrowserContext;
 namespace ai_chat {
 
 // One page captured into a PageCaptureSession - its content already split
-// into paragraphs/sections/links ready for BuildWordDocumentXml, plus the
-// image URLs found on it (fetched and embedded only at save time, since
-// most captures are never saved and there's no point downloading images
-// for a session that gets cleared).
+// into paragraphs/sections/links ready for BuildWordDocumentXml. Images are
+// represented as {"pending_image_url": <url>} placeholder paragraphs at the
+// exact position they appeared in the page's content (not collected
+// separately), so SaveAsWordDocument can swap each one for a real embedded
+// picture in place once it's been downloaded - fetched and embedded only at
+// save time, since most captures are never saved and there's no point
+// downloading images for a session that gets cleared.
 struct CapturedPage {
   CapturedPage();
   CapturedPage(CapturedPage&&);
@@ -37,7 +40,6 @@ struct CapturedPage {
 
   std::string heading;
   base::ListValue content_paragraphs;
-  std::vector<GURL> image_urls;
 };
 
 // Accumulates pages captured via chat across one conversation, so the user

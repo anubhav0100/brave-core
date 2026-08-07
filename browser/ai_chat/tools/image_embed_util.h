@@ -29,6 +29,10 @@ struct EmbeddedImage {
   EmbeddedImage& operator=(EmbeddedImage&&);
   ~EmbeddedImage();
 
+  // The URL this was downloaded from - lets a caller that captured multiple
+  // pages of content match an embedded image back to the position in that
+  // content where it originally appeared (see PageCaptureSession).
+  GURL source_url;
   // e.g. "rId2" - unique within the document part's own relationships file.
   std::string relationship_id;
   // Archive path relative to word/, e.g. "media/image1.png".

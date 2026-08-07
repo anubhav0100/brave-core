@@ -214,6 +214,7 @@ class ImageBatchFetcher {
       auto format = SniffImageFormat(*body);
       if (format) {
         EmbeddedImage image;
+        image.source_url = url;
         image.extension = format->first;
         image.content_type = format->second;
         image.bytes.assign(body->begin(), body->end());
