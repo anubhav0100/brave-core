@@ -233,6 +233,7 @@ export function createMockUIHandler(
         },
       }),
     getPluralString: () => Promise.resolve({ pluralString: '' }),
+    getWorkflows: () => Promise.resolve({ workflows: [] }),
     setChatUI: () => Promise.resolve({ isStandalone: false }),
 
     // Action methods - fire and forget stubs

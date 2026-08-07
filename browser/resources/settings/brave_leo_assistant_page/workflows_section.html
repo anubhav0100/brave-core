@@ -267,12 +267,12 @@ You can obtain one at https://mozilla.org/MPL/2.0/. -->
             <template is="dom-if" if="[[isSetVariable_(step.type)]]">
               <div class="field-label">Variable name</div>
               <input class="step-input" value="[[step.variableName]]" on-input="onStepVariableNameInput_">
-              <div class="field-label">Value (supports ${var.x} / ${input.x})</div>
+              <div class="field-label">Value (supports \${var.x} / \${input.x})</div>
               <input class="step-input" value="[[step.variableValue]]" on-input="onStepVariableValueInput_">
             </template>
 
             <template is="dom-if" if="[[isCondition_(step.type)]]">
-              <div class="field-label">Expression, e.g. ${var.x} == some value</div>
+              <div class="field-label">Expression, e.g. \${var.x} == some value</div>
               <input class="step-input" value="[[step.conditionExpression]]" on-input="onStepConditionExpressionInput_">
               <div class="field-label">Step id if true</div>
               <input class="step-input" value="[[step.onTrue]]" on-input="onStepOnTrueInput_">
@@ -293,7 +293,7 @@ You can obtain one at https://mozilla.org/MPL/2.0/. -->
             <template is="dom-if" if="[[isBrowserType_(step.type)]]">
               <div class="field-label">CSS selector</div>
               <input class="step-input" value="[[step.selector]]" on-input="onStepSelectorInput_">
-              <div class="field-label">Text to type (supports ${var.x} / ${input.x})</div>
+              <div class="field-label">Text to type (supports \${var.x} / \${input.x})</div>
               <input class="step-input" value="[[step.text]]" on-input="onStepTextInput_">
             </template>
 

@@ -70,33 +70,33 @@ function stepNeedsNext(type: string): boolean {
 function stepFormToJson(step: WorkflowStepForm): Record<string, unknown> {
   const json: Record<string, unknown> = { id: step.id, type: step.type }
   if (stepNeedsNext(step.type)) {
-    json.next = step.next
+    json['next'] = step.next
   }
   switch (step.type) {
     case 'set_variable':
-      json.name = step.variableName
-      json.value = step.variableValue
+      json['name'] = step.variableName
+      json['value'] = step.variableValue
       break
     case 'condition':
-      json.expression = step.conditionExpression
-      json.on_true = step.onTrue
-      json.on_false = step.onFalse
+      json['expression'] = step.conditionExpression
+      json['on_true'] = step.onTrue
+      json['on_false'] = step.onFalse
       break
     case 'browser.navigate':
-      json.url = step.url
+      json['url'] = step.url
       break
     case 'browser.click':
-      json.selector = step.selector
+      json['selector'] = step.selector
       break
     case 'browser.type':
-      json.selector = step.selector
-      json.text = step.text
+      json['selector'] = step.selector
+      json['text'] = step.text
       break
     case 'browser.wait':
-      json.seconds = parseInt(step.seconds, 10) || 0
+      json['seconds'] = parseInt(step.seconds, 10) || 0
       break
     case 'fail':
-      json.reason = step.failReason
+      json['reason'] = step.failReason
       break
     case 'complete': {
       const outputs: Record<string, string> = {}
@@ -107,7 +107,7 @@ function stepFormToJson(step: WorkflowStepForm): Record<string, unknown> {
         }
         outputs[line.slice(0, eq).trim()] = line.slice(eq + 1).trim()
       }
-      json.outputs = outputs
+      json['outputs'] = outputs
       break
     }
   }
@@ -116,7 +116,7 @@ function stepFormToJson(step: WorkflowStepForm): Record<string, unknown> {
 
 function stepFromJson(json: Record<string, unknown>): WorkflowStepForm {
   const str = (key: string) =>
-    typeof json[key] === 'string' ? json[key] as string : ''
+    typeof json[key] === 'string' ? json[key] : ''
   const step = newStep(str('type') || 'browser.navigate')
   step.id = str('id')
   step.next = str('next')
@@ -128,9 +128,10 @@ function stepFromJson(json: Record<string, unknown>): WorkflowStepForm {
   step.url = str('url')
   step.selector = str('selector')
   step.text = str('text')
-  step.seconds = typeof json.seconds === 'number' ? String(json.seconds) : '2'
+  step.seconds =
+    typeof json['seconds'] === 'number' ? String(json['seconds']) : '2'
   step.failReason = str('reason')
-  const outputs = json.outputs
+  const outputs = json['outputs']
   if (outputs && typeof outputs === 'object') {
     step.outputsText = Object.entries(outputs as Record<string, unknown>)
       .map(([k, v]) => `${k}=${v}`)

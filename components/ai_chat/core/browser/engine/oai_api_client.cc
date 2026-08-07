@@ -66,6 +66,22 @@ net::NetworkTrafficAnnotationTag GetNetworkTrafficAnnotationTag() {
     )");
 }
 
+// Reasoning-style models (OpenAI's o1/o3/o4 family and the gpt-5 family, on
+// both OpenAI and Azure OpenAI) reject any "temperature" other than their
+// fixed default (1) and return HTTP 400 if one is sent, so the field must be
+// omitted entirely for them rather than defaulted to Brave's usual 0.7.
+bool ModelSupportsCustomTemperature(const std::string& model_request_name) {
+  static constexpr std::string_view kFixedTemperatureModelPrefixes[] = {
+      "o1", "o3", "o4", "gpt-5"};
+  for (std::string_view prefix : kFixedTemperatureModelPrefixes) {
+    if (base::StartsWith(model_request_name, prefix,
+                          base::CompareCase::INSENSITIVE_ASCII)) {
+      return false;
+    }
+  }
+  return true;
+}
+
 }  // namespace
 
 // static
@@ -79,7 +95,9 @@ base::DictValue OAIAPIClient::CreateJSONRequestBody(
 
   dict.Set("messages", std::move(messages));
   dict.Set("stream", is_sse_enabled);
-  dict.Set("temperature", 0.7);
+  if (ModelSupportsCustomTemperature(model_request_name)) {
+    dict.Set("temperature", 0.7);
+  }
   dict.Set("model", model_request_name);
 
   if (oai_tool_definitions.has_value() && !oai_tool_definitions->empty()) {
