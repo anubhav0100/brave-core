@@ -34,9 +34,13 @@ class CreateSpreadsheetTool;
 class CreateWordDocumentTool;
 class ReadWordDocumentTool;
 class HistorySearchTool;
+class ClearResponseMemoryTool;
 class PageCaptureSession;
+class ResponseMemorySession;
 class RunWorkflowTool;
 class SaveCapturedSessionAsWordDocumentTool;
+class SaveResponseMemoryAsWordDocumentTool;
+class SaveResponseToMemoryTool;
 class TabManagementTool;
 
 // Implementation of ToolProvider that provides browser-specific
@@ -69,6 +73,11 @@ class BrowserToolProvider : public ToolProvider {
   std::unique_ptr<SaveCapturedSessionAsWordDocumentTool>
       save_captured_session_as_word_document_tool_;
   std::unique_ptr<ClearCapturedSessionTool> clear_captured_session_tool_;
+  std::unique_ptr<ResponseMemorySession> response_memory_session_;
+  std::unique_ptr<SaveResponseToMemoryTool> save_response_to_memory_tool_;
+  std::unique_ptr<SaveResponseMemoryAsWordDocumentTool>
+      save_response_memory_as_word_document_tool_;
+  std::unique_ptr<ClearResponseMemoryTool> clear_response_memory_tool_;
   std::unique_ptr<RunWorkflowTool> run_workflow_tool_;
   std::unique_ptr<CreateSpreadsheetTool> create_spreadsheet_tool_;
   std::unique_ptr<CreatePresentationTool> create_presentation_tool_;

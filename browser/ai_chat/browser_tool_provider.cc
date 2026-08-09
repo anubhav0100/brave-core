@@ -12,6 +12,7 @@
 #include "base/feature_list.h"
 #include "base/memory/weak_ptr.h"
 #include "brave/browser/ai_chat/page_capture_session.h"
+#include "brave/browser/ai_chat/response_memory_session.h"
 #include "brave/browser/ai_chat/tools/code_execution_tool.h"
 #include "brave/browser/ai_chat/tools/create_presentation_tool.h"
 #include "brave/browser/ai_chat/tools/create_spreadsheet_tool.h"
@@ -19,6 +20,7 @@
 #include "brave/browser/ai_chat/tools/history_search_tool.h"
 #include "brave/browser/ai_chat/tools/page_capture_tools.h"
 #include "brave/browser/ai_chat/tools/read_word_document_tool.h"
+#include "brave/browser/ai_chat/tools/response_memory_tools.h"
 #include "brave/browser/ai_chat/tools/run_workflow_tool.h"
 #include "brave/components/ai_chat/core/browser/tools/tool.h"
 #include "brave/components/ai_chat/core/common/buildflags/buildflags.h"
@@ -67,6 +69,16 @@ std::vector<base::WeakPtr<Tool>> BrowserToolProvider::GetTools() {
   }
   if (clear_captured_session_tool_) {
     tool_ptrs.push_back(clear_captured_session_tool_->GetWeakPtr());
+  }
+  if (save_response_to_memory_tool_) {
+    tool_ptrs.push_back(save_response_to_memory_tool_->GetWeakPtr());
+  }
+  if (save_response_memory_as_word_document_tool_) {
+    tool_ptrs.push_back(
+        save_response_memory_as_word_document_tool_->GetWeakPtr());
+  }
+  if (clear_response_memory_tool_) {
+    tool_ptrs.push_back(clear_response_memory_tool_->GetWeakPtr());
   }
   if (run_workflow_tool_) {
     tool_ptrs.push_back(run_workflow_tool_->GetWeakPtr());
@@ -119,6 +131,15 @@ void BrowserToolProvider::CreateTools(
           page_capture_session_.get());
   clear_captured_session_tool_ = std::make_unique<ClearCapturedSessionTool>(
       page_capture_session_.get());
+  response_memory_session_ =
+      std::make_unique<ResponseMemorySession>(browser_context);
+  save_response_to_memory_tool_ = std::make_unique<SaveResponseToMemoryTool>(
+      response_memory_session_.get());
+  save_response_memory_as_word_document_tool_ =
+      std::make_unique<SaveResponseMemoryAsWordDocumentTool>(
+          response_memory_session_.get());
+  clear_response_memory_tool_ = std::make_unique<ClearResponseMemoryTool>(
+      response_memory_session_.get());
   run_workflow_tool_ = std::make_unique<RunWorkflowTool>(browser_context);
   create_spreadsheet_tool_ =
       std::make_unique<CreateSpreadsheetTool>(browser_context);

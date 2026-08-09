@@ -43,6 +43,10 @@ const string kCapturePageToSessionToolName = "capture_page_to_session";
 const string kSaveCapturedSessionAsWordDocumentToolName =
     "save_captured_session_as_word_document";
 const string kClearCapturedSessionToolName = "clear_captured_session";
+const string kSaveResponseToMemoryToolName = "save_response_to_memory";
+const string kSaveResponseMemoryAsWordDocumentToolName =
+    "save_response_memory_as_word_document";
+const string kClearResponseMemoryToolName = "clear_response_memory";
 const string kRunWorkflowToolName = "run_workflow";
 const string kCreateSpreadsheetToolName = "create_spreadsheet";
 const string kCreatePresentationToolName = "create_presentation";
