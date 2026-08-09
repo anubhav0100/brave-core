@@ -25,6 +25,77 @@ constexpr char kContentIndexingEnabledPref[] =
 constexpr size_t kMaxChunkTextLength = 4000;
 constexpr base::FilePath::CharType kDatabaseFileName[] =
     FILE_PATH_LITERAL("AiChatContentIndex.db");
+
+// Re-ranking only re-scores this many of the top first-pass candidates -
+// there's no point spending the extra work on chunks that were already
+// far down the list, and it keeps the whole search O(candidate pool) on
+// top of the existing O(chunks_) first pass rather than adding a second
+// full scan.
+constexpr size_t kRerankCandidateMultiplier = 4;
+
+// Rewards chunks where the query's words appear close together, not just
+// present somewhere in the chunk - two chunks that both contain every
+// query word score equally under plain keyword overlap, but one where
+// they appear in the same sentence is usually the better match.
+float ComputeQueryProximityScore(const std::vector<std::string>& query_words,
+                                 const std::string& lower_text) {
+  if (query_words.empty()) {
+    return 0;
+  }
+  size_t min_pos = std::string::npos;
+  size_t max_end = 0;
+  size_t matched = 0;
+  for (const auto& word : query_words) {
+    size_t pos = lower_text.find(word);
+    if (pos == std::string::npos) {
+      continue;
+    }
+    ++matched;
+    min_pos = std::min(min_pos, pos);
+    max_end = std::max(max_end, pos + word.size());
+  }
+  if (matched == 0) {
+    return 0;
+  }
+  float coverage =
+      static_cast<float>(matched) / static_cast<float>(query_words.size());
+  size_t span = min_pos == std::string::npos ? 0 : (max_end - min_pos);
+  // A ~200-character window is roughly a sentence or two - matches that
+  // tight get full density credit; wider spreads taper off.
+  float density =
+      span == 0 ? 1.0f : std::min(1.0f, 200.0f / static_cast<float>(span));
+  return coverage * density;
+}
+
+// Second-pass re-ranking over the top first-pass candidates: blends each
+// candidate's existing hybrid (vector + keyword) score with an exact
+// phrase-match bonus and the term-proximity score above, then re-sorts
+// just that pool. This is the "retrieve broad, then re-rank precisely"
+// pattern - deliberately heuristic rather than a cross-encoder model,
+// consistent with this file's existing brute-force-over-ML approach to
+// search (see the design doc's "Why brute-force similarity" section).
+void RerankCandidates(const std::string& lower_query,
+                      const std::vector<std::string>& query_words,
+                      size_t top_k,
+                      std::vector<ContentSearchResult>& results) {
+  size_t pool_size =
+      std::min(results.size(), kRerankCandidateMultiplier * top_k);
+  for (size_t i = 0; i < pool_size; ++i) {
+    ContentSearchResult& result = results[i];
+    std::string lower_text = base::ToLowerASCII(result.text);
+    float phrase_bonus =
+        (!lower_query.empty() &&
+         lower_text.find(lower_query) != std::string::npos)
+            ? 1.0f
+            : 0.0f;
+    float proximity_score =
+        ComputeQueryProximityScore(query_words, lower_text);
+    float rerank_score = (0.4f * phrase_bonus) + (0.6f * proximity_score);
+    result.score = (0.75f * result.score) + (0.25f * rerank_score);
+  }
+  std::ranges::sort(results.begin(), results.begin() + pool_size,
+                    std::ranges::greater{}, &ContentSearchResult::score);
+}
 }  // namespace
 
 IndexedChunk::IndexedChunk() = default;
@@ -206,6 +277,9 @@ void AiChatContentIndex::OnQueryEmbedded(
   }
   std::ranges::sort(results, std::ranges::greater{},
                     &ContentSearchResult::score);
+  RerankCandidates(base::ToLowerASCII(passages.empty() ? std::string()
+                                                        : passages[0]),
+                   query_words, top_k, results);
   if (results.size() > top_k) {
     results.resize(top_k);
   }
