@@ -49,6 +49,7 @@
 #include "brave/browser/ai_chat/webhook_tool_service_factory.h"
 #include "brave/browser/ai_chat/content_index/ai_chat_content_index_factory.h"
 #include "brave/browser/ai_chat/workflows/workflow_repository_factory.h"
+#include "brave/browser/n8n/n8n_process_manager_factory.h"
 #include "brave/browser/ai_chat/ollama/ollama_service_factory.h"
 #include "brave/browser/ai_chat/tab_tracker_service_factory.h"
 #include "brave/components/ai_chat/core/common/features.h"
@@ -230,6 +231,7 @@ void EnsureBrowserContextKeyedServiceFactoriesBuilt() {
     ai_chat::TabTrackerServiceFactory::GetInstance();
     ai_chat::WebhookToolServiceFactory::GetInstance();
     ai_chat::WorkflowRepositoryFactory::GetInstance();
+    ai_chat::N8nProcessManagerFactory::GetInstance();
   }
 #endif
 

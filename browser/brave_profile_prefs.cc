@@ -99,6 +99,7 @@
 #include "brave/browser/ai_chat/webhook_tool_service.h"
 #include "brave/browser/ai_chat/content_index/ai_chat_content_index.h"
 #include "brave/browser/ai_chat/workflows/workflow_repository.h"
+#include "brave/browser/n8n/n8n_process_manager.h"
 #include "brave/components/ai_chat/core/browser/model_service.h"
 #include "brave/components/ai_chat/core/common/features.h"
 #include "brave/components/ai_chat/core/common/pref_names.h"
@@ -576,6 +577,7 @@ void RegisterProfilePrefs(user_prefs::PrefRegistrySyncable* registry) {
   ai_chat::WebhookToolService::RegisterProfilePrefs(registry);
   ai_chat::WorkflowRepository::RegisterProfilePrefs(registry);
   ai_chat::AiChatContentIndex::RegisterProfilePrefs(registry);
+  ai_chat::N8nProcessManager::RegisterProfilePrefs(registry);
 #endif
 
 #if BUILDFLAG(ENABLE_LOCAL_AI)

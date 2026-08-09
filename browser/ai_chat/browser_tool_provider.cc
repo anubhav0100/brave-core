@@ -20,6 +20,8 @@
 #include "brave/browser/ai_chat/tools/create_spreadsheet_tool.h"
 #include "brave/browser/ai_chat/tools/create_word_document_tool.h"
 #include "brave/browser/ai_chat/tools/history_search_tool.h"
+#include "brave/browser/ai_chat/tools/n8n_tools.h"
+#include "brave/browser/n8n/n8n_process_manager_factory.h"
 #include "brave/browser/ai_chat/tools/page_capture_tools.h"
 #include "brave/browser/ai_chat/tools/read_word_document_tool.h"
 #include "brave/browser/ai_chat/tools/response_memory_tools.h"
@@ -88,6 +90,18 @@ std::vector<base::WeakPtr<Tool>> BrowserToolProvider::GetTools() {
   if (index_bookmarks_tool_) {
     tool_ptrs.push_back(index_bookmarks_tool_->GetWeakPtr());
   }
+  if (open_n8n_tool_) {
+    tool_ptrs.push_back(open_n8n_tool_->GetWeakPtr());
+  }
+  if (set_n8n_api_key_tool_) {
+    tool_ptrs.push_back(set_n8n_api_key_tool_->GetWeakPtr());
+  }
+  if (create_n8n_workflow_tool_) {
+    tool_ptrs.push_back(create_n8n_workflow_tool_->GetWeakPtr());
+  }
+  if (run_n8n_workflow_tool_) {
+    tool_ptrs.push_back(run_n8n_workflow_tool_->GetWeakPtr());
+  }
   if (run_workflow_tool_) {
     tool_ptrs.push_back(run_workflow_tool_->GetWeakPtr());
   }
@@ -154,6 +168,16 @@ void BrowserToolProvider::CreateTools(
   index_bookmarks_tool_ = std::make_unique<IndexBookmarksTool>(
       AiChatContentIndexFactory::GetForBrowserContext(browser_context),
       profile_);
+  auto* n8n_manager =
+      N8nProcessManagerFactory::GetForBrowserContext(browser_context);
+  open_n8n_tool_ =
+      std::make_unique<OpenN8nTool>(n8n_manager, browser_context);
+  set_n8n_api_key_tool_ =
+      std::make_unique<SetN8nApiKeyTool>(browser_context);
+  create_n8n_workflow_tool_ = std::make_unique<CreateN8nWorkflowTool>(
+      n8n_manager, browser_context);
+  run_n8n_workflow_tool_ =
+      std::make_unique<RunN8nWorkflowTool>(n8n_manager, browser_context);
   run_workflow_tool_ = std::make_unique<RunWorkflowTool>(browser_context);
   create_spreadsheet_tool_ =
       std::make_unique<CreateSpreadsheetTool>(browser_context);
