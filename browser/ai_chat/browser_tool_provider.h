@@ -13,6 +13,7 @@
 #include "brave/components/ai_chat/core/browser/tools/tool.h"
 #include "brave/components/ai_chat/core/browser/tools/tool_provider.h"
 #include "brave/components/ai_chat/core/common/buildflags/buildflags.h"
+#include "build/build_config.h"
 #include "printing/buildflags/buildflags.h"
 
 class Profile;
@@ -37,6 +38,9 @@ class CallN8nMcpToolTool;
 class CreateN8nWorkflowTool;
 class HistorySearchTool;
 class IndexBookmarksTool;
+#if !BUILDFLAG(IS_ANDROID)
+class IndexLocalFileTool;
+#endif
 class ClearResponseMemoryTool;
 class ListN8nMcpToolsTool;
 class N8nProcessManager;
@@ -89,6 +93,9 @@ class BrowserToolProvider : public ToolProvider {
   std::unique_ptr<ClearResponseMemoryTool> clear_response_memory_tool_;
   std::unique_ptr<SearchIndexedContentTool> search_indexed_content_tool_;
   std::unique_ptr<IndexBookmarksTool> index_bookmarks_tool_;
+#if !BUILDFLAG(IS_ANDROID)
+  std::unique_ptr<IndexLocalFileTool> index_local_file_tool_;
+#endif
   std::unique_ptr<OpenN8nTool> open_n8n_tool_;
   std::unique_ptr<SetN8nApiKeyTool> set_n8n_api_key_tool_;
   std::unique_ptr<CreateN8nWorkflowTool> create_n8n_workflow_tool_;

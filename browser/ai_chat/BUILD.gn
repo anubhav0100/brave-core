@@ -163,6 +163,8 @@ static_library("ai_chat") {
     sources += [
       "text_file_extractor.cc",
       "text_file_extractor.h",
+      "tools/index_local_file_tool.cc",
+      "tools/index_local_file_tool.h",
     ]
     deps += [
       "//chrome/browser/ui/side_panel",

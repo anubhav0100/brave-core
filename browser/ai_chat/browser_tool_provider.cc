@@ -33,6 +33,7 @@
 #include "chrome/browser/history_embeddings/history_embeddings_utils.h"
 #include "chrome/browser/profiles/profile.h"
 #include "content/public/browser/browser_context.h"
+#include "build/build_config.h"
 #include "printing/buildflags/buildflags.h"
 
 #if BUILDFLAG(ENABLE_AI_CHAT_TAB_MANAGEMENT_TOOL)
@@ -41,6 +42,10 @@
 
 #if BUILDFLAG(ENABLE_PRINTING)
 #include "brave/browser/ai_chat/tools/create_pdf_document_tool.h"
+#endif
+
+#if !BUILDFLAG(IS_ANDROID)
+#include "brave/browser/ai_chat/tools/index_local_file_tool.h"
 #endif
 
 namespace ai_chat {
@@ -91,6 +96,11 @@ std::vector<base::WeakPtr<Tool>> BrowserToolProvider::GetTools() {
   if (index_bookmarks_tool_) {
     tool_ptrs.push_back(index_bookmarks_tool_->GetWeakPtr());
   }
+#if !BUILDFLAG(IS_ANDROID)
+  if (index_local_file_tool_) {
+    tool_ptrs.push_back(index_local_file_tool_->GetWeakPtr());
+  }
+#endif
   if (open_n8n_tool_) {
     tool_ptrs.push_back(open_n8n_tool_->GetWeakPtr());
   }
@@ -175,6 +185,10 @@ void BrowserToolProvider::CreateTools(
   index_bookmarks_tool_ = std::make_unique<IndexBookmarksTool>(
       AiChatContentIndexFactory::GetForBrowserContext(browser_context),
       profile_);
+#if !BUILDFLAG(IS_ANDROID)
+  index_local_file_tool_ =
+      std::make_unique<IndexLocalFileTool>(browser_context);
+#endif
   auto* n8n_manager =
       N8nProcessManagerFactory::GetForBrowserContext(browser_context);
   open_n8n_tool_ =
