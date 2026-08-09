@@ -1683,6 +1683,12 @@
   <message name="IDS_SETTINGS_LEO_ASSISTANT_SHOW_IN_CONTEXT_MENU_DESC" desc="The description for settings option to show Leo in context menu">
     AI Assistant will appear in the context menu when you right-click on a website. This will send context from the current web page to AI Assistant.
   </message>
+  <message name="IDS_SETTINGS_LEO_ASSISTANT_CONTENT_INDEXING_LABEL" desc="The text for settings option to enable on-device content indexing for AI Assistant">
+    Let AI Assistant search what you've captured
+  </message>
+  <message name="IDS_SETTINGS_LEO_ASSISTANT_CONTENT_INDEXING_DESC" desc="The description for settings option to enable on-device content indexing for AI Assistant">
+    Indexes pages you capture and responses you save on this device only, so AI Assistant can search them later to ground its answers. Nothing is sent off this device.
+  </message>
   <message name="IDS_SETTINGS_LEO_ASSISTANT_TAB_ORGANIZATION_LABEL" desc="The text for settings option to enable tab focus mode">
     Tab Focus Mode
   </message>

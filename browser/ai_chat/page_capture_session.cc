@@ -15,10 +15,13 @@
 #include "base/strings/string_number_conversions.h"
 #include "base/strings/string_util.h"
 #include "base/strings/utf_string_conversions.h"
+#include "brave/browser/ai_chat/content_index/ai_chat_content_index.h"
+#include "brave/browser/ai_chat/content_index/ai_chat_content_index_factory.h"
 #include "chrome/browser/profiles/profile.h"
 #include "chrome/browser/ui/browser_window/public/browser_window_interface.h"
 #include "chrome/browser/ui/browser_window/public/profile_browser_collection.h"
 #include "components/tabs/public/tab_interface.h"
+#include "components/user_prefs/user_prefs.h"
 #include "content/public/browser/browser_context.h"
 #include "content/public/browser/storage_partition.h"
 #include "content/public/browser/web_contents.h"
@@ -351,6 +354,7 @@ void PageCaptureSession::OnFullPageSourceFetched(
 
   CapturedPage page;
   page.heading = heading;
+  std::vector<std::string> text_chunks_for_indexing;
   for (const auto& section : SplitIntoSections(source.combined_html, page_url)) {
     if (section.body_chunks.empty()) {
       continue;
@@ -359,6 +363,22 @@ void PageCaptureSession::OnFullPageSourceFetched(
       AppendParagraph(page.content_paragraphs, section.heading, 2);
     }
     AppendChunks(page.content_paragraphs, section.body_chunks);
+    for (const auto& chunk : section.body_chunks) {
+      if (chunk.type == ContentChunk::Type::kText) {
+        text_chunks_for_indexing.push_back(chunk.text);
+      }
+    }
+  }
+
+  if (auto* prefs = browser_context_
+                        ? user_prefs::UserPrefs::Get(browser_context_)
+                        : nullptr;
+      prefs && AiChatContentIndex::IsEnabledForProfile(prefs)) {
+    if (auto* index =
+            AiChatContentIndexFactory::GetForBrowserContext(browser_context_)) {
+      index->IndexChunks("page", heading, page_url.spec(),
+                         text_chunks_for_indexing);
+    }
   }
 
   std::vector<std::pair<GURL, std::string>> links =

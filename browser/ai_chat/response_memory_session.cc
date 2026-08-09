@@ -11,10 +11,13 @@
 #include "base/strings/strcat.h"
 #include "base/strings/string_number_conversions.h"
 #include "base/values.h"
+#include "brave/browser/ai_chat/content_index/ai_chat_content_index.h"
+#include "brave/browser/ai_chat/content_index/ai_chat_content_index_factory.h"
 #include "chrome/browser/profiles/profile.h"
 #include "chrome/browser/ui/browser_window/public/browser_window_interface.h"
 #include "chrome/browser/ui/browser_window/public/profile_browser_collection.h"
 #include "components/tabs/public/tab_interface.h"
+#include "components/user_prefs/user_prefs.h"
 #include "content/public/browser/browser_context.h"
 #include "content/public/browser/web_contents.h"
 
@@ -60,6 +63,16 @@ ResponseMemorySession::~ResponseMemorySession() = default;
 void ResponseMemorySession::AddResponse(const std::string& label,
                                         const std::string& text) {
   entries_.push_back({label, text});
+
+  if (auto* prefs = browser_context_
+                        ? user_prefs::UserPrefs::Get(browser_context_)
+                        : nullptr;
+      prefs && AiChatContentIndex::IsEnabledForProfile(prefs)) {
+    if (auto* index =
+            AiChatContentIndexFactory::GetForBrowserContext(browser_context_)) {
+      index->IndexChunks("response", label, "", {text});
+    }
+  }
 }
 
 void ResponseMemorySession::SaveAsWordDocument(const std::string& filename,

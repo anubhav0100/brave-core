@@ -11,9 +11,11 @@
 #include "base/check_is_test.h"
 #include "base/feature_list.h"
 #include "base/memory/weak_ptr.h"
+#include "brave/browser/ai_chat/content_index/ai_chat_content_index_factory.h"
 #include "brave/browser/ai_chat/page_capture_session.h"
 #include "brave/browser/ai_chat/response_memory_session.h"
 #include "brave/browser/ai_chat/tools/code_execution_tool.h"
+#include "brave/browser/ai_chat/tools/content_index_tools.h"
 #include "brave/browser/ai_chat/tools/create_presentation_tool.h"
 #include "brave/browser/ai_chat/tools/create_spreadsheet_tool.h"
 #include "brave/browser/ai_chat/tools/create_word_document_tool.h"
@@ -80,6 +82,9 @@ std::vector<base::WeakPtr<Tool>> BrowserToolProvider::GetTools() {
   if (clear_response_memory_tool_) {
     tool_ptrs.push_back(clear_response_memory_tool_->GetWeakPtr());
   }
+  if (search_indexed_content_tool_) {
+    tool_ptrs.push_back(search_indexed_content_tool_->GetWeakPtr());
+  }
   if (run_workflow_tool_) {
     tool_ptrs.push_back(run_workflow_tool_->GetWeakPtr());
   }
@@ -140,6 +145,9 @@ void BrowserToolProvider::CreateTools(
           response_memory_session_.get());
   clear_response_memory_tool_ = std::make_unique<ClearResponseMemoryTool>(
       response_memory_session_.get());
+  search_indexed_content_tool_ =
+      std::make_unique<SearchIndexedContentTool>(
+          AiChatContentIndexFactory::GetForBrowserContext(browser_context));
   run_workflow_tool_ = std::make_unique<RunWorkflowTool>(browser_context);
   create_spreadsheet_tool_ =
       std::make_unique<CreateSpreadsheetTool>(browser_context);

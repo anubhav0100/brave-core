@@ -51,6 +51,11 @@ You can obtain one at https://mozilla.org/MPL/2.0/. -->
       on-sub-label-link-clicked="openTabOrganizationLearnMore_">
     </settings-toggle-button>
   </template>
+  <settings-toggle-button class="cr-row hr"
+    pref="{{prefs.brave.ai_chat.content_indexing_enabled}}"
+    label="$i18n{braveLeoAssistantContentIndexingLabel}"
+    sub-label="$i18n{braveLeoAssistantContentIndexingDesc}">
+  </settings-toggle-button>
   <cr-link-row class="hr"
     label="$i18n{braveLeoAssistantAutocompleteLink}"
     on-click="openAutocompleteSetting_">
