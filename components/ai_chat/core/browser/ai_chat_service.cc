@@ -1022,12 +1022,11 @@ mojom::ServiceStatePtr AIChatService::BuildState() {
 
   bool is_user_opted_in = !last_accepted_disclaimer.is_null();
 
-  // Premium prompt is only shown conditionally (e.g. the user hasn't dismissed
-  // it and it's been some time since the user started using the feature).
-  bool can_show_premium_prompt =
-      !profile_prefs_->GetBoolean(prefs::kUserDismissedPremiumPrompt) &&
-      !last_accepted_disclaimer.is_null() &&
-      last_accepted_disclaimer < base::Time::Now() - base::Days(1);
+  // This browser only offers custom (bring-your-own-model) models - Brave's
+  // sponsored Leo models are excluded from the model list entirely (see
+  // ModelService::InitModels), so there is nothing for a premium
+  // subscription to unlock. Never show the premium upsell prompt.
+  bool can_show_premium_prompt = false;
 
   bool is_storage_enabled =
       profile_prefs_->GetBoolean(prefs::kBraveChatStorageEnabled);
