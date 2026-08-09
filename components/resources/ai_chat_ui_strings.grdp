@@ -201,6 +201,9 @@
   <message name="IDS_CHAT_UI_MENU_MANAGE_MEMORIES" desc="Menu item for managing AI Chat memories" formatter_data="webui=AiChat">
     Manage memories
   </message>
+  <message name="IDS_CHAT_UI_MENU_CONTENT_INDEXING_LABEL" desc="Menu item toggle for enabling/disabling on-device content indexing (RAG)" formatter_data="webui=AiChat">
+    Use indexed content (RAG)
+  </message>
   <message name="IDS_CHAT_UI_MENU_SETTINGS" desc="Menu item for Settings" formatter_data="webui=AiChat">
     Advanced Settings
   </message>

@@ -19,6 +19,7 @@
 #include "base/strings/utf_string_conversions.h"
 #include "base/task/thread_pool.h"
 #include "brave/browser/ai_chat/ai_chat_service_factory.h"
+#include "brave/browser/ai_chat/content_index/ai_chat_content_index.h"
 #include "brave/browser/ai_chat/workflows/workflow_repository.h"
 #include "brave/browser/ai_chat/workflows/workflow_repository_factory.h"
 #include "brave/browser/brave_tab_helpers.h"
@@ -35,6 +36,8 @@
 #include "brave/components/ai_chat/core/common/mojom/ai_chat.mojom.h"
 #include "brave/components/ai_chat/core/common/mojom/common.mojom.h"
 #include "brave/components/ai_chat/core/common/mojom/tab_tracker.mojom.h"
+#include "brave/components/ai_chat/core/common/pref_names.h"
+#include "components/prefs/pref_service.h"
 #include "brave/components/constants/webui_url_constants.h"
 #include "brave/components/screenshot/core/browser/utils.h"
 #include "chrome/browser/favicon/favicon_service_factory.h"
@@ -395,6 +398,20 @@ void AIChatUIPageHandler::OpenMemorySettings() {
 #else
   NOTIMPLEMENTED();
 #endif
+}
+
+void AIChatUIPageHandler::GetContentIndexingEnabled(
+    GetContentIndexingEnabledCallback callback) {
+  std::move(callback).Run(
+      profile_ &&
+      AiChatContentIndex::IsEnabledForProfile(profile_->GetPrefs()));
+}
+
+void AIChatUIPageHandler::SetContentIndexingEnabled(bool enabled) {
+  if (profile_) {
+    profile_->GetPrefs()->SetBoolean(
+        ai_chat::prefs::kBraveAIChatContentIndexingEnabled, enabled);
+  }
 }
 
 void AIChatUIPageHandler::OpenConversationFullPage(

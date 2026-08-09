@@ -249,6 +249,8 @@ export function createMockUIHandler(
     handleVoiceRecognition: () => {},
     openAIChatSettings: () => {},
     openMemorySettings: () => {},
+    getContentIndexingEnabled: () => Promise.resolve({ enabled: false }),
+    setContentIndexingEnabled: () => {},
     openConversationFullPage: () => {},
     associateTab: () => {},
     associateUrlContent: () => {},

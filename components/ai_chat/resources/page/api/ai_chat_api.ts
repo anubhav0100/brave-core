@@ -159,6 +159,7 @@ export default function createAIChatApi(
         | `processTextFile`
         | `processImageFile`
         | `processPdfFile`
+        | `getContentIndexingEnabled`
       >,
       metrics: metrics as Pick<
         Mojom.MetricsInterface,

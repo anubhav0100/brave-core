@@ -242,6 +242,14 @@ interface AIChatUIHandler {
   // Open AI Chat memory management settings
   OpenMemorySettings();
 
+  // Whether on-device content indexing (RAG - captured pages, saved
+  // responses, bookmarks, local files) is enabled for this profile. A
+  // quick on/off switch surfaced in the chat UI's menu, separate from the
+  // full Settings page, for when the user wants the assistant to act
+  // directly without it retrieving indexed content first.
+  GetContentIndexingEnabled() => (bool enabled);
+  SetContentIndexingEnabled(bool enabled);
+
   // From a sidebar or popup conversation, open the conversation in the
   // full-page UI.
   // TODO(petemill): WebUI Compile-timesupport for build flags

@@ -43,6 +43,23 @@ export default function FeatureMenu(props: Props) {
     conversationContext.setTemporary(detail.checked)
   }
 
+  // Quick on/off switch for on-device content indexing (RAG) - separate
+  // from the full Settings page, for when the user wants the assistant to
+  // act directly on a task without it retrieving indexed content first.
+  const [contentIndexingEnabled, setContentIndexingEnabledState] =
+    React.useState<boolean | undefined>(undefined)
+
+  React.useEffect(() => {
+    aiChatContext.api.uiHandler.getContentIndexingEnabled().then(
+      ({ enabled }: { enabled: boolean }) => setContentIndexingEnabledState(enabled),
+    )
+  }, [])
+
+  const handleContentIndexingToggle = (detail: { checked: boolean }) => {
+    aiChatContext.api.uiHandler.setContentIndexingEnabled(detail.checked)
+    setContentIndexingEnabledState(detail.checked)
+  }
+
   const copyEntireConversation = async () => {
     const conversationHistory =
       conversationContext.api.getConversationHistory.current()
@@ -186,6 +203,31 @@ export default function FeatureMenu(props: Props) {
             <span className={styles.menuText}>
               {getLocale(S.CHAT_UI_MENU_MANAGE_MEMORIES)}
             </span>
+          </div>
+        </leo-menu-item>
+      )}
+      {contentIndexingEnabled !== undefined && (
+        <leo-menu-item
+          data-is-interactive='true'
+          onClick={() =>
+            handleContentIndexingToggle({ checked: !contentIndexingEnabled })
+          }
+        >
+          <div
+            className={classnames(
+              styles.menuItemWithIcon,
+              styles.menuItemMainItem,
+            )}
+          >
+            <Icon name='search' />
+            <span className={styles.menuText}>
+              {getLocale(S.CHAT_UI_MENU_CONTENT_INDEXING_LABEL)}
+            </span>
+            <Toggle
+              size='small'
+              onChange={handleContentIndexingToggle}
+              checked={contentIndexingEnabled}
+            ></Toggle>
           </div>
         </leo-menu-item>
       )}

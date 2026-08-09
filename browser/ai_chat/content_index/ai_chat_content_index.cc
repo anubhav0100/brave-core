@@ -14,14 +14,13 @@
 #include "base/strings/string_util.h"
 #include "base/task/thread_pool.h"
 #include "brave/browser/history_embeddings/brave_passage_embeddings_service_controller.h"
+#include "brave/components/ai_chat/core/common/pref_names.h"
 #include "components/prefs/pref_registry_simple.h"
 #include "components/prefs/pref_service.h"
 
 namespace ai_chat {
 
 namespace {
-constexpr char kContentIndexingEnabledPref[] =
-    "brave.ai_chat.content_indexing_enabled";
 constexpr size_t kMaxChunkTextLength = 4000;
 constexpr base::FilePath::CharType kDatabaseFileName[] =
     FILE_PATH_LITERAL("AiChatContentIndex.db");
@@ -105,12 +104,14 @@ IndexedChunk::~IndexedChunk() = default;
 
 // static
 void AiChatContentIndex::RegisterProfilePrefs(PrefRegistrySimple* registry) {
-  registry->RegisterBooleanPref(kContentIndexingEnabledPref, false);
+  registry->RegisterBooleanPref(
+      ai_chat::prefs::kBraveAIChatContentIndexingEnabled, false);
 }
 
 // static
 bool AiChatContentIndex::IsEnabledForProfile(PrefService* prefs) {
-  return prefs && prefs->GetBoolean(kContentIndexingEnabledPref);
+  return prefs &&
+         prefs->GetBoolean(ai_chat::prefs::kBraveAIChatContentIndexingEnabled);
 }
 
 AiChatContentIndex::AiChatContentIndex(const base::FilePath& profile_path)
