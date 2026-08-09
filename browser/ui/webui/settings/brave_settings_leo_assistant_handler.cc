@@ -708,7 +708,7 @@ void BraveLeoAssistantHandler::HandleGetN8nStatus(
   base::DictValue result;
   auto* n8n_manager =
       ai_chat::N8nProcessManagerFactory::GetForBrowserContext(profile_);
-  result.Set("running", n8n_manager && n8n_manager->IsRunning());
+  result.Set("running", n8n_manager && n8n_manager->IsReady());
   result.Set("baseUrl", n8n_manager ? n8n_manager->base_url() : "");
   ResolveJavascriptCallback(args[0], result);
 }

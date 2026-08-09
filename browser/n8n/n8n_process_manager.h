@@ -6,20 +6,28 @@
 #ifndef BRAVE_BROWSER_N8N_N8N_PROCESS_MANAGER_H_
 #define BRAVE_BROWSER_N8N_N8N_PROCESS_MANAGER_H_
 
+#include <memory>
 #include <optional>
 #include <string>
+#include <vector>
 
 #include "base/files/file_path.h"
 #include "base/functional/callback_forward.h"
+#include "base/memory/raw_ptr.h"
 #include "base/memory/weak_ptr.h"
 #include "base/observer_list.h"
 #include "base/observer_list_types.h"
 #include "base/process/process.h"
 #include "base/timer/timer.h"
+#include "brave/components/api_request_helper/api_request_helper.h"
 #include "components/keyed_service/core/keyed_service.h"
 
 class PrefRegistrySimple;
 class PrefService;
+
+namespace content {
+class BrowserContext;
+}  // namespace content
 
 namespace ai_chat {
 
@@ -50,7 +58,7 @@ class N8nProcessManager : public KeyedService {
     virtual void OnN8nRunningStateChanged(bool running) {}
   };
 
-  N8nProcessManager();
+  explicit N8nProcessManager(content::BrowserContext* browser_context);
   ~N8nProcessManager() override;
 
   N8nProcessManager(const N8nProcessManager&) = delete;
@@ -69,17 +77,27 @@ class N8nProcessManager : public KeyedService {
   static void SetApiKey(PrefService* prefs, const std::string& api_key);
   static std::string GetApiKey(PrefService* prefs);
 
-  // Launches n8n if it isn't already running, and reports success once the
-  // OS process itself started (a short fixed delay is used to give n8n's
-  // web server time to come up before the callback fires - `npx n8n` takes
-  // a few seconds to boot even after the process starts; this is a
-  // simplification over a real HTTP health-check poll, which would need
-  // network-service plumbing this doesn't otherwise require. The side
-  // panel's own WebView load will show a real error if n8n genuinely isn't
-  // ready yet). No-ops (reports success immediately) if already running.
+  // Launches n8n if it isn't already running, and reports success once its
+  // web server actually answers an HTTP request - not just once the OS
+  // process has started, which can be well before `npx` has finished
+  // resolving/installing n8n (a cold install) or before n8n's own boot
+  // (SQLite migrations, etc.) completes. Polls every kHealthCheckInterval
+  // for up to kMaxHealthCheckAttempts before giving up and reporting
+  // failure (the process is left running either way - check
+  // GetBufferedOutput() or the Settings "n8n" terminal view for why it
+  // didn't come up). Concurrent callers while a launch/poll is already in
+  // flight are queued, not given a second process. No-ops (reports success
+  // immediately) if already confirmed ready - see IsReady().
   void EnsureStarted(StartedCallback callback);
 
+  // True once the OS process object is valid - does NOT mean n8n's web
+  // server is actually answering requests yet. See IsReady() for that.
   bool IsRunning() const;
+
+  // True once EnsureStarted's health check has actually gotten an HTTP
+  // response from n8n. This is what "Running" should mean to a user -
+  // use this, not IsRunning(), for any UI status display.
+  bool IsReady() const { return is_ready_; }
 
   // The base URL of the running instance (e.g. http://localhost:5678),
   // valid only once EnsureStarted has reported success.
@@ -127,13 +145,21 @@ class N8nProcessManager : public KeyedService {
   void OnRestoreCheckComplete(base::OnceClosure done,
                               std::optional<base::FilePath> backup_to_restore);
   void OnRestoreComplete(base::OnceClosure done, bool success);
-  void LaunchProcessAndReport(StartedCallback callback);
+  void LaunchProcessAndReport();
   void AppendOutput(std::string chunk);
+  void PollForReady(int attempts_remaining);
+  void OnHealthCheckResponse(int attempts_remaining,
+                             api_request_helper::APIRequestResult result);
+  void ResolvePendingStartedCallbacks(bool success);
 
+  raw_ptr<content::BrowserContext> browser_context_ = nullptr;
   base::Process process_;
   std::string base_url_;
   int port_ = 0;
   bool restore_checked_ = false;
+  bool is_ready_ = false;
+  std::vector<StartedCallback> pending_started_callbacks_;
+  std::unique_ptr<api_request_helper::APIRequestHelper> health_check_helper_;
   base::RepeatingTimer backup_timer_;
 
   // Captured n8n console output, and the observers watching it live (the

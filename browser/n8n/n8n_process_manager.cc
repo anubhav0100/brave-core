@@ -27,7 +27,12 @@
 #include "base/win/scoped_handle.h"
 #include "components/prefs/pref_registry_simple.h"
 #include "components/prefs/pref_service.h"
+#include "content/public/browser/browser_context.h"
+#include "content/public/browser/storage_partition.h"
+#include "net/traffic_annotation/network_traffic_annotation.h"
+#include "services/network/public/cpp/shared_url_loader_factory.h"
 #include "third_party/zlib/google/zip.h"
+#include "url/gurl.h"
 
 namespace ai_chat {
 
@@ -40,11 +45,15 @@ constexpr char kN8nApiKeyPref[] = "brave.n8n.api_key";
 // ask the process manager first.
 constexpr int kN8nPort = 5678;
 
-// n8n takes a few seconds to boot its web server after the process starts
-// (dependency loading, its own SQLite migrations, etc.) - see the header
-// comment on EnsureStarted for why this is a fixed delay rather than a real
-// health-check poll.
-constexpr base::TimeDelta kStartupGracePeriod = base::Seconds(5);
+// n8n takes anywhere from a couple seconds (already-cached npx package,
+// warm SQLite migrations) to well over a minute (first-ever run: npx has
+// to resolve and download n8n and its dependencies from the npm registry
+// before n8n itself even starts booting) to actually start answering HTTP
+// requests. EnsureStarted() polls for real readiness instead of trusting
+// a fixed delay - see its header comment for why that matters.
+constexpr base::TimeDelta kInitialHealthCheckDelay = base::Seconds(2);
+constexpr base::TimeDelta kHealthCheckInterval = base::Seconds(1);
+constexpr int kMaxHealthCheckAttempts = 90;
 
 constexpr size_t kMaxBackupsToKeep = 7;
 constexpr char kBackupFilePrefix[] = "n8n_backup_";
@@ -163,6 +172,36 @@ bool RestoreBackupOnBackgroundSequence(base::FilePath backup_file,
   return zip::Unzip(backup_file, data_dir);
 }
 
+net::NetworkTrafficAnnotationTag GetHealthCheckTrafficAnnotationTag() {
+  return net::DefineNetworkTrafficAnnotation("n8n_process_health_check", R"(
+      semantics {
+        sender: "n8n Process Manager"
+        description:
+          "Polls the local n8n instance the browser itself launched, to "
+          "find out when its web server has actually started answering "
+          "requests, rather than assuming it's ready after a fixed delay."
+        trigger: "The user or AI Assistant asks to start n8n."
+        data: "No request body. Contacts localhost only."
+        destination: LOCAL
+        internal {
+          contacts {
+            email: "ai-chat@brave.com"
+          }
+        }
+        user_data {
+          type: NONE
+        }
+        last_reviewed: "2026-08-10"
+      }
+      policy {
+        cookies_allowed: NO
+        setting: "This feature cannot be disabled independently of AI Chat."
+        policy_exception_justification:
+          "Only ever talks to the localhost n8n instance the browser "
+          "itself started."
+      })");
+}
+
 }  // namespace
 
 // static
@@ -195,7 +234,8 @@ base::FilePath N8nProcessManager::GetBackupDir() {
   return user_data_dir.Append(FILE_PATH_LITERAL("BraveN8nBackups"));
 }
 
-N8nProcessManager::N8nProcessManager() {
+N8nProcessManager::N8nProcessManager(content::BrowserContext* browser_context)
+    : browser_context_(browser_context) {
   // Runs roughly once a day for as long as the browser process is alive -
   // there's no reliable way to run this while the browser is fully closed
   // without a separately-installed Windows Scheduled Task, which is a
@@ -255,21 +295,29 @@ void N8nProcessManager::OnRestoreComplete(base::OnceClosure done,
 }
 
 void N8nProcessManager::EnsureStarted(StartedCallback callback) {
-  if (IsRunning()) {
+  if (is_ready_) {
     std::move(callback).Run(true);
+    return;
+  }
+  // Either nothing has been launched yet, or a launch/health-check poll is
+  // already in flight from an earlier caller - either way, queue this
+  // caller to be notified once that settles, rather than launching a
+  // second n8n process racing for the same port.
+  pending_started_callbacks_.push_back(std::move(callback));
+  if (IsRunning()) {
     return;
   }
   if (!restore_checked_) {
     restore_checked_ = true;
-    MaybeRestoreFromBackup(
-        base::BindOnce(&N8nProcessManager::LaunchProcessAndReport,
-                       weak_ptr_factory_.GetWeakPtr(), std::move(callback)));
+    MaybeRestoreFromBackup(base::BindOnce(
+        &N8nProcessManager::LaunchProcessAndReport,
+        weak_ptr_factory_.GetWeakPtr()));
     return;
   }
-  LaunchProcessAndReport(std::move(callback));
+  LaunchProcessAndReport();
 }
 
-void N8nProcessManager::LaunchProcessAndReport(StartedCallback callback) {
+void N8nProcessManager::LaunchProcessAndReport() {
   // `npx` is a .cmd wrapper on Windows and can't be launched directly via
   // CreateProcess - route through cmd.exe /c the same way pnpm/npm's own
   // scripts do in this project's build tooling.
@@ -303,7 +351,7 @@ void N8nProcessManager::LaunchProcessAndReport(StartedCallback callback) {
   HANDLE read_raw = nullptr;
   HANDLE write_raw = nullptr;
   if (!::CreatePipe(&read_raw, &write_raw, &pipe_sa, 0)) {
-    std::move(callback).Run(false);
+    ResolvePendingStartedCallbacks(false);
     return;
   }
   base::win::ScopedHandle read_handle(read_raw);
@@ -316,7 +364,7 @@ void N8nProcessManager::LaunchProcessAndReport(StartedCallback callback) {
       L"NUL", GENERIC_READ, FILE_SHARE_READ, &pipe_sa, OPEN_EXISTING,
       FILE_ATTRIBUTE_NORMAL, nullptr));
   if (!stdin_handle.is_valid()) {
-    std::move(callback).Run(false);
+    ResolvePendingStartedCallbacks(false);
     return;
   }
 
@@ -330,7 +378,7 @@ void N8nProcessManager::LaunchProcessAndReport(StartedCallback callback) {
 
   process_ = base::LaunchProcess(cmd, options);
   if (!process_.IsValid()) {
-    std::move(callback).Run(false);
+    ResolvePendingStartedCallbacks(false);
     return;
   }
 
@@ -341,9 +389,10 @@ void N8nProcessManager::LaunchProcessAndReport(StartedCallback callback) {
   write_handle.Close();
   stdin_handle.Close();
 
-  for (auto& observer : observers_) {
-    observer.OnN8nRunningStateChanged(true);
-  }
+  // Deliberately not notifying OnN8nRunningStateChanged(true) here - the
+  // OS process existing doesn't mean n8n is actually reachable yet (see
+  // PollForReady()). Observers are told once health-checking confirms
+  // that, matching what IsReady()/EnsureStarted() consider "ready" too.
 
   scoped_refptr<base::SequencedTaskRunner> reader_task_runner =
       base::ThreadPool::CreateSequencedTaskRunner(
@@ -371,17 +420,73 @@ void N8nProcessManager::LaunchProcessAndReport(StartedCallback callback) {
 
   base::SequencedTaskRunner::GetCurrentDefault()->PostDelayedTask(
       FROM_HERE,
-      base::BindOnce(
-          [](base::WeakPtr<N8nProcessManager> self,
-             StartedCallback callback) {
-            if (!self) {
-              std::move(callback).Run(false);
-              return;
-            }
-            std::move(callback).Run(self->IsRunning());
-          },
-          weak_ptr_factory_.GetWeakPtr(), std::move(callback)),
-      kStartupGracePeriod);
+      base::BindOnce(&N8nProcessManager::PollForReady,
+                     weak_ptr_factory_.GetWeakPtr(), kMaxHealthCheckAttempts),
+      kInitialHealthCheckDelay);
+}
+
+void N8nProcessManager::PollForReady(int attempts_remaining) {
+  if (!IsRunning()) {
+    // Process died before ever becoming reachable - nothing to poll.
+    ResolvePendingStartedCallbacks(false);
+    return;
+  }
+  if (attempts_remaining <= 0) {
+    // Gave up waiting. The process is left running - check
+    // GetBufferedOutput() (or the Settings "n8n" terminal view) for why;
+    // a cold `npx` install on a slow connection can still be in progress
+    // past this point, in which case a later EnsureStarted() call will
+    // resume polling and can still succeed.
+    ResolvePendingStartedCallbacks(false);
+    return;
+  }
+  if (!health_check_helper_) {
+    auto url_loader_factory = browser_context_->GetDefaultStoragePartition()
+                                  ->GetURLLoaderFactoryForBrowserProcess();
+    health_check_helper_ =
+        std::make_unique<api_request_helper::APIRequestHelper>(
+            GetHealthCheckTrafficAnnotationTag(), std::move(url_loader_factory));
+  }
+  health_check_helper_->Request(
+      "GET", GURL(base_url_), "", "",
+      base::BindOnce(&N8nProcessManager::OnHealthCheckResponse,
+                     weak_ptr_factory_.GetWeakPtr(), attempts_remaining));
+}
+
+void N8nProcessManager::OnHealthCheckResponse(
+    int attempts_remaining,
+    api_request_helper::APIRequestResult result) {
+  // Any real HTTP response - even a non-2xx one - means n8n's web server
+  // is actually up and accepting connections, which is all "ready" needs
+  // to mean here. A response code of 0 means the connection itself
+  // failed (server not listening yet), so keep polling.
+  if (result.response_code() > 0) {
+    is_ready_ = true;
+    for (auto& observer : observers_) {
+      observer.OnN8nRunningStateChanged(true);
+    }
+    ResolvePendingStartedCallbacks(true);
+    return;
+  }
+  if (!IsRunning()) {
+    // Exited while we were mid-request.
+    ResolvePendingStartedCallbacks(false);
+    return;
+  }
+  base::SequencedTaskRunner::GetCurrentDefault()->PostDelayedTask(
+      FROM_HERE,
+      base::BindOnce(&N8nProcessManager::PollForReady,
+                     weak_ptr_factory_.GetWeakPtr(), attempts_remaining - 1),
+      kHealthCheckInterval);
+}
+
+void N8nProcessManager::ResolvePendingStartedCallbacks(bool success) {
+  std::vector<StartedCallback> callbacks =
+      std::move(pending_started_callbacks_);
+  pending_started_callbacks_.clear();
+  for (auto& callback : callbacks) {
+    std::move(callback).Run(success);
+  }
 }
 
 void N8nProcessManager::AddObserver(Observer* observer) {
@@ -408,6 +513,9 @@ void N8nProcessManager::AppendOutput(std::string chunk) {
 
 void N8nProcessManager::Shutdown() {
   backup_timer_.Stop();
+  // Releases the browser-context-derived URL loader factory before the
+  // context itself tears down.
+  health_check_helper_.reset();
   if (process_.IsValid()) {
     process_.Terminate(/*exit_code=*/0, /*wait=*/false);
   }

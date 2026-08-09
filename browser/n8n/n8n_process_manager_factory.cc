@@ -36,7 +36,7 @@ N8nProcessManagerFactory::~N8nProcessManagerFactory() = default;
 std::unique_ptr<KeyedService>
 N8nProcessManagerFactory::BuildServiceInstanceForBrowserContext(
     content::BrowserContext* context) const {
-  return std::make_unique<N8nProcessManager>();
+  return std::make_unique<N8nProcessManager>(context);
 }
 
 }  // namespace ai_chat
