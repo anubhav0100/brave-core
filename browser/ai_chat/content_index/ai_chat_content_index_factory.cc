@@ -40,7 +40,7 @@ AiChatContentIndexFactory::~AiChatContentIndexFactory() = default;
 std::unique_ptr<KeyedService>
 AiChatContentIndexFactory::BuildServiceInstanceForBrowserContext(
     content::BrowserContext* context) const {
-  return std::make_unique<AiChatContentIndex>();
+  return std::make_unique<AiChatContentIndex>(context->GetPath());
 }
 
 }  // namespace ai_chat

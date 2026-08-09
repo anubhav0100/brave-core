@@ -12,6 +12,7 @@
 #include "base/functional/bind.h"
 #include "base/strings/string_split.h"
 #include "base/strings/string_util.h"
+#include "base/task/thread_pool.h"
 #include "brave/browser/history_embeddings/brave_passage_embeddings_service_controller.h"
 #include "components/prefs/pref_registry_simple.h"
 #include "components/prefs/pref_service.h"
@@ -22,6 +23,8 @@ namespace {
 constexpr char kContentIndexingEnabledPref[] =
     "brave.ai_chat.content_indexing_enabled";
 constexpr size_t kMaxChunkTextLength = 4000;
+constexpr base::FilePath::CharType kDatabaseFileName[] =
+    FILE_PATH_LITERAL("AiChatContentIndex.db");
 }  // namespace
 
 IndexedChunk::IndexedChunk() = default;
@@ -39,9 +42,15 @@ bool AiChatContentIndex::IsEnabledForProfile(PrefService* prefs) {
   return prefs && prefs->GetBoolean(kContentIndexingEnabledPref);
 }
 
-AiChatContentIndex::AiChatContentIndex() {
+AiChatContentIndex::AiChatContentIndex(const base::FilePath& profile_path)
+    : database_(base::ThreadPool::CreateSequencedTaskRunner(
+                    {base::MayBlock(), base::TaskPriority::BEST_EFFORT}),
+                profile_path.Append(kDatabaseFileName)) {
   passage_embeddings::BravePassageEmbeddingsServiceController::Get()
       ->AddObserver(this);
+  database_.AsyncCall(&AiChatContentIndexDatabase::LoadAllChunks)
+      .Then(base::BindOnce(&AiChatContentIndex::OnChunksLoadedFromDatabase,
+                           weak_ptr_factory_.GetWeakPtr()));
 }
 
 AiChatContentIndex::~AiChatContentIndex() {
@@ -91,6 +100,10 @@ void AiChatContentIndex::OnChunksEmbedded(
     return;
   }
   for (size_t i = 0; i < passages.size() && i < embeddings.size(); ++i) {
+    database_.AsyncCall(&AiChatContentIndexDatabase::AddChunk)
+        .WithArgs(source_type, source_label, source_url, passages[i],
+                 embeddings[i].GetData());
+
     IndexedChunk chunk;
     chunk.source_type = source_type;
     chunk.source_label = source_label;
@@ -99,6 +112,27 @@ void AiChatContentIndex::OnChunksEmbedded(
     chunk.embedding = std::move(embeddings[i]);
     chunks_.push_back(std::move(chunk));
   }
+}
+
+void AiChatContentIndex::OnChunksLoadedFromDatabase(
+    std::vector<StoredContentChunk> stored_chunks) {
+  // Chunks embedded while the load was in flight are already in chunks_ -
+  // insert the persisted ones ahead of them so overall order stays roughly
+  // chronological (oldest first), matching the DB's own ORDER BY id ASC.
+  std::vector<IndexedChunk> loaded;
+  loaded.reserve(stored_chunks.size());
+  for (auto& stored : stored_chunks) {
+    IndexedChunk chunk;
+    chunk.source_type = std::move(stored.source_type);
+    chunk.source_label = std::move(stored.source_label);
+    chunk.source_url = std::move(stored.source_url);
+    chunk.text = std::move(stored.text);
+    chunk.embedding =
+        passage_embeddings::Embedding(std::move(stored.embedding));
+    loaded.push_back(std::move(chunk));
+  }
+  chunks_.insert(chunks_.begin(), std::make_move_iterator(loaded.begin()),
+                 std::make_move_iterator(loaded.end()));
 }
 
 void AiChatContentIndex::Search(const std::string& query,
@@ -180,6 +214,7 @@ void AiChatContentIndex::OnQueryEmbedded(
 
 void AiChatContentIndex::Clear() {
   chunks_.clear();
+  database_.AsyncCall(&AiChatContentIndexDatabase::Clear);
 }
 
 }  // namespace ai_chat
