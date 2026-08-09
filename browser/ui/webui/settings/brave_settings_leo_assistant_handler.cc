@@ -21,6 +21,7 @@
 #include "brave/browser/ai_chat/content_index/ai_chat_content_index_factory.h"
 #include "brave/browser/ai_chat/workflows/workflow_repository.h"
 #include "brave/browser/ai_chat/workflows/workflow_repository_factory.h"
+#include "brave/browser/n8n/n8n_process_manager_factory.h"
 #include "brave/browser/ui/sidebar/sidebar_service_factory.h"
 #include "brave/browser/ui/views/side_panel/page_capture/page_capture_side_panel_coordinator.h"
 #include "chrome/browser/ui/browser_window/public/browser_window_features.h"
@@ -230,16 +231,50 @@ void BraveLeoAssistantHandler::RegisterMessages() {
       "clearContentIndex",
       base::BindRepeating(&BraveLeoAssistantHandler::HandleClearContentIndex,
                           base::Unretained(this)));
+  web_ui()->RegisterMessageCallback(
+      "getN8nStatus",
+      base::BindRepeating(&BraveLeoAssistantHandler::HandleGetN8nStatus,
+                          base::Unretained(this)));
+  web_ui()->RegisterMessageCallback(
+      "getN8nBufferedOutput",
+      base::BindRepeating(
+          &BraveLeoAssistantHandler::HandleGetN8nBufferedOutput,
+          base::Unretained(this)));
+  web_ui()->RegisterMessageCallback(
+      "startN8n",
+      base::BindRepeating(&BraveLeoAssistantHandler::HandleStartN8n,
+                          base::Unretained(this)));
 }
 
 void BraveLeoAssistantHandler::OnJavascriptAllowed() {
   sidebar_service_observer_.Reset();
   sidebar_service_observer_.Observe(
       sidebar::SidebarServiceFactory::GetForProfile(profile_));
+
+  n8n_process_manager_observer_.Reset();
+  if (auto* n8n_manager =
+          ai_chat::N8nProcessManagerFactory::GetForBrowserContext(profile_)) {
+    n8n_process_manager_observer_.Observe(n8n_manager);
+  }
 }
 
 void BraveLeoAssistantHandler::OnJavascriptDisallowed() {
   sidebar_service_observer_.Reset();
+  n8n_process_manager_observer_.Reset();
+}
+
+void BraveLeoAssistantHandler::OnN8nOutputAppended(const std::string& text) {
+  if (!IsJavascriptAllowed()) {
+    return;
+  }
+  FireWebUIListener("n8n-output-appended", base::Value(text));
+}
+
+void BraveLeoAssistantHandler::OnN8nRunningStateChanged(bool running) {
+  if (!IsJavascriptAllowed()) {
+    return;
+  }
+  FireWebUIListener("n8n-running-state-changed", base::Value(running));
 }
 
 void BraveLeoAssistantHandler::OnItemAdded(const sidebar::SidebarItem& item,
@@ -665,6 +700,46 @@ void BraveLeoAssistantHandler::HandleClearContentIndex(
     index->Clear();
   }
   ResolveJavascriptCallback(args[0], base::Value(true));
+}
+
+void BraveLeoAssistantHandler::HandleGetN8nStatus(
+    const base::ListValue& args) {
+  AllowJavascript();
+  base::DictValue result;
+  auto* n8n_manager =
+      ai_chat::N8nProcessManagerFactory::GetForBrowserContext(profile_);
+  result.Set("running", n8n_manager && n8n_manager->IsRunning());
+  result.Set("baseUrl", n8n_manager ? n8n_manager->base_url() : "");
+  ResolveJavascriptCallback(args[0], result);
+}
+
+void BraveLeoAssistantHandler::HandleGetN8nBufferedOutput(
+    const base::ListValue& args) {
+  AllowJavascript();
+  auto* n8n_manager =
+      ai_chat::N8nProcessManagerFactory::GetForBrowserContext(profile_);
+  ResolveJavascriptCallback(
+      args[0], base::Value(n8n_manager ? n8n_manager->GetBufferedOutput()
+                                       : std::string()));
+}
+
+void BraveLeoAssistantHandler::HandleStartN8n(const base::ListValue& args) {
+  AllowJavascript();
+  base::Value callback_id = args[0].Clone();
+  auto* n8n_manager =
+      ai_chat::N8nProcessManagerFactory::GetForBrowserContext(profile_);
+  if (!n8n_manager) {
+    ResolveJavascriptCallback(callback_id, base::Value(false));
+    return;
+  }
+  n8n_manager->EnsureStarted(
+      base::BindOnce(&BraveLeoAssistantHandler::OnN8nStarted,
+                     weak_ptr_factory_.GetWeakPtr(), std::move(callback_id)));
+}
+
+void BraveLeoAssistantHandler::OnN8nStarted(base::Value callback_id,
+                                            bool success) {
+  ResolveJavascriptCallback(callback_id, base::Value(success));
 }
 
 void BraveLeoAssistantHandler::HandleResetLeoData(const base::ListValue& args) {

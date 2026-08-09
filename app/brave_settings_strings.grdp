@@ -1944,6 +1944,30 @@
   <message name="IDS_SETTINGS_WORKFLOWS_DELETE_CONFIRMATION" desc="Body text for the dialog confirming deletion of a workflow.">
     AI Assistant will no longer be able to run this workflow. This cannot be undone.
   </message>
+  <message name="IDS_SETTINGS_N8N_TERMINAL_SECTION_TITLE" desc="Title for the settings section showing the local n8n automation server's status and output.">
+    n8n
+  </message>
+  <message name="IDS_SETTINGS_N8N_TERMINAL_SECTION_DESC" desc="Description for the n8n settings section.">
+    n8n runs locally to power flows the AI Assistant can use as tools. It has no window of its own - start it and watch its output here.
+  </message>
+  <message name="IDS_SETTINGS_N8N_TERMINAL_STATUS_RUNNING" desc="Status label shown when the local n8n process is running.">
+    Running
+  </message>
+  <message name="IDS_SETTINGS_N8N_TERMINAL_STATUS_STOPPED" desc="Status label shown when the local n8n process is not running.">
+    Stopped
+  </message>
+  <message name="IDS_SETTINGS_N8N_TERMINAL_START_LABEL" desc="Label for the button that starts the local n8n process.">
+    Start n8n
+  </message>
+  <message name="IDS_SETTINGS_N8N_TERMINAL_STARTING_LABEL" desc="Label for the start button while n8n is in the process of starting.">
+    Starting…
+  </message>
+  <message name="IDS_SETTINGS_N8N_TERMINAL_CLEAR_VIEW_LABEL" desc="Label for the button that clears the on-screen output view (not n8n's own data).">
+    Clear view
+  </message>
+  <message name="IDS_SETTINGS_N8N_TERMINAL_EMPTY_LABEL" desc="Shown in the output area before n8n has printed anything yet.">
+    No output yet. Start n8n to see its output here.
+  </message>
   <message name="IDS_SETTINGS_LEO_ASSISTANT_INPUT_CONTEXT_SIZE" desc="An input title for context size, which refers to the maximum number of tokens (small units of text, usually a few characters or words) that an AI model can process in one go. The context size determines how much data the model can consider simultaneously. For example, the Phi 3.5 model can process up to 131072 tokens in its context window.">
     Context size
   </message>

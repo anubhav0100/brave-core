@@ -102,6 +102,9 @@
     entryCount: number, available: boolean, enabled: boolean
   }>
   clearContentIndex(): Promise<boolean>
+  getN8nStatus(): Promise<{running: boolean, baseUrl: string}>
+  getN8nBufferedOutput(): Promise<string>
+  startN8n(): Promise<boolean>
  }
 
  export class BraveLeoAssistantBrowserProxyImpl
@@ -234,6 +237,19 @@
 
    clearContentIndex() {
      return sendWithPromise<boolean>('clearContentIndex')
+   }
+
+   getN8nStatus() {
+     return sendWithPromise<{running: boolean, baseUrl: string}>(
+       'getN8nStatus')
+   }
+
+   getN8nBufferedOutput() {
+     return sendWithPromise<string>('getN8nBufferedOutput')
+   }
+
+   startN8n() {
+     return sendWithPromise<boolean>('startN8n')
    }
  }
 
