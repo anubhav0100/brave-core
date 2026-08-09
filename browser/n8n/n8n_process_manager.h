@@ -12,6 +12,8 @@
 #include "base/files/file_path.h"
 #include "base/functional/callback_forward.h"
 #include "base/memory/weak_ptr.h"
+#include "base/observer_list.h"
+#include "base/observer_list_types.h"
 #include "base/process/process.h"
 #include "base/timer/timer.h"
 #include "components/keyed_service/core/keyed_service.h"
@@ -35,6 +37,18 @@ namespace ai_chat {
 class N8nProcessManager : public KeyedService {
  public:
   using StartedCallback = base::OnceCallback<void(bool success)>;
+
+  // Observes the n8n process's captured console output and running state,
+  // for the in-browser terminal view (see the Settings "n8n" page) - n8n is
+  // always launched with no native console window (see LaunchProcessAndReport),
+  // so this is the only place its stdout/stderr become visible to the user.
+  class Observer : public base::CheckedObserver {
+   public:
+    // `text` is a chunk of newly-captured stdout/stderr, not necessarily
+    // line-aligned - the terminal view appends chunks as they arrive.
+    virtual void OnN8nOutputAppended(const std::string& text) {}
+    virtual void OnN8nRunningStateChanged(bool running) {}
+  };
 
   N8nProcessManager();
   ~N8nProcessManager() override;
@@ -98,6 +112,14 @@ class N8nProcessManager : public KeyedService {
   // they get restored automatically before n8n ever starts.
   void MaybeRestoreFromBackup(base::OnceClosure done);
 
+  void AddObserver(Observer* observer);
+  void RemoveObserver(Observer* observer);
+
+  // Everything captured from n8n's stdout/stderr so far this run (capped -
+  // see kMaxOutputBufferBytes), for a newly-opened terminal view to
+  // backfill before it starts receiving live OnN8nOutputAppended() calls.
+  const std::string& GetBufferedOutput() const { return output_buffer_; }
+
   // KeyedService:
   void Shutdown() override;
 
@@ -106,12 +128,20 @@ class N8nProcessManager : public KeyedService {
                               std::optional<base::FilePath> backup_to_restore);
   void OnRestoreComplete(base::OnceClosure done, bool success);
   void LaunchProcessAndReport(StartedCallback callback);
+  void AppendOutput(std::string chunk);
 
   base::Process process_;
   std::string base_url_;
   int port_ = 0;
   bool restore_checked_ = false;
   base::RepeatingTimer backup_timer_;
+
+  // Captured n8n console output, and the observers watching it live (the
+  // Settings "n8n" page's terminal view). n8n never gets a native console
+  // window of its own - see LaunchProcessAndReport - so this buffer is the
+  // only way its output is ever visible.
+  std::string output_buffer_;
+  base::ObserverList<Observer> observers_;
 
   base::WeakPtrFactory<N8nProcessManager> weak_ptr_factory_{this};
 };

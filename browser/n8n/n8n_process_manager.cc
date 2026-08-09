@@ -5,6 +5,8 @@
 
 #include "brave/browser/n8n/n8n_process_manager.h"
 
+#include <windows.h>
+
 #include <algorithm>
 #include <utility>
 #include <vector>
@@ -18,9 +20,11 @@
 #include "base/process/launch.h"
 #include "base/strings/strcat.h"
 #include "base/strings/string_number_conversions.h"
+#include "base/task/bind_post_task.h"
 #include "base/task/sequenced_task_runner.h"
 #include "base/task/thread_pool.h"
 #include "base/time/time.h"
+#include "base/win/scoped_handle.h"
 #include "components/prefs/pref_registry_simple.h"
 #include "components/prefs/pref_service.h"
 #include "third_party/zlib/google/zip.h"
@@ -45,6 +49,35 @@ constexpr base::TimeDelta kStartupGracePeriod = base::Seconds(5);
 constexpr size_t kMaxBackupsToKeep = 7;
 constexpr char kBackupFilePrefix[] = "n8n_backup_";
 constexpr char kBackupFileExtension[] = ".zip";
+
+// Captured n8n stdout/stderr is trimmed to roughly this many bytes (at a
+// newline boundary) so a long-running n8n instance can't grow the buffer
+// without bound - see AppendOutput().
+constexpr size_t kMaxOutputBufferBytes = 512 * 1024;
+constexpr size_t kReadChunkSize = 4096;
+
+// Runs on its own background sequence for as long as `read_handle` stays
+// open - which is exactly as long as n8n's process (holding the other,
+// inherited copy of the pipe's write end) is alive. Blocking ReadFile()
+// calls are fine here; this sequence has nothing else to do. `on_chunk`/
+// `on_closed` are expected to already be wrapped with
+// base::BindPostTaskToCurrentDefault() by the caller, so calling them here
+// actually hops back to N8nProcessManager's own sequence.
+void ReadPipeLoop(base::win::ScopedHandle read_handle,
+                  base::RepeatingCallback<void(std::string)> on_chunk,
+                  base::OnceClosure on_closed) {
+  char buffer[kReadChunkSize];
+  for (;;) {
+    DWORD bytes_read = 0;
+    BOOL ok = ::ReadFile(read_handle.get(), buffer, sizeof(buffer),
+                        &bytes_read, nullptr);
+    if (!ok || bytes_read == 0) {
+      break;
+    }
+    on_chunk.Run(std::string(buffer, bytes_read));
+  }
+  std::move(on_closed).Run();
+}
 
 bool DirectoryHasAnyEntries(const base::FilePath& dir) {
   if (!base::DirectoryExists(dir)) {
@@ -256,12 +289,82 @@ void N8nProcessManager::LaunchProcessAndReport(StartedCallback callback) {
   env->SetVar("N8N_DIAGNOSTICS_ENABLED", "false");
   env->SetVar("N8N_VERSION_NOTIFICATIONS_ENABLED", "false");
 
+  // Redirect n8n's stdout/stderr into a pipe this process reads from, and
+  // hide its console window entirely (start_hidden). Without both of
+  // these, `cmd /c npx ...` pops up a real, visible console window
+  // showing the raw command line and every log line n8n prints - exactly
+  // the kind of implementation detail meant to stay inside the browser's
+  // own "n8n" Settings page instead of a bare OS window. See
+  // ReadPipeLoop()/AppendOutput() for where the captured bytes go.
+  SECURITY_ATTRIBUTES pipe_sa = {};
+  pipe_sa.nLength = sizeof(pipe_sa);
+  pipe_sa.bInheritHandle = TRUE;
+
+  HANDLE read_raw = nullptr;
+  HANDLE write_raw = nullptr;
+  if (!::CreatePipe(&read_raw, &write_raw, &pipe_sa, 0)) {
+    std::move(callback).Run(false);
+    return;
+  }
+  base::win::ScopedHandle read_handle(read_raw);
+  base::win::ScopedHandle write_handle(write_raw);
+  // Only the write end should cross into the child - the read end is ours
+  // alone, or the pipe would never signal EOF once n8n exits.
+  ::SetHandleInformation(read_handle.get(), HANDLE_FLAG_INHERIT, 0);
+
+  base::win::ScopedHandle stdin_handle(::CreateFileW(
+      L"NUL", GENERIC_READ, FILE_SHARE_READ, &pipe_sa, OPEN_EXISTING,
+      FILE_ATTRIBUTE_NORMAL, nullptr));
+  if (!stdin_handle.is_valid()) {
+    std::move(callback).Run(false);
+    return;
+  }
+
   base::LaunchOptions options;
+  options.start_hidden = true;
+  options.stdin_handle = stdin_handle.get();
+  options.stdout_handle = write_handle.get();
+  options.stderr_handle = write_handle.get();
+  options.inherit_mode = base::LaunchOptions::Inherit::kSpecific;
+  options.handles_to_inherit = {stdin_handle.get(), write_handle.get()};
+
   process_ = base::LaunchProcess(cmd, options);
   if (!process_.IsValid()) {
     std::move(callback).Run(false);
     return;
   }
+
+  // The child now holds its own inherited duplicates of these handles -
+  // close ours so ReadPipeLoop()'s ReadFile() actually returns 0/fails
+  // once n8n exits, instead of blocking forever on a write end we're
+  // still holding open ourselves.
+  write_handle.Close();
+  stdin_handle.Close();
+
+  for (auto& observer : observers_) {
+    observer.OnN8nRunningStateChanged(true);
+  }
+
+  scoped_refptr<base::SequencedTaskRunner> reader_task_runner =
+      base::ThreadPool::CreateSequencedTaskRunner(
+          {base::MayBlock(), base::TaskPriority::BEST_EFFORT});
+  reader_task_runner->PostTask(
+      FROM_HERE,
+      base::BindOnce(
+          &ReadPipeLoop, std::move(read_handle),
+          base::BindPostTaskToCurrentDefault(
+              base::BindRepeating(&N8nProcessManager::AppendOutput,
+                                  weak_ptr_factory_.GetWeakPtr())),
+          base::BindPostTaskToCurrentDefault(base::BindOnce(
+              [](base::WeakPtr<N8nProcessManager> self) {
+                if (!self) {
+                  return;
+                }
+                for (auto& observer : self->observers_) {
+                  observer.OnN8nRunningStateChanged(false);
+                }
+              },
+              weak_ptr_factory_.GetWeakPtr()))));
 
   port_ = kN8nPort;
   base_url_ = base::StrCat({"http://localhost:", base::NumberToString(port_)});
@@ -279,6 +382,28 @@ void N8nProcessManager::LaunchProcessAndReport(StartedCallback callback) {
           },
           weak_ptr_factory_.GetWeakPtr(), std::move(callback)),
       kStartupGracePeriod);
+}
+
+void N8nProcessManager::AddObserver(Observer* observer) {
+  observers_.AddObserver(observer);
+}
+
+void N8nProcessManager::RemoveObserver(Observer* observer) {
+  observers_.RemoveObserver(observer);
+}
+
+void N8nProcessManager::AppendOutput(std::string chunk) {
+  output_buffer_.append(chunk);
+  if (output_buffer_.size() > kMaxOutputBufferBytes) {
+    size_t excess = output_buffer_.size() - kMaxOutputBufferBytes;
+    size_t newline_pos = output_buffer_.find('\n', excess);
+    output_buffer_.erase(0, newline_pos == std::string::npos
+                                ? excess
+                                : newline_pos + 1);
+  }
+  for (auto& observer : observers_) {
+    observer.OnN8nOutputAppended(chunk);
+  }
 }
 
 void N8nProcessManager::Shutdown() {
