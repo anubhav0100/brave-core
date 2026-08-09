@@ -16,10 +16,12 @@
 #include "brave/components/ai_chat/core/browser/tools/tool_input_properties.h"
 #include "brave/components/ai_chat/core/browser/tools/tool_utils.h"
 #include "brave/components/ai_chat/core/common/mojom/ai_chat.mojom.h"
+#include "brave/components/ai_chat/core/common/mojom/common.mojom.h"
 #include "chrome/browser/bookmarks/bookmark_model_factory.h"
 #include "chrome/browser/profiles/profile.h"
 #include "components/bookmarks/browser/bookmark_model.h"
 #include "components/bookmarks/browser/bookmark_node.h"
+#include "url/gurl.h"
 
 namespace ai_chat {
 
@@ -99,6 +101,7 @@ void SearchIndexedContentTool::OnSearchComplete(
     return;
   }
   std::string text = "Found relevant content:\n\n";
+  std::vector<mojom::WebSourcePtr> sources;
   for (const auto& result : results) {
     base::StrAppend(
         &text, {"[", result.source_type, "] ", result.source_label,
@@ -106,8 +109,34 @@ void SearchIndexedContentTool::OnSearchComplete(
                    ? ""
                    : base::StrCat({" (", result.source_url, ")"}),
                "\n", result.text, "\n\n"});
+
+    // Only results with a real URL (captured pages, bookmarks - not saved
+    // responses, which have none) become a citation the chat UI can link
+    // to. Reuses the same WebSourcesContentBlock/SourcesEvent mechanism
+    // server-side search tools already render "Sources" chips from - see
+    // ConversationHandler::RespondToToolUseRequest.
+    if (result.source_url.empty()) {
+      continue;
+    }
+    GURL url(result.source_url);
+    if (!url.is_valid()) {
+      continue;
+    }
+    sources.push_back(mojom::WebSource::New(
+        result.source_label, url, GURL(), result.text,
+        std::vector<std::string>()));
   }
-  std::move(callback).Run(CreateContentBlocksForText(text), {});
+
+  std::vector<mojom::ContentBlockPtr> output;
+  output.push_back(mojom::ContentBlock::NewTextContentBlock(
+      mojom::TextContentBlock::New(text)));
+  if (!sources.empty()) {
+    output.push_back(mojom::ContentBlock::NewWebSourcesContentBlock(
+        mojom::WebSourcesContentBlock::New(
+            std::move(sources), std::vector<std::string>(),
+            std::vector<std::string>())));
+  }
+  std::move(callback).Run(std::move(output), {});
 }
 
 // IndexBookmarksTool -------------------------------------------------------

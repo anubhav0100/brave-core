@@ -42,6 +42,7 @@
 #include "brave/components/ai_chat/core/browser/ai_chat_service.h"
 #include "brave/components/ai_chat/core/browser/associated_content_delegate.h"
 #include "brave/components/ai_chat/core/browser/associated_content_manager.h"
+#include "brave/components/ai_chat/core/browser/engine/oai_parsing.h"
 #include "brave/components/ai_chat/core/browser/model_service.h"
 #include "brave/components/ai_chat/core/browser/model_validator.h"
 #include "brave/components/ai_chat/core/browser/tools/tool.h"
@@ -1188,10 +1189,25 @@ void ConversationHandler::RespondToToolUseRequest(
 
   DVLOG(0) << "got output for tool: " << tool_use->tool_name;
 
+  // Locally-executed tools (e.g. search_indexed_content) can include a
+  // WebSourcesContentBlock in their own output to get the same "Sources"
+  // citation UI that server-side search tools already render - extract it
+  // before the output is moved into tool_use below. Mirrors how
+  // oai_parsing.cc does this for server-parsed tool results.
+  auto source_events = ExtractWebSourceEvents(output);
+
   tool_use->output = std::move(output);
   tool_use->artifacts = std::move(artifacts);
 
   OnToolUseEventOutput(chat_history_.back().get(), tool_use);
+
+  if (!source_events.empty()) {
+    auto& entry = chat_history_.back();
+    for (auto& source_event : source_events) {
+      entry->events->push_back(std::move(source_event));
+    }
+    OnHistoryUpdate(entry.Clone());
+  }
 
   // Run next tool, or perform generation with all the completed tools outputs.
   // Run as Task to catch any reentrant issues.
