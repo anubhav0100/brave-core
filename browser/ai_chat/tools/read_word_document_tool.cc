@@ -9,6 +9,10 @@
 
 #include "base/functional/bind.h"
 #include "base/strings/strcat.h"
+#include "base/strings/string_split.h"
+#include "base/strings/string_util.h"
+#include "brave/browser/ai_chat/content_index/ai_chat_content_index.h"
+#include "brave/browser/ai_chat/content_index/ai_chat_content_index_factory.h"
 #include "brave/browser/ai_chat/tools/document_download_util.h"
 #include "brave/components/ai_chat/core/browser/tools/tool_utils.h"
 #include "brave/components/ai_chat/core/common/mojom/ai_chat.mojom.h"
@@ -16,6 +20,7 @@
 #include "chrome/browser/ui/browser_window/public/browser_window_interface.h"
 #include "chrome/browser/ui/browser_window/public/profile_browser_collection.h"
 #include "components/tabs/public/tab_interface.h"
+#include "components/user_prefs/user_prefs.h"
 #include "content/public/browser/web_contents.h"
 
 namespace ai_chat {
@@ -77,6 +82,29 @@ void ReadWordDocumentTool::OnTextRead(UseToolCallback callback,
         {});
     return;
   }
+
+  if (auto* prefs = browser_context_
+                        ? user_prefs::UserPrefs::Get(browser_context_)
+                        : nullptr;
+      prefs && AiChatContentIndex::IsEnabledForProfile(prefs)) {
+    if (auto* index = AiChatContentIndexFactory::GetForBrowserContext(
+            browser_context_)) {
+      // No filename available from the Open dialog result - use the
+      // document's own first line as a label instead of touching the
+      // shared dialog helper's signature for every other caller.
+      std::vector<std::string> lines = base::SplitString(
+          *text, "\n", base::TRIM_WHITESPACE, base::SPLIT_WANT_NONEMPTY);
+      std::string first_line = lines.empty() ? "" : lines[0];
+      if (first_line.size() > 80) {
+        first_line.resize(80);
+      }
+      index->IndexChunks(
+          "document",
+          first_line.empty() ? "Opened Word document" : first_line, "",
+          lines);
+    }
+  }
+
   std::move(callback).Run(CreateContentBlocksForText(*text), {});
 }
 

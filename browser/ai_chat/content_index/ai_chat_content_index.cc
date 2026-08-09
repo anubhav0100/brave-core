@@ -10,6 +10,8 @@
 #include <utility>
 
 #include "base/functional/bind.h"
+#include "base/strings/string_split.h"
+#include "base/strings/string_util.h"
 #include "brave/browser/history_embeddings/brave_passage_embeddings_service_controller.h"
 #include "components/prefs/pref_registry_simple.h"
 #include "components/prefs/pref_service.h"
@@ -132,18 +134,40 @@ void AiChatContentIndex::OnQueryEmbedded(
   }
   const passage_embeddings::Embedding& query_embedding = embeddings[0];
 
+  // Hybrid search: blend vector similarity with a lightweight keyword-overlap
+  // signal, so an exact/partial term match that embedding similarity alone
+  // might rank lower still surfaces near the top - not full BM25, but a
+  // meaningful, dependency-free improvement over vector-only ranking.
+  std::vector<std::string> query_words = base::SplitString(
+      base::ToLowerASCII(passages.empty() ? std::string() : passages[0]),
+      " \t\n.,;:!?()[]{}\"'", base::TRIM_WHITESPACE,
+      base::SPLIT_WANT_NONEMPTY);
+
   std::vector<ContentSearchResult> results;
   results.reserve(chunks_.size());
   for (const auto& chunk : chunks_) {
     if (!chunk.embedding.has_value()) {
       continue;
     }
+    float vector_score = query_embedding.ScoreWith(*chunk.embedding);
+
+    float keyword_score = 0;
+    if (!query_words.empty()) {
+      std::string lower_text = base::ToLowerASCII(chunk.text);
+      size_t matched = std::ranges::count_if(
+          query_words, [&lower_text](const std::string& word) {
+            return lower_text.find(word) != std::string::npos;
+          });
+      keyword_score =
+          static_cast<float>(matched) / static_cast<float>(query_words.size());
+    }
+
     ContentSearchResult result;
     result.source_type = chunk.source_type;
     result.source_label = chunk.source_label;
     result.source_url = chunk.source_url;
     result.text = chunk.text;
-    result.score = query_embedding.ScoreWith(*chunk.embedding);
+    result.score = (0.85f * vector_score) + (0.15f * keyword_score);
     results.push_back(std::move(result));
   }
   std::ranges::sort(results, std::ranges::greater{},

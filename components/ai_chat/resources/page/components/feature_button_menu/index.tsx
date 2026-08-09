@@ -189,22 +189,6 @@ export default function FeatureMenu(props: Props) {
           </div>
         </leo-menu-item>
       )}
-      {!aiChatContext.isPremiumUser && (
-        <leo-menu-item onClick={aiChatContext.goPremium}>
-          <div
-            className={classnames(
-              styles.menuItemWithIcon,
-              styles.menuItemMainItem,
-            )}
-          >
-            <Icon name='lock-open' />
-            <span className={styles.menuText}>
-              {getLocale(S.AI_CHAT_MENU_GO_PREMIUM)}
-            </span>
-          </div>
-        </leo-menu-item>
-      )}
-
       {aiChatContext.isPremiumUser && (
         <leo-menu-item onClick={aiChatContext.managePremium}>
           <div
