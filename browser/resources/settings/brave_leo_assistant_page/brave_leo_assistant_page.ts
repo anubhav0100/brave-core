@@ -4,6 +4,7 @@
 // You can obtain one at https://mozilla.org/MPL/2.0/.
 
 import '//resources/cr_elements/md_select.css.js'
+import 'chrome://resources/cr_elements/cr_button/cr_button.js'
 import 'chrome://resources/brave/leo.bundle.js'
 import {I18nMixin} from 'chrome://resources/cr_elements/i18n_mixin.js'
 import {PolymerElement} from 'chrome://resources/polymer/v3_0/polymer/polymer_bundled.min.js'
@@ -55,6 +56,8 @@ class BraveLeoAssistantPageElement extends BraveLeoAssistantPageBase {
           value: () => loadTimeData.getBoolean(
             'isTabOrganizationFeatureEnabled')
         },
+        contentIndexEntryCount_: { type: Number, value: 0 },
+        contentIndexAvailable_: { type: Boolean, value: false },
       }
     }
 
@@ -63,6 +66,8 @@ class BraveLeoAssistantPageElement extends BraveLeoAssistantPageBase {
     declare isHistoryFeatureEnabled_: boolean
     declare isTabOrganizationFeatureEnabled_: boolean
     declare leoAssistantShowOnToolbarPref_: boolean
+    declare contentIndexEntryCount_: number
+    declare contentIndexAvailable_: boolean
     premiumStatus_: PremiumStatus = PremiumStatus.Unknown
     browserProxy_: BraveLeoAssistantBrowserProxy =
       BraveLeoAssistantBrowserProxyImpl.getInstance()
@@ -81,6 +86,7 @@ class BraveLeoAssistantPageElement extends BraveLeoAssistantPageBase {
 
       this.updateShowLeoAssistantIcon_()
       this.updateCurrentPremiumStatus()
+      this.updateContentIndexStatus_()
 
       this.addWebUiListener('settings-brave-leo-assistant-changed',
       (isLeoVisible: boolean) => {
@@ -149,6 +155,36 @@ class BraveLeoAssistantPageElement extends BraveLeoAssistantPageBase {
     openCustomizationPage_() {
       const router = Router.getInstance();
       router.navigateTo(router.getRoutes().BRAVE_LEO_CUSTOMIZATION);
+    }
+
+    updateContentIndexStatus_() {
+      this.browserProxy_.getContentIndexStatus().then((status) => {
+        this.contentIndexEntryCount_ = status.entryCount
+        this.contentIndexAvailable_ = status.available
+      })
+    }
+
+    onContentIndexingToggleChange_() {
+      // Give the pref write a moment to land before re-checking status.
+      setTimeout(() => this.updateContentIndexStatus_(), 0)
+    }
+
+    hasContentIndexEntries_(count: number): boolean {
+      return count > 0
+    }
+
+    contentIndexStatusText_(count: number, available: boolean): string {
+      if (!available) {
+        return this.i18n('braveLeoAssistantContentIndexingUnavailable')
+      }
+      return this.i18n('braveLeoAssistantContentIndexingItemCount',
+                       String(count))
+    }
+
+    onClearContentIndex_() {
+      this.browserProxy_.clearContentIndex().then(() => {
+        this.updateContentIndexStatus_()
+      })
     }
 }
 

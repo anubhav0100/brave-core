@@ -52,10 +52,23 @@ You can obtain one at https://mozilla.org/MPL/2.0/. -->
     </settings-toggle-button>
   </template>
   <settings-toggle-button class="cr-row hr"
+    id="contentIndexingToggle"
     pref="{{prefs.brave.ai_chat.content_indexing_enabled}}"
     label="$i18n{braveLeoAssistantContentIndexingLabel}"
-    sub-label="$i18n{braveLeoAssistantContentIndexingDesc}">
+    sub-label="$i18n{braveLeoAssistantContentIndexingDesc}"
+    on-settings-boolean-control-change="onContentIndexingToggleChange_">
   </settings-toggle-button>
+  <template is="dom-if" if="[[prefs.brave.ai_chat.content_indexing_enabled.value]]" restamp>
+    <div class="cr-row continuation" style="justify-content: space-between; align-items: center;">
+      <div class="cr-secondary-text">
+        [[contentIndexStatusText_(contentIndexEntryCount_, contentIndexAvailable_)]]
+      </div>
+      <cr-button on-click="onClearContentIndex_"
+        disabled="[[!hasContentIndexEntries_(contentIndexEntryCount_)]]">
+        $i18n{braveLeoAssistantContentIndexingClearButtonLabel}
+      </cr-button>
+    </div>
+  </template>
   <cr-link-row class="hr"
     label="$i18n{braveLeoAssistantAutocompleteLink}"
     on-click="openAutocompleteSetting_">

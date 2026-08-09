@@ -17,6 +17,8 @@
 #include "brave/browser/ai_chat/ai_chat_service_factory.h"
 #include "brave/browser/ai_chat/webhook_tool_service.h"
 #include "brave/browser/ai_chat/webhook_tool_service_factory.h"
+#include "brave/browser/ai_chat/content_index/ai_chat_content_index.h"
+#include "brave/browser/ai_chat/content_index/ai_chat_content_index_factory.h"
 #include "brave/browser/ai_chat/workflows/workflow_repository.h"
 #include "brave/browser/ai_chat/workflows/workflow_repository_factory.h"
 #include "brave/browser/ui/sidebar/sidebar_service_factory.h"
@@ -218,6 +220,15 @@ void BraveLeoAssistantHandler::RegisterMessages() {
   web_ui()->RegisterMessageCallback(
       "runWorkflow",
       base::BindRepeating(&BraveLeoAssistantHandler::HandleRunWorkflow,
+                          base::Unretained(this)));
+  web_ui()->RegisterMessageCallback(
+      "getContentIndexStatus",
+      base::BindRepeating(
+          &BraveLeoAssistantHandler::HandleGetContentIndexStatus,
+          base::Unretained(this)));
+  web_ui()->RegisterMessageCallback(
+      "clearContentIndex",
+      base::BindRepeating(&BraveLeoAssistantHandler::HandleClearContentIndex,
                           base::Unretained(this)));
 }
 
@@ -629,6 +640,31 @@ void BraveLeoAssistantHandler::OnRunWorkflowComplete(
   }
   response.Set("outputs", std::move(outputs));
   ResolveJavascriptCallback(callback_id, response);
+}
+
+void BraveLeoAssistantHandler::HandleGetContentIndexStatus(
+    const base::ListValue& args) {
+  AllowJavascript();
+  base::DictValue result;
+  auto* index =
+      ai_chat::AiChatContentIndexFactory::GetForBrowserContext(profile_);
+  result.Set("entryCount",
+            static_cast<int>(index ? index->entry_count() : 0));
+  result.Set("available", index && index->IsAvailable());
+  result.Set("enabled",
+            profile_ && ai_chat::AiChatContentIndex::IsEnabledForProfile(
+                            profile_->GetPrefs()));
+  ResolveJavascriptCallback(args[0], result);
+}
+
+void BraveLeoAssistantHandler::HandleClearContentIndex(
+    const base::ListValue& args) {
+  AllowJavascript();
+  if (auto* index =
+          ai_chat::AiChatContentIndexFactory::GetForBrowserContext(profile_)) {
+    index->Clear();
+  }
+  ResolveJavascriptCallback(args[0], base::Value(true));
 }
 
 void BraveLeoAssistantHandler::HandleResetLeoData(const base::ListValue& args) {

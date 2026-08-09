@@ -98,6 +98,10 @@
   publishWorkflow(id: string): Promise<boolean>
   deleteWorkflow(id: string): Promise<boolean>
   runWorkflow(id: string): Promise<RunWorkflowResult>
+  getContentIndexStatus(): Promise<{
+    entryCount: number, available: boolean, enabled: boolean
+  }>
+  clearContentIndex(): Promise<boolean>
  }
 
  export class BraveLeoAssistantBrowserProxyImpl
@@ -220,6 +224,16 @@
 
    runWorkflow(id: string) {
      return sendWithPromise<RunWorkflowResult>('runWorkflow', id)
+   }
+
+   getContentIndexStatus() {
+     return sendWithPromise<{
+       entryCount: number, available: boolean, enabled: boolean
+     }>('getContentIndexStatus')
+   }
+
+   clearContentIndex() {
+     return sendWithPromise<boolean>('clearContentIndex')
    }
  }
 

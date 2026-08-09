@@ -1689,6 +1689,15 @@
   <message name="IDS_SETTINGS_LEO_ASSISTANT_CONTENT_INDEXING_DESC" desc="The description for settings option to enable on-device content indexing for AI Assistant">
     Indexes pages you capture and responses you save on this device only, so AI Assistant can search them later to ground its answers. Nothing is sent off this device.
   </message>
+  <message name="IDS_SETTINGS_LEO_ASSISTANT_CONTENT_INDEXING_ITEM_COUNT" desc="Status text showing how many items are in the content index">
+    <ph name="COUNT">$1<ex>5</ex></ph> item(s) indexed
+  </message>
+  <message name="IDS_SETTINGS_LEO_ASSISTANT_CONTENT_INDEXING_UNAVAILABLE" desc="Status text shown when the on-device content index isn't available yet">
+    Content indexing isn't available yet - the on-device model may still be loading
+  </message>
+  <message name="IDS_SETTINGS_LEO_ASSISTANT_CONTENT_INDEXING_CLEAR_BUTTON_LABEL" desc="Button label to clear the content index">
+    Clear index
+  </message>
   <message name="IDS_SETTINGS_LEO_ASSISTANT_TAB_ORGANIZATION_LABEL" desc="The text for settings option to enable tab focus mode">
     Tab Focus Mode
   </message>

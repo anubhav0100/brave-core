@@ -68,6 +68,8 @@ class BraveLeoAssistantHandler : public settings::SettingsPageUIHandler,
   void HandleRunWorkflow(const base::ListValue& args);
   void OnRunWorkflowComplete(base::Value callback_id,
                              ai_chat::WorkflowRuntime::ExecutionResult result);
+  void HandleGetContentIndexStatus(const base::ListValue& args);
+  void HandleClearContentIndex(const base::ListValue& args);
 
   raw_ptr<Profile> profile_ = nullptr;
   base::ScopedObservation<sidebar::SidebarService,
