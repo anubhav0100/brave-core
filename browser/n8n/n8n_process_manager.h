@@ -6,12 +6,14 @@
 #ifndef BRAVE_BROWSER_N8N_N8N_PROCESS_MANAGER_H_
 #define BRAVE_BROWSER_N8N_N8N_PROCESS_MANAGER_H_
 
+#include <optional>
 #include <string>
 
 #include "base/files/file_path.h"
 #include "base/functional/callback_forward.h"
 #include "base/memory/weak_ptr.h"
 #include "base/process/process.h"
+#include "base/timer/timer.h"
 #include "components/keyed_service/core/keyed_service.h"
 
 class PrefRegistrySimple;
@@ -70,17 +72,46 @@ class N8nProcessManager : public KeyedService {
   const std::string& base_url() const { return base_url_; }
 
   // The directory n8n stores its own data in (workflows, credentials,
-  // execution history) - fixed, outside the browser profile. Exposed so
-  // Phase 3's backup task can find it without duplicating this path logic.
+  // execution history) - fixed, outside the browser profile.
   static base::FilePath GetDataDir();
+
+  // Where daily backups of GetDataDir() are written - also fixed, outside
+  // both the browser profile and GetDataDir() itself. Both paths sit under
+  // %LOCALAPPDATA% directly (not under the browser's own "User Data"
+  // profile tree the installer's uninstaller manages), which is what
+  // makes them survive an uninstall/reinstall in the first place - not any
+  // special installer hook.
+  static base::FilePath GetBackupDir();
+
+  // Zips GetDataDir() into GetBackupDir(), timestamped, and prunes old
+  // backups beyond kMaxBackupsToKeep. Runs the zip on a background
+  // sequence. Safe to call manually (e.g. a future Settings "back up now"
+  // button); also called automatically once a day - see the timer set up
+  // in the constructor.
+  void PerformBackup();
+
+  // If GetDataDir() is missing/empty and at least one backup exists,
+  // restores the most recent one into it. Called once, early in
+  // EnsureStarted(), before n8n is actually launched - this is the
+  // restore-on-reinstall mechanism: a fresh install has an empty data dir,
+  // so if backups already exist at the (uninstall-surviving) backup path,
+  // they get restored automatically before n8n ever starts.
+  void MaybeRestoreFromBackup(base::OnceClosure done);
 
   // KeyedService:
   void Shutdown() override;
 
  private:
+  void OnRestoreCheckComplete(base::OnceClosure done,
+                              std::optional<base::FilePath> backup_to_restore);
+  void OnRestoreComplete(base::OnceClosure done, bool success);
+  void LaunchProcessAndReport(StartedCallback callback);
+
   base::Process process_;
   std::string base_url_;
   int port_ = 0;
+  bool restore_checked_ = false;
+  base::RepeatingTimer backup_timer_;
 
   base::WeakPtrFactory<N8nProcessManager> weak_ptr_factory_{this};
 };

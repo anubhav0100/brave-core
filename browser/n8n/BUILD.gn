@@ -5,6 +5,8 @@
 
 source_set("n8n") {
   sources = [
+    "mcp_client.cc",
+    "mcp_client.h",
     "n8n_process_manager.cc",
     "n8n_process_manager.h",
     "n8n_process_manager_factory.cc",
@@ -13,8 +15,13 @@ source_set("n8n") {
 
   deps = [
     "//base",
+    "//brave/components/api_request_helper",
     "//components/keyed_service/content",
     "//components/keyed_service/core",
     "//content/public/browser",
+    "//net",
+    "//services/network/public/cpp",
+    "//third_party/zlib/google:zip",
+    "//url",
   ]
 }
