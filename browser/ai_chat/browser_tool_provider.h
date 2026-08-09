@@ -34,6 +34,7 @@ class CreateSpreadsheetTool;
 class CreateWordDocumentTool;
 class ReadWordDocumentTool;
 class HistorySearchTool;
+class IndexBookmarksTool;
 class ClearResponseMemoryTool;
 class PageCaptureSession;
 class ResponseMemorySession;
@@ -80,6 +81,7 @@ class BrowserToolProvider : public ToolProvider {
       save_response_memory_as_word_document_tool_;
   std::unique_ptr<ClearResponseMemoryTool> clear_response_memory_tool_;
   std::unique_ptr<SearchIndexedContentTool> search_indexed_content_tool_;
+  std::unique_ptr<IndexBookmarksTool> index_bookmarks_tool_;
   std::unique_ptr<RunWorkflowTool> run_workflow_tool_;
   std::unique_ptr<CreateSpreadsheetTool> create_spreadsheet_tool_;
   std::unique_ptr<CreatePresentationTool> create_presentation_tool_;

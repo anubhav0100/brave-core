@@ -10,10 +10,16 @@
 #include "base/functional/bind.h"
 #include "base/json/json_reader.h"
 #include "base/strings/strcat.h"
+#include "base/strings/string_number_conversions.h"
+#include "base/strings/utf_string_conversions.h"
 #include "brave/browser/ai_chat/content_index/ai_chat_content_index.h"
 #include "brave/components/ai_chat/core/browser/tools/tool_input_properties.h"
 #include "brave/components/ai_chat/core/browser/tools/tool_utils.h"
 #include "brave/components/ai_chat/core/common/mojom/ai_chat.mojom.h"
+#include "chrome/browser/bookmarks/bookmark_model_factory.h"
+#include "chrome/browser/profiles/profile.h"
+#include "components/bookmarks/browser/bookmark_model.h"
+#include "components/bookmarks/browser/bookmark_node.h"
 
 namespace ai_chat {
 
@@ -102,6 +108,71 @@ void SearchIndexedContentTool::OnSearchComplete(
                "\n", result.text, "\n\n"});
   }
   std::move(callback).Run(CreateContentBlocksForText(text), {});
+}
+
+// IndexBookmarksTool -------------------------------------------------------
+
+namespace {
+
+void CollectBookmarks(const bookmarks::BookmarkNode* node,
+                      AiChatContentIndex* index,
+                      int* count) {
+  if (node->is_url()) {
+    std::string title = base::UTF16ToUTF8(node->GetTitle());
+    index->IndexChunks("bookmark", title.empty() ? node->url().spec() : title,
+                       node->url().spec(), {title});
+    ++*count;
+    return;
+  }
+  for (const auto& child : node->children()) {
+    CollectBookmarks(child.get(), index, count);
+  }
+}
+
+}  // namespace
+
+IndexBookmarksTool::IndexBookmarksTool(AiChatContentIndex* index,
+                                       Profile* profile)
+    : index_(index), profile_(profile) {}
+
+IndexBookmarksTool::~IndexBookmarksTool() = default;
+
+std::string_view IndexBookmarksTool::Name() const {
+  return "index_bookmarks";
+}
+
+std::string_view IndexBookmarksTool::Description() const {
+  return "Indexes the user's current bookmarks (title and URL) into this "
+         "profile's on-device content index, so search_indexed_content can "
+         "find them later. Call this once when the user asks you to "
+         "search/remember their bookmarks and you haven't indexed them "
+         "yet this session - it does not run automatically.";
+}
+
+void IndexBookmarksTool::UseTool(const std::string& input_json,
+                                 UseToolCallback callback) {
+  if (!index_ || !index_->IsAvailable()) {
+    std::move(callback).Run(
+        CreateContentBlocksForText(
+            "Content indexing isn't available right now - make sure it's "
+            "enabled in Settings and the on-device model has finished "
+            "loading."),
+        {});
+    return;
+  }
+  auto* model = BookmarkModelFactory::GetForBrowserContext(profile_);
+  if (!model || !model->loaded()) {
+    std::move(callback).Run(
+        CreateContentBlocksForText("Error: bookmarks aren't available."), {});
+    return;
+  }
+  int count = 0;
+  CollectBookmarks(model->root_node(), index_, &count);
+  std::move(callback).Run(
+      CreateContentBlocksForText(
+          base::StrCat({"Indexed ", base::NumberToString(count),
+                        " bookmark(s)."})),
+      {});
 }
 
 }  // namespace ai_chat

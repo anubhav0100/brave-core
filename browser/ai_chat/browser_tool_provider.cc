@@ -85,6 +85,9 @@ std::vector<base::WeakPtr<Tool>> BrowserToolProvider::GetTools() {
   if (search_indexed_content_tool_) {
     tool_ptrs.push_back(search_indexed_content_tool_->GetWeakPtr());
   }
+  if (index_bookmarks_tool_) {
+    tool_ptrs.push_back(index_bookmarks_tool_->GetWeakPtr());
+  }
   if (run_workflow_tool_) {
     tool_ptrs.push_back(run_workflow_tool_->GetWeakPtr());
   }
@@ -148,6 +151,9 @@ void BrowserToolProvider::CreateTools(
   search_indexed_content_tool_ =
       std::make_unique<SearchIndexedContentTool>(
           AiChatContentIndexFactory::GetForBrowserContext(browser_context));
+  index_bookmarks_tool_ = std::make_unique<IndexBookmarksTool>(
+      AiChatContentIndexFactory::GetForBrowserContext(browser_context),
+      profile_);
   run_workflow_tool_ = std::make_unique<RunWorkflowTool>(browser_context);
   create_spreadsheet_tool_ =
       std::make_unique<CreateSpreadsheetTool>(browser_context);

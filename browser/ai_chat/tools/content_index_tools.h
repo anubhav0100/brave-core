@@ -16,6 +16,8 @@
 #include "base/values.h"
 #include "brave/components/ai_chat/core/browser/tools/tool.h"
 
+class Profile;
+
 namespace ai_chat {
 
 class AiChatContentIndex;
@@ -53,6 +55,29 @@ class SearchIndexedContentTool : public Tool {
   raw_ptr<AiChatContentIndex> index_ = nullptr;
 
   base::WeakPtrFactory<SearchIndexedContentTool> weak_ptr_factory_{this};
+};
+
+// Indexes the user's current bookmarks (title + URL, one chunk each) into
+// this profile's content index, so search_indexed_content can find them
+// later ("what was that site I bookmarked about X"). Call this once to
+// (re)sync - it doesn't run automatically on every bookmark change, since
+// that would mean walking the whole bookmark tree on every add/remove.
+class IndexBookmarksTool : public Tool {
+ public:
+  IndexBookmarksTool(AiChatContentIndex* index, Profile* profile);
+  ~IndexBookmarksTool() override;
+
+  IndexBookmarksTool(const IndexBookmarksTool&) = delete;
+  IndexBookmarksTool& operator=(const IndexBookmarksTool&) = delete;
+
+  std::string_view Name() const override;
+  std::string_view Description() const override;
+  void UseTool(const std::string& input_json,
+               UseToolCallback callback) override;
+
+ private:
+  raw_ptr<AiChatContentIndex> index_ = nullptr;
+  raw_ptr<Profile> profile_ = nullptr;
 };
 
 }  // namespace ai_chat
