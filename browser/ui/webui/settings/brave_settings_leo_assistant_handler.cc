@@ -21,6 +21,7 @@
 #include "brave/browser/ai_chat/content_index/ai_chat_content_index_factory.h"
 #include "brave/browser/ai_chat/workflows/workflow_repository.h"
 #include "brave/browser/ai_chat/workflows/workflow_repository_factory.h"
+#include "brave/browser/delegation/delegation_process_manager_factory.h"
 #include "brave/browser/n8n/n8n_process_manager_factory.h"
 #include "brave/browser/ui/sidebar/sidebar_service_factory.h"
 #include "brave/browser/ui/views/side_panel/page_capture/page_capture_side_panel_coordinator.h"
@@ -245,6 +246,20 @@ void BraveLeoAssistantHandler::RegisterMessages() {
       base::BindRepeating(&BraveLeoAssistantHandler::HandleStartN8n,
                           base::Unretained(this)));
   web_ui()->RegisterMessageCallback(
+      "getDelegationStatus",
+      base::BindRepeating(
+          &BraveLeoAssistantHandler::HandleGetDelegationStatus,
+          base::Unretained(this)));
+  web_ui()->RegisterMessageCallback(
+      "getDelegationBufferedOutput",
+      base::BindRepeating(
+          &BraveLeoAssistantHandler::HandleGetDelegationBufferedOutput,
+          base::Unretained(this)));
+  web_ui()->RegisterMessageCallback(
+      "startDelegation",
+      base::BindRepeating(&BraveLeoAssistantHandler::HandleStartDelegation,
+                          base::Unretained(this)));
+  web_ui()->RegisterMessageCallback(
       "getMcpWorkflows",
       base::BindRepeating(&BraveLeoAssistantHandler::HandleGetMcpWorkflows,
                           base::Unretained(this)));
@@ -265,11 +280,19 @@ void BraveLeoAssistantHandler::OnJavascriptAllowed() {
           ai_chat::N8nProcessManagerFactory::GetForBrowserContext(profile_)) {
     n8n_process_manager_observer_.Observe(n8n_manager);
   }
+
+  delegation_process_manager_observer_.Reset();
+  if (auto* delegation_manager =
+          ai_chat::DelegationProcessManagerFactory::GetForBrowserContext(
+              profile_)) {
+    delegation_process_manager_observer_.Observe(delegation_manager);
+  }
 }
 
 void BraveLeoAssistantHandler::OnJavascriptDisallowed() {
   sidebar_service_observer_.Reset();
   n8n_process_manager_observer_.Reset();
+  delegation_process_manager_observer_.Reset();
 }
 
 void BraveLeoAssistantHandler::OnN8nOutputAppended(const std::string& text) {
@@ -284,6 +307,22 @@ void BraveLeoAssistantHandler::OnN8nRunningStateChanged(bool running) {
     return;
   }
   FireWebUIListener("n8n-running-state-changed", base::Value(running));
+}
+
+void BraveLeoAssistantHandler::OnDelegationOutputAppended(
+    const std::string& text) {
+  if (!IsJavascriptAllowed()) {
+    return;
+  }
+  FireWebUIListener("delegation-output-appended", base::Value(text));
+}
+
+void BraveLeoAssistantHandler::OnDelegationRunningStateChanged(bool running) {
+  if (!IsJavascriptAllowed()) {
+    return;
+  }
+  FireWebUIListener("delegation-running-state-changed",
+                    base::Value(running));
 }
 
 void BraveLeoAssistantHandler::OnItemAdded(const sidebar::SidebarItem& item,
@@ -748,6 +787,52 @@ void BraveLeoAssistantHandler::HandleStartN8n(const base::ListValue& args) {
 
 void BraveLeoAssistantHandler::OnN8nStarted(base::Value callback_id,
                                             bool success) {
+  ResolveJavascriptCallback(callback_id, base::Value(success));
+}
+
+void BraveLeoAssistantHandler::HandleGetDelegationStatus(
+    const base::ListValue& args) {
+  AllowJavascript();
+  base::DictValue result;
+  auto* delegation_manager =
+      ai_chat::DelegationProcessManagerFactory::GetForBrowserContext(
+          profile_);
+  result.Set("running", delegation_manager && delegation_manager->IsReady());
+  result.Set("baseUrl",
+            delegation_manager ? delegation_manager->base_url() : "");
+  ResolveJavascriptCallback(args[0], result);
+}
+
+void BraveLeoAssistantHandler::HandleGetDelegationBufferedOutput(
+    const base::ListValue& args) {
+  AllowJavascript();
+  auto* delegation_manager =
+      ai_chat::DelegationProcessManagerFactory::GetForBrowserContext(
+          profile_);
+  ResolveJavascriptCallback(
+      args[0], base::Value(delegation_manager
+                                ? delegation_manager->GetBufferedOutput()
+                                : std::string()));
+}
+
+void BraveLeoAssistantHandler::HandleStartDelegation(
+    const base::ListValue& args) {
+  AllowJavascript();
+  base::Value callback_id = args[0].Clone();
+  auto* delegation_manager =
+      ai_chat::DelegationProcessManagerFactory::GetForBrowserContext(
+          profile_);
+  if (!delegation_manager) {
+    ResolveJavascriptCallback(callback_id, base::Value(false));
+    return;
+  }
+  delegation_manager->EnsureStarted(
+      base::BindOnce(&BraveLeoAssistantHandler::OnDelegationStarted,
+                     weak_ptr_factory_.GetWeakPtr(), std::move(callback_id)));
+}
+
+void BraveLeoAssistantHandler::OnDelegationStarted(base::Value callback_id,
+                                                    bool success) {
   ResolveJavascriptCallback(callback_id, base::Value(success));
 }
 

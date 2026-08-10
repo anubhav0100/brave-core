@@ -205,6 +205,7 @@ if (enable_ai_chat) {
     "brave_leo_assistant_page/model_config_subpage.ts",
     "brave_leo_assistant_page/model_config_ui.ts",
     "brave_leo_assistant_page/n8n_terminal_section.ts",
+    "brave_leo_assistant_page/delegation_terminal_section.ts",
     "brave_leo_assistant_page/page_capture_section.ts",
     "brave_leo_assistant_page/personalization.ts",
     "brave_leo_assistant_page/webhook_tools_section.ts",

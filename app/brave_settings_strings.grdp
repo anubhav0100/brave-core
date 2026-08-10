@@ -1983,6 +1983,30 @@
   <message name="IDS_SETTINGS_N8N_TERMINAL_EMPTY_LABEL" desc="Shown in the output area before n8n has printed anything yet.">
     No output yet. Start n8n to see its output here.
   </message>
+  <message name="IDS_SETTINGS_DELEGATION_TERMINAL_SECTION_TITLE" desc="Title for the settings section showing the local Delegation multi-agent simulation's status and output.">
+    Delegation
+  </message>
+  <message name="IDS_SETTINGS_DELEGATION_TERMINAL_SECTION_DESC" desc="Description for the Delegation settings section.">
+    Delegation runs locally as a 3D multi-agent simulation the AI Assistant can monitor and direct. First start clones and builds it, which can take a few minutes; start it and watch its output here.
+  </message>
+  <message name="IDS_SETTINGS_DELEGATION_TERMINAL_STATUS_RUNNING" desc="Status label shown when the local Delegation process is running.">
+    Running
+  </message>
+  <message name="IDS_SETTINGS_DELEGATION_TERMINAL_STATUS_STOPPED" desc="Status label shown when the local Delegation process is not running.">
+    Stopped
+  </message>
+  <message name="IDS_SETTINGS_DELEGATION_TERMINAL_START_LABEL" desc="Label for the button that starts the local Delegation process.">
+    Start Delegation
+  </message>
+  <message name="IDS_SETTINGS_DELEGATION_TERMINAL_STARTING_LABEL" desc="Label for the start button while Delegation is in the process of starting (which may include a one-time clone/install/build).">
+    Starting…
+  </message>
+  <message name="IDS_SETTINGS_DELEGATION_TERMINAL_CLEAR_VIEW_LABEL" desc="Label for the button that clears the on-screen output view (not Delegation's own data).">
+    Clear view
+  </message>
+  <message name="IDS_SETTINGS_DELEGATION_TERMINAL_EMPTY_LABEL" desc="Shown in the output area before Delegation has printed anything yet.">
+    No output yet. Start Delegation to see its output here.
+  </message>
   <message name="IDS_SETTINGS_N8N_MCP_CONNECTIONS_TITLE" desc="Header for the list of n8n workflows exposed to the AI Assistant as MCP tools.">
     MCP connections
   </message>

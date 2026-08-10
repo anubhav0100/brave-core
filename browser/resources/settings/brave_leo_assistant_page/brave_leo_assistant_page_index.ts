@@ -26,6 +26,7 @@ import './webhook_tools_section.js';
 import './ai_chat_history_section.js';
 import './workflows_section.js';
 import './n8n_terminal_section.js';
+import './delegation_terminal_section.js';
 
 
 export interface BraveLeoAssistantPageIndexElement {
@@ -58,7 +59,8 @@ export class BraveLeoAssistantPageIndexElement extends
   private showDefaultViews_() {
     this.$.viewManager.switchViews(
         ['assistant', 'personalization', 'model-list', 'page-capture',
-         'webhook-tools', 'ai-chat-history', 'workflows', 'n8n-terminal'],
+         'webhook-tools', 'ai-chat-history', 'workflows', 'n8n-terminal',
+         'delegation-terminal'],
         'no-animation', 'no-animation');
   }
 

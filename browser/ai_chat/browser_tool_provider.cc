@@ -19,6 +19,8 @@
 #include "brave/browser/ai_chat/tools/create_presentation_tool.h"
 #include "brave/browser/ai_chat/tools/create_spreadsheet_tool.h"
 #include "brave/browser/ai_chat/tools/create_word_document_tool.h"
+#include "brave/browser/ai_chat/tools/delegation_tools.h"
+#include "brave/browser/delegation/delegation_process_manager_factory.h"
 #include "brave/browser/ai_chat/tools/history_search_tool.h"
 #include "brave/browser/ai_chat/tools/n8n_mcp_tools.h"
 #include "brave/browser/ai_chat/tools/n8n_sync_tools.h"
@@ -68,6 +70,21 @@ std::vector<base::WeakPtr<Tool>> BrowserToolProvider::GetTools() {
   }
   if (delegate_to_subagent_tool_) {
     tool_ptrs.push_back(delegate_to_subagent_tool_->GetWeakPtr());
+  }
+  if (open_delegation_tool_) {
+    tool_ptrs.push_back(open_delegation_tool_->GetWeakPtr());
+  }
+  if (get_delegation_status_tool_) {
+    tool_ptrs.push_back(get_delegation_status_tool_->GetWeakPtr());
+  }
+  if (approve_delegation_task_tool_) {
+    tool_ptrs.push_back(approve_delegation_task_tool_->GetWeakPtr());
+  }
+  if (reject_delegation_task_tool_) {
+    tool_ptrs.push_back(reject_delegation_task_tool_->GetWeakPtr());
+  }
+  if (inject_delegation_brief_tool_) {
+    tool_ptrs.push_back(inject_delegation_brief_tool_->GetWeakPtr());
   }
   if (create_word_document_tool_) {
     tool_ptrs.push_back(create_word_document_tool_->GetWeakPtr());
@@ -179,6 +196,18 @@ void BrowserToolProvider::CreateTools(
   }
   delegate_to_subagent_tool_ =
       std::make_unique<DelegateToSubagentTool>(browser_context);
+  auto* delegation_manager =
+      DelegationProcessManagerFactory::GetForBrowserContext(browser_context);
+  open_delegation_tool_ =
+      std::make_unique<OpenDelegationTool>(delegation_manager, browser_context);
+  get_delegation_status_tool_ =
+      std::make_unique<GetDelegationStatusTool>(delegation_manager);
+  approve_delegation_task_tool_ =
+      std::make_unique<ApproveDelegationTaskTool>(delegation_manager);
+  reject_delegation_task_tool_ =
+      std::make_unique<RejectDelegationTaskTool>(delegation_manager);
+  inject_delegation_brief_tool_ =
+      std::make_unique<InjectDelegationBriefTool>(delegation_manager);
   create_word_document_tool_ =
       std::make_unique<CreateWordDocumentTool>(browser_context);
   read_word_document_tool_ =

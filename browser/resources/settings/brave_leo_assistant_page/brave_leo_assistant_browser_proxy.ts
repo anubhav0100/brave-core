@@ -114,6 +114,9 @@
   startN8n(): Promise<boolean>
   getMcpWorkflows(): Promise<McpWorkflowListItem[]>
   setMcpWorkflowEnabled(id: string, enabled: boolean): Promise<boolean>
+  getDelegationStatus(): Promise<{running: boolean, baseUrl: string}>
+  getDelegationBufferedOutput(): Promise<string>
+  startDelegation(): Promise<boolean>
  }
 
  export class BraveLeoAssistantBrowserProxyImpl
@@ -267,6 +270,19 @@
 
    setMcpWorkflowEnabled(id: string, enabled: boolean) {
      return sendWithPromise<boolean>('setMcpWorkflowEnabled', id, enabled)
+   }
+
+   getDelegationStatus() {
+     return sendWithPromise<{running: boolean, baseUrl: string}>(
+       'getDelegationStatus')
+   }
+
+   getDelegationBufferedOutput() {
+     return sendWithPromise<string>('getDelegationBufferedOutput')
+   }
+
+   startDelegation() {
+     return sendWithPromise<boolean>('startDelegation')
    }
  }
 

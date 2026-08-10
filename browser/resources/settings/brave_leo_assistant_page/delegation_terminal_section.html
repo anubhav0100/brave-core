@@ -1,0 +1,100 @@
+<!-- Copyright (c) 2026 The Brave Authors. All rights reserved.
+This Source Code Form is subject to the terms of the Mozilla Public
+License, v. 2.0. If a copy of the MPL was not distributed with this file,
+You can obtain one at https://mozilla.org/MPL/2.0/. -->
+
+<style include="cr-shared-style settings-shared">
+  .header {
+    padding: var(--leo-spacing-2xl) var(--leo-spacing-2xl) 0 var(--leo-spacing-2xl);
+  }
+
+  .main-header {
+    font: var(--leo-font-heading-h4);
+  }
+
+  .status-row {
+    display: flex;
+    align-items: center;
+    gap: var(--leo-spacing-m);
+    padding: var(--leo-spacing-l) var(--leo-spacing-2xl);
+  }
+
+  .status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--leo-color-text-tertiary);
+    flex-shrink: 0;
+  }
+
+  .status-dot.running {
+    background: var(--leo-color-systemfeedback-success-icon, #31a06e);
+  }
+
+  .status-label {
+    font: var(--leo-font-small-semibold);
+  }
+
+  .base-url {
+    color: var(--leo-color-text-tertiary);
+    font: var(--leo-font-small-regular);
+    word-break: break-all;
+  }
+
+  .spacer {
+    flex: 1;
+  }
+
+  .terminal-container {
+    padding: 0 var(--leo-spacing-2xl) var(--leo-spacing-xl) var(--leo-spacing-2xl);
+  }
+
+  .terminal-output {
+    margin: 0;
+    background: #0b0f12;
+    color: #d8e2e2;
+    font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+    font-size: 12px;
+    line-height: 1.5;
+    padding: var(--leo-spacing-l);
+    border-radius: var(--leo-radius-m);
+    height: 320px;
+    overflow-y: auto;
+    white-space: pre-wrap;
+    word-break: break-all;
+  }
+
+  .terminal-empty {
+    color: #6b7a7a;
+    font-style: italic;
+  }
+</style>
+
+<div class="settings-box header">
+  <div class="flex">
+    <div class="main-header">$i18n{delegationTerminalSectionTitle}</div>
+    <div class="label secondary">$i18n{delegationTerminalSectionDesc}</div>
+  </div>
+</div>
+
+<div class="status-row">
+  <div class$="status-dot [[getStatusDotClass_(running_)]]"></div>
+  <div class="status-label">[[getStatusLabel_(running_)]]</div>
+  <template is="dom-if" if="[[running_]]">
+    <a class="base-url" href="[[baseUrl_]]" target="_blank">[[baseUrl_]]</a>
+  </template>
+  <div class="spacer"></div>
+  <cr-button on-click="handleClearViewClick_">
+    $i18n{delegationTerminalClearViewLabel}
+  </cr-button>
+  <cr-button
+      class="action-button"
+      on-click="handleStartClick_"
+      disabled="[[computeStartDisabled_(running_, starting_)]]">
+    [[getStartLabel_(starting_)]]
+  </cr-button>
+</div>
+
+<div class="terminal-container">
+  <pre class="terminal-output">[[outputText_]]<template is="dom-if" if="[[!hasOutput_(outputText_)]]"><span class="terminal-empty">$i18n{delegationTerminalEmptyLabel}</span></template></pre>
+</div>

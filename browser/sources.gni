@@ -475,6 +475,7 @@ if (enable_ai_chat) {
   brave_chrome_browser_deps += [
     "//brave/browser/ai_chat",
     "//brave/browser/ai_chat/ollama",
+    "//brave/browser/delegation",
     "//brave/browser/n8n",
     "//brave/browser/ui/webui/ai_chat",
     "//brave/components/ai_chat/content/browser",
