@@ -39,4 +39,8 @@ N8nProcessManagerFactory::BuildServiceInstanceForBrowserContext(
   return std::make_unique<N8nProcessManager>(context);
 }
 
+bool N8nProcessManagerFactory::ServiceIsCreatedWithBrowserContext() const {
+  return true;
+}
+
 }  // namespace ai_chat

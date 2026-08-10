@@ -43,6 +43,13 @@ class N8nProcessManagerFactory : public BrowserContextKeyedServiceFactory {
   // BrowserContextKeyedServiceFactory overrides:
   std::unique_ptr<KeyedService> BuildServiceInstanceForBrowserContext(
       content::BrowserContext* context) const override;
+  // Creates the (lightweight) manager object eagerly on profile startup,
+  // not just on first n8n use - its constructor registers the "n8n"
+  // sidebar entry (EnsureSidebarItemRegistered), which should be
+  // discoverable even before the user has ever started n8n. This does
+  // NOT start the n8n process itself - that stays lazy, gated behind
+  // EnsureStarted().
+  bool ServiceIsCreatedWithBrowserContext() const override;
 };
 
 }  // namespace ai_chat

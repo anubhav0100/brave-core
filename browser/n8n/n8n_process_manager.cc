@@ -31,6 +31,10 @@
 #include "components/prefs/pref_registry_simple.h"
 #include "components/prefs/pref_service.h"
 #include "components/prefs/scoped_user_pref_update.h"
+#include "brave/browser/ui/sidebar/sidebar_service_factory.h"
+#include "brave/components/sidebar/browser/sidebar_item.h"
+#include "brave/components/sidebar/browser/sidebar_service.h"
+#include "chrome/browser/profiles/profile.h"
 #include "components/user_prefs/user_prefs.h"
 #include "content/public/browser/browser_context.h"
 #include "content/public/browser/storage_partition.h"
@@ -681,6 +685,7 @@ N8nProcessManager::N8nProcessManager(content::BrowserContext* browser_context)
   backup_timer_.Start(FROM_HERE, base::Days(1),
                       base::BindRepeating(&N8nProcessManager::PerformBackup,
                                           weak_ptr_factory_.GetWeakPtr()));
+  EnsureSidebarItemRegistered();
 }
 
 N8nProcessManager::~N8nProcessManager() {
@@ -698,6 +703,29 @@ void N8nProcessManager::PerformBackup() {
       FROM_HERE, {base::MayBlock(), base::TaskPriority::BEST_EFFORT},
       base::BindOnce(&PerformBackupOnBackgroundSequence, GetDataDir(),
                      GetBackupDir()));
+}
+
+void N8nProcessManager::EnsureSidebarItemRegistered() {
+  Profile* profile = Profile::FromBrowserContext(browser_context_);
+  if (!profile) {
+    return;
+  }
+  auto* sidebar_service =
+      sidebar::SidebarServiceFactory::GetForProfile(profile);
+  if (!sidebar_service) {
+    return;
+  }
+  GURL n8n_url(
+      base::StrCat({"http://localhost:", base::NumberToString(kN8nPort)}));
+  for (const auto& item : sidebar_service->items()) {
+    if (item.url == n8n_url) {
+      return;  // Already registered - a web item's URL is its id.
+    }
+  }
+  sidebar_service->AddItem(sidebar::SidebarItem::Create(
+      n8n_url, u"n8n", sidebar::SidebarItem::Type::kTypeWeb,
+      sidebar::SidebarItem::BuiltInItemType::kNone,
+      /*open_in_panel=*/true));
 }
 
 void N8nProcessManager::EnsureBackupScheduledTaskRegistered() {

@@ -192,6 +192,19 @@ class N8nProcessManager : public KeyedService {
   // (`schtasks /Delete /TN BraveN8nDailyBackup`) if that's undesired.
   void EnsureBackupScheduledTaskRegistered();
 
+  // Adds a "n8n" entry to the profile's sidebar (name + n8n's own favicon
+  // as the icon, once it loads), pointing at n8n's fixed local URL and
+  // opening in a side panel - Brave's existing generic web-panel
+  // mechanism (kSidebarWebPanel, enabled by default in this fork), not a
+  // dedicated Chromium-patched side panel. Idempotent - checks for an
+  // existing item with the same URL first, since a URL is a web item's
+  // id. Called once from the constructor, so the entry point into n8n is
+  // discoverable even before it's ever been started; if n8n isn't
+  // running yet when the user opens the panel, it'll just show a
+  // connection error until they start it from the "n8n" Settings page or
+  // ask the AI Assistant - this doesn't auto-start n8n on its own.
+  void EnsureSidebarItemRegistered();
+
   // Where per-workflow version snapshots are stored (one JSON file per
   // snapshot, filenamed by timestamp) - outside both the browser profile
   // and n8n's own data dir, alongside GetBackupDir(). n8n's own workflow

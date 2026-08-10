@@ -10,8 +10,11 @@ namespace sidebar::features {
 BASE_FEATURE(kSidebarShowAlwaysOnStable,
              base::FEATURE_DISABLED_BY_DEFAULT);
 
+// Enabled by default in this fork - the n8n sidebar item
+// (N8nProcessManager::EnsureSidebarItemRegistered) relies on arbitrary web
+// URLs being able to open in a side panel rather than only a new tab.
 BASE_FEATURE(kSidebarWebPanel,
-             base::FEATURE_DISABLED_BY_DEFAULT);
+             base::FEATURE_ENABLED_BY_DEFAULT);
 
 const base::FeatureParam<bool> kOpenOneShotLeoPanel{
     &kSidebarShowAlwaysOnStable,

@@ -15,7 +15,10 @@ source_set("n8n") {
 
   deps = [
     "//base",
+    "//brave/browser/ui/sidebar:sidebar_impl",
     "//brave/components/api_request_helper",
+    "//brave/components/sidebar/browser",
+    "//chrome/browser/profiles:profile",
     "//components/keyed_service/content",
     "//components/keyed_service/core",
     "//components/prefs",
