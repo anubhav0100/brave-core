@@ -8,9 +8,15 @@ module computer_use.mojom;
 // Browser-side handler for the computer-use WebUI page (chrome://computer-use).
 interface PageHandler {
   // Whether an AI computer-use session is active, whether the emergency
-  // stop has been triggered (and not yet resumed), and the most recently
-  // captured desktop frame (as a data: URL), if any.
-  GetState() => (bool active, bool emergency_stopped, string frame_data_url);
+  // stop has been triggered (and not yet resumed), the most recently
+  // captured desktop frame (as a data: URL) if any, and whether an RDP
+  // session is active plus which host it's connected to (empty if none).
+  GetState() => (
+      bool active,
+      bool emergency_stopped,
+      string frame_data_url,
+      bool rdp_active,
+      string rdp_target_host);
 
   // Triggers the emergency stop - same effect as the global hotkey
   // (Ctrl+Alt+Shift+Esc): immediately blocks all further desktop_* input

@@ -30,6 +30,8 @@ export function getToolPermissionImplications(toolName: string) {
     case Mojom.DESKTOP_TYPE_TEXT_TOOL_NAME:
     case Mojom.DESKTOP_PRESS_KEY_TOOL_NAME:
       return getLocale(S.CHAT_UI_TOOL_DESKTOP_INPUT_PERMISSION_IMPLICATIONS)
+    case Mojom.OPEN_RDP_SESSION_TOOL_NAME:
+      return getLocale(S.CHAT_UI_TOOL_OPEN_RDP_SESSION_PERMISSION_IMPLICATIONS)
     // <if expr="enable_ai_chat_tab_management_tool">
     case Mojom.TAB_MANAGEMENT_TOOL_NAME:
       return formatLocale(

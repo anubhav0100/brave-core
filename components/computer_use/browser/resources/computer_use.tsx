@@ -115,6 +115,19 @@ const ResumeButton = styled.button`
   background: linear-gradient(120deg, #38b000, #007f5f);
 `
 
+const RdpBadge = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  border-radius: 12px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #e6e0ff;
+  background: linear-gradient(120deg, #4834d4, #2d1b69);
+  border: 1px solid #7b5bff55;
+`
+
 const FrameContainer = styled.div<{ $status: Status }>`
   border: 2px solid ${p => statusColors[p.$status].glow}55;
   border-radius: 16px;
@@ -168,13 +181,23 @@ function App() {
   const [active, setActive] = React.useState(false)
   const [emergencyStopped, setEmergencyStopped] = React.useState(false)
   const [frameDataUrl, setFrameDataUrl] = React.useState('')
+  const [rdpActive, setRdpActive] = React.useState(false)
+  const [rdpTargetHost, setRdpTargetHost] = React.useState('')
 
   const refresh = React.useCallback(() => {
     API.getState().then(
-      (r: { active: boolean, emergencyStopped: boolean, frameDataUrl: string }) => {
+      (r: {
+        active: boolean
+        emergencyStopped: boolean
+        frameDataUrl: string
+        rdpActive: boolean
+        rdpTargetHost: string
+      }) => {
         setActive(r.active)
         setEmergencyStopped(r.emergencyStopped)
         setFrameDataUrl(r.frameDataUrl)
+        setRdpActive(r.rdpActive)
+        setRdpTargetHost(r.rdpTargetHost)
       }
     )
   }, [])
@@ -203,6 +226,12 @@ function App() {
         <Dot $status={status} />
         {bannerText(status)}
       </Banner>
+      {rdpActive && (
+        <RdpBadge>
+          Connected via RDP to <strong>{rdpTargetHost}</strong> - a separate
+          window shows the remote desktop.
+        </RdpBadge>
+      )}
       <ButtonRow>
         <RefreshButton onClick={refresh}>Refresh</RefreshButton>
         <StopButton onClick={stop} disabled={emergencyStopped}>

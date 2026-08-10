@@ -25,10 +25,11 @@ source_set("computer_use") {
     "//ui/gfx/codec",
   ]
 
-  # Phase 2 (local input injection) - OS-level SendInput()/RegisterHotKey()
-  # APIs are Windows-only for now, matching this feature's grounding
-  # research (see brave-ai-computer-use.md): no equivalent precedent was
-  # found for other platforms yet.
+  # Phase 2 (local input injection) and Phase 3 (RDP) - OS-level
+  # SendInput()/RegisterHotKey()/ActiveX-hosting APIs are Windows-only for
+  # now, matching this feature's grounding research (see
+  # brave-ai-computer-use.md): no equivalent precedent was found for other
+  # platforms yet.
   if (is_win) {
     sources += [
       "action_risk_classifier.cc",
@@ -37,7 +38,20 @@ source_set("computer_use") {
       "global_stop_hotkey.h",
       "input_injector.cc",
       "input_injector.h",
+      "rdp_session.cc",
+      "rdp_session.h",
+      "win/com_imported_mstscax.h",
     ]
+    deps += [
+      "//third_party/wtl",
+      "//ui/base",
+    ]
+    if (is_clang) {
+      # The MIDL-generated COM interface header (win/com_imported_mstscax.h)
+      # produces nonstandard C++ enums - same flag
+      # //remoting/host/win:rdp_window uses for the identical file.
+      cflags = [ "-Wno-microsoft-enum-forward-reference" ]
+    }
   }
 }
 

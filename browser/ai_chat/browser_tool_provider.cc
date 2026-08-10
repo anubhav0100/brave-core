@@ -21,11 +21,13 @@
 #include "brave/browser/ai_chat/tools/create_word_document_tool.h"
 #include "brave/browser/ai_chat/tools/computer_use/get_desktop_screenshot_tool.h"
 #if BUILDFLAG(IS_WIN)
+#include "brave/browser/ai_chat/tools/computer_use/close_rdp_session_tool.h"
 #include "brave/browser/ai_chat/tools/computer_use/desktop_click_tool.h"
 #include "brave/browser/ai_chat/tools/computer_use/desktop_move_mouse_tool.h"
 #include "brave/browser/ai_chat/tools/computer_use/desktop_press_key_tool.h"
 #include "brave/browser/ai_chat/tools/computer_use/desktop_scroll_tool.h"
 #include "brave/browser/ai_chat/tools/computer_use/desktop_type_text_tool.h"
+#include "brave/browser/ai_chat/tools/computer_use/open_rdp_session_tool.h"
 #endif
 #include "brave/browser/ai_chat/tools/delegation_tools.h"
 #include "brave/browser/delegation/delegation_process_manager_factory.h"
@@ -115,6 +117,12 @@ std::vector<base::WeakPtr<Tool>> BrowserToolProvider::GetTools() {
   }
   if (desktop_press_key_tool_) {
     tool_ptrs.push_back(desktop_press_key_tool_->GetWeakPtr());
+  }
+  if (open_rdp_session_tool_) {
+    tool_ptrs.push_back(open_rdp_session_tool_->GetWeakPtr());
+  }
+  if (close_rdp_session_tool_) {
+    tool_ptrs.push_back(close_rdp_session_tool_->GetWeakPtr());
   }
 #endif
   if (create_word_document_tool_) {
@@ -252,6 +260,10 @@ void BrowserToolProvider::CreateTools(
       std::make_unique<DesktopTypeTextTool>(browser_context);
   desktop_press_key_tool_ =
       std::make_unique<DesktopPressKeyTool>(browser_context);
+  open_rdp_session_tool_ =
+      std::make_unique<OpenRdpSessionTool>(browser_context);
+  close_rdp_session_tool_ =
+      std::make_unique<CloseRdpSessionTool>(browser_context);
 #endif
   create_word_document_tool_ =
       std::make_unique<CreateWordDocumentTool>(browser_context);

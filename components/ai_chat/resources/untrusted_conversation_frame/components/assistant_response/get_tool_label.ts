@@ -105,6 +105,10 @@ export function getToolLabel(toolName: string, toolInput: any) {
       return getLocale(S.CHAT_UI_TOOL_LABEL_DESKTOP_TYPE_TEXT)
     case Mojom.DESKTOP_PRESS_KEY_TOOL_NAME:
       return getLocale(S.CHAT_UI_TOOL_LABEL_DESKTOP_PRESS_KEY)
+    case Mojom.OPEN_RDP_SESSION_TOOL_NAME:
+      return getLocale(S.CHAT_UI_TOOL_LABEL_OPEN_RDP_SESSION)
+    case Mojom.CLOSE_RDP_SESSION_TOOL_NAME:
+      return getLocale(S.CHAT_UI_TOOL_LABEL_CLOSE_RDP_SESSION)
     // <if expr="enable_ai_chat_tab_management_tool">
     case Mojom.TAB_MANAGEMENT_TOOL_NAME:
       return getLocale(S.CHAT_UI_TOOL_LABEL_TAB_MANAGEMENT)

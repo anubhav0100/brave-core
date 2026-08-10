@@ -975,6 +975,15 @@
   <message name="IDS_CHAT_UI_TOOL_DESKTOP_INPUT_PERMISSION_IMPLICATIONS" desc="Explanation shown in the permission prompt the first time the assistant wants to control the mouse/keyboard at the OS level, not just inside this browser tab. Calls out that this is full desktop control, that a visible banner and a global stop hotkey exist, and that some actions will still ask again even after this is granted." formatter_data="webui=AiChat">
     AI Automation Browser AI wants to control your mouse and keyboard - anywhere on your desktop, not just this browser tab. While active, a banner on chrome://computer-use shows what's happening, and pressing Ctrl+Alt+Shift+Esc at any time immediately stops it. You'll still be asked to confirm individual risky actions (like the first action against an app it hasn't used yet, or anything touching sensitive system tools) even after granting this.
   </message>
+  <message name="IDS_CHAT_UI_TOOL_LABEL_OPEN_RDP_SESSION" desc="Label shown while the assistant is opening a Remote Desktop (RDP) connection." formatter_data="webui=AiChat">
+    Opening a Remote Desktop connection
+  </message>
+  <message name="IDS_CHAT_UI_TOOL_LABEL_CLOSE_RDP_SESSION" desc="Label shown while the assistant is closing a Remote Desktop (RDP) connection." formatter_data="webui=AiChat">
+    Closing the Remote Desktop connection
+  </message>
+  <message name="IDS_CHAT_UI_TOOL_OPEN_RDP_SESSION_PERMISSION_IMPLICATIONS" desc="Explanation shown in the permission prompt every time the assistant wants to open a Remote Desktop (RDP) connection to a host. Calls out that this is asked every single time (unlike other permissions that are remembered), that the session is visible in its own window, and that the assistant never handles the password." formatter_data="webui=AiChat">
+    AI Automation Browser AI wants to open a Remote Desktop (RDP) connection to the host named above. Unlike other permissions, you'll be asked this every single time - it's never remembered. The session opens in its own visible window using your own saved Windows credentials or its native login prompt; AI Automation Browser AI never sees or handles the password.
+  </message>
   <message name="IDS_CHAT_UI_CODE_EXECUTION_CODE_LABEL" desc="Label for code section in code execution tool" formatter_data="webui=AiChat">
     Code:
   </message>

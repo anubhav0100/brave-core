@@ -10,6 +10,7 @@
 #include <string>
 
 #include "base/containers/flat_set.h"
+#include "base/functional/callback.h"
 #include "build/build_config.h"
 #include "components/keyed_service/core/keyed_service.h"
 
@@ -17,6 +18,7 @@ namespace computer_use {
 
 #if BUILDFLAG(IS_WIN)
 class GlobalStopHotkey;
+class RdpSession;
 #endif
 
 // Shared, per-profile state for the AI computer-use feature - the most
@@ -61,7 +63,30 @@ class ComputerUseSessionState : public KeyedService {
   void ResumeAfterStop();
   bool IsEmergencyStopped() const;
 
+#if BUILDFLAG(IS_WIN)
+  // Opens (or replaces, if one's already active) the visible RDP session
+  // window and connects to `host`:`port`. `callback` fires once with the
+  // outcome of this connection attempt. See rdp_session.h and
+  // brave-ai-computer-use.md's Phase 3 notes - this always requires a
+  // fresh explicit permission challenge in the calling tool, never
+  // remembered, unlike the desktop_* tools' one-time consent.
+  void ConnectRdp(const std::string& host,
+                  int port,
+                  base::OnceCallback<void(bool, std::string)> callback);
+  void DisconnectRdp();
+  bool IsRdpActive() const;
+  const std::string& GetRdpTargetHost() const;
+#endif
+
  private:
+#if BUILDFLAG(IS_WIN)
+  void OnRdpConnectResult(
+      base::OnceCallback<void(bool, std::string)> callback,
+      bool success,
+      std::string error_message);
+  void OnRdpDisconnected(std::string reason);
+#endif
+
   bool active_ = false;
   std::string latest_frame_data_url_;
   bool input_consent_granted_ = false;
@@ -70,6 +95,9 @@ class ComputerUseSessionState : public KeyedService {
 
 #if BUILDFLAG(IS_WIN)
   std::unique_ptr<GlobalStopHotkey> global_stop_hotkey_;
+  std::unique_ptr<RdpSession> rdp_session_;
+  bool rdp_active_ = false;
+  std::string rdp_target_host_;
 #endif
 };
 

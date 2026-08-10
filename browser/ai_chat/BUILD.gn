@@ -112,11 +112,13 @@ static_library("ai_chat") {
     sources += [ "tools/tab_management_tool.h" ]
   }
 
-  # Phase 2 (local input injection) OS-level tools - Windows-only for now,
-  # matching //brave/browser/computer_use's InputInjector (see
-  # brave-ai-computer-use.md).
+  # Phase 2 (local input injection) and Phase 3 (RDP) OS-level tools -
+  # Windows-only for now, matching //brave/browser/computer_use's
+  # InputInjector/RdpSession (see brave-ai-computer-use.md).
   if (is_win) {
     sources += [
+      "tools/computer_use/close_rdp_session_tool.cc",
+      "tools/computer_use/close_rdp_session_tool.h",
       "tools/computer_use/desktop_click_tool.cc",
       "tools/computer_use/desktop_click_tool.h",
       "tools/computer_use/desktop_input_tool_base.cc",
@@ -129,6 +131,8 @@ static_library("ai_chat") {
       "tools/computer_use/desktop_scroll_tool.h",
       "tools/computer_use/desktop_type_text_tool.cc",
       "tools/computer_use/desktop_type_text_tool.h",
+      "tools/computer_use/open_rdp_session_tool.cc",
+      "tools/computer_use/open_rdp_session_tool.h",
     ]
   }
 

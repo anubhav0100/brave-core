@@ -11,6 +11,7 @@
 
 #if BUILDFLAG(IS_WIN)
 #include "brave/browser/computer_use/global_stop_hotkey.h"
+#include "brave/browser/computer_use/rdp_session.h"
 #endif
 
 namespace computer_use {
@@ -67,5 +68,51 @@ void ComputerUseSessionState::ResumeAfterStop() {
 bool ComputerUseSessionState::IsEmergencyStopped() const {
   return emergency_stopped_;
 }
+
+#if BUILDFLAG(IS_WIN)
+void ComputerUseSessionState::ConnectRdp(
+    const std::string& host,
+    int port,
+    base::OnceCallback<void(bool, std::string)> callback) {
+  rdp_session_ = std::make_unique<RdpSession>();
+  rdp_session_->SetDisconnectedCallback(base::BindRepeating(
+      &ComputerUseSessionState::OnRdpDisconnected, base::Unretained(this)));
+  rdp_target_host_ = host;
+  rdp_session_->Connect(
+      host, port,
+      base::BindOnce(&ComputerUseSessionState::OnRdpConnectResult,
+                     base::Unretained(this), std::move(callback)));
+}
+
+void ComputerUseSessionState::DisconnectRdp() {
+  if (rdp_session_) {
+    rdp_session_->Disconnect();
+  }
+}
+
+bool ComputerUseSessionState::IsRdpActive() const {
+  return rdp_active_;
+}
+
+const std::string& ComputerUseSessionState::GetRdpTargetHost() const {
+  return rdp_target_host_;
+}
+
+void ComputerUseSessionState::OnRdpConnectResult(
+    base::OnceCallback<void(bool, std::string)> callback,
+    bool success,
+    std::string error_message) {
+  rdp_active_ = success;
+  if (!success) {
+    rdp_target_host_.clear();
+  }
+  std::move(callback).Run(success, std::move(error_message));
+}
+
+void ComputerUseSessionState::OnRdpDisconnected(std::string reason) {
+  rdp_active_ = false;
+  rdp_target_host_.clear();
+}
+#endif
 
 }  // namespace computer_use

@@ -11,6 +11,7 @@
 #include "brave/browser/computer_use/computer_use_session_state_factory.h"
 #include "brave/browser/ui/webui/brave_webui_source.h"
 #include "brave/components/computer_use/browser/resources/grit/computer_use_generated_map.h"
+#include "build/build_config.h"
 #include "components/grit/brave_components_resources.h"
 #include "content/public/browser/web_contents.h"
 #include "content/public/browser/web_ui.h"
@@ -35,8 +36,15 @@ void ComputerUseUI::GetState(GetStateCallback callback) {
   auto* state =
       computer_use::ComputerUseSessionStateFactory::GetForBrowserContext(
           web_ui()->GetWebContents()->GetBrowserContext());
+  bool rdp_active = false;
+  std::string rdp_target_host;
+#if BUILDFLAG(IS_WIN)
+  rdp_active = state->IsRdpActive();
+  rdp_target_host = state->GetRdpTargetHost();
+#endif
   std::move(callback).Run(state->IsActive(), state->IsEmergencyStopped(),
-                          state->GetLatestFrameDataUrl());
+                          state->GetLatestFrameDataUrl(), rdp_active,
+                          rdp_target_host);
 }
 
 void ComputerUseUI::Stop() {

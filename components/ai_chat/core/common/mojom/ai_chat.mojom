@@ -58,6 +58,8 @@ const string kDesktopClickToolName = "desktop_click";
 const string kDesktopScrollToolName = "desktop_scroll";
 const string kDesktopTypeTextToolName = "desktop_type_text";
 const string kDesktopPressKeyToolName = "desktop_press_key";
+const string kOpenRdpSessionToolName = "open_rdp_session";
+const string kCloseRdpSessionToolName = "close_rdp_session";
 
 // Server side tools
 const string kBraveNewsSearchToolName = "brave_news_search";

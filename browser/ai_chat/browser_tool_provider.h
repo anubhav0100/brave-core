@@ -40,11 +40,13 @@ class DelegationProcessManager;
 class GetDelegationStatusTool;
 class GetDesktopScreenshotTool;
 #if BUILDFLAG(IS_WIN)
+class CloseRdpSessionTool;
 class DesktopClickTool;
 class DesktopMoveMouseTool;
 class DesktopPressKeyTool;
 class DesktopScrollTool;
 class DesktopTypeTextTool;
+class OpenRdpSessionTool;
 #endif
 class InjectDelegationBriefTool;
 class OpenDelegationTool;
@@ -150,6 +152,8 @@ class BrowserToolProvider : public ToolProvider {
   std::unique_ptr<DesktopScrollTool> desktop_scroll_tool_;
   std::unique_ptr<DesktopTypeTextTool> desktop_type_text_tool_;
   std::unique_ptr<DesktopPressKeyTool> desktop_press_key_tool_;
+  std::unique_ptr<OpenRdpSessionTool> open_rdp_session_tool_;
+  std::unique_ptr<CloseRdpSessionTool> close_rdp_session_tool_;
 #endif
 #if BUILDFLAG(ENABLE_AI_CHAT_TAB_MANAGEMENT_TOOL)
   std::unique_ptr<TabManagementTool> tab_management_tool_;
