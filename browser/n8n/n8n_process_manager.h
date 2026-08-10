@@ -170,6 +170,85 @@ class N8nProcessManager : public KeyedService {
   // they get restored automatically before n8n ever starts.
   void MaybeRestoreFromBackup(base::OnceClosure done);
 
+  // Registers (or re-registers, idempotently) a Windows Scheduled Task
+  // that backs up GetDataDir() once a day even if the browser itself is
+  // never open at that time - the daily base::RepeatingTimer above only
+  // fires while this process is alive, which doesn't help a user who
+  // rarely leaves the browser running. The task shells out to
+  // powershell.exe to zip the folder directly - it doesn't invoke
+  // brave.exe at all, so it works regardless of whether the browser (or
+  // this KeyedService) is running. Best-effort: failures (e.g.
+  // schtasks.exe missing, Task Scheduler service disabled by policy) are
+  // silently ignored, since the in-browser daily timer remains the
+  // primary backup mechanism. Called once per browser session, the first
+  // time n8n is actually started.
+  //
+  // Known limitation: nothing currently removes this task if the browser
+  // is uninstalled - doing that reliably needs an installer-level
+  // uninstall hook, a separately-scoped change. The task's own backup
+  // target (GetDataDir()) is deliberately left alone by the uninstaller
+  // already (see GetBackupDir()'s comment), so the task keeps backing up
+  // real data even post-uninstall; it just needs manual removal
+  // (`schtasks /Delete /TN BraveN8nDailyBackup`) if that's undesired.
+  void EnsureBackupScheduledTaskRegistered();
+
+  // Where per-workflow version snapshots are stored (one JSON file per
+  // snapshot, filenamed by timestamp) - outside both the browser profile
+  // and n8n's own data dir, alongside GetBackupDir(). n8n's own workflow
+  // versioning is an enterprise-only feature; this gives simple version
+  // history/rollback without it - see UpdateN8nWorkflowTool and
+  // RollbackN8nWorkflowTool (browser/ai_chat/tools/n8n_tools.h).
+  static base::FilePath GetWorkflowVersionsDir();
+
+  // Snapshots `workflow_json` for `workflow_id`, timestamped. `workflow_id`
+  // is sanitized to a safe filename component before touching disk.
+  using SaveWorkflowVersionCallback = base::OnceCallback<void(bool success)>;
+  void SaveWorkflowVersionSnapshot(const std::string& workflow_id,
+                                   const std::string& workflow_json,
+                                   SaveWorkflowVersionCallback callback);
+
+  // Every snapshot saved for `workflow_id`, oldest first. The timestamp
+  // string doubles as the version's id for ReadWorkflowVersionSnapshot.
+  using ListWorkflowVersionsCallback =
+      base::OnceCallback<void(std::vector<std::string> timestamps)>;
+  void ListWorkflowVersions(const std::string& workflow_id,
+                            ListWorkflowVersionsCallback callback);
+
+  // Reads back one snapshot's JSON, or nullopt if it doesn't exist.
+  using ReadWorkflowVersionCallback =
+      base::OnceCallback<void(std::optional<std::string> workflow_json)>;
+  void ReadWorkflowVersionSnapshot(const std::string& workflow_id,
+                                   const std::string& timestamp,
+                                   ReadWorkflowVersionCallback callback);
+
+  // "Multi-machine sync" without any dedicated sync backend: this browser
+  // has no infrastructure for syncing arbitrary files between machines
+  // (Brave Sync only syncs specific typed data it already knows about),
+  // so the practical mechanism is exporting a backup zip to a folder the
+  // user already syncs some other way (a cloud-synced folder, a USB
+  // drive), then importing it on the other machine. GetBackupDir() itself
+  // can also just be pointed at directly by the user's own sync client -
+  // these two methods are for the common case of wanting one explicit
+  // file to move around instead.
+  //
+  // Copies the most recent backup under GetBackupDir() to
+  // `destination_zip_path` (running a fresh PerformBackup() first if none
+  // exists yet).
+  using ExportBackupCallback =
+      base::OnceCallback<void(bool success, std::string message)>;
+  void ExportLatestBackupToFile(const base::FilePath& destination_zip_path,
+                                ExportBackupCallback callback);
+
+  // Restores GetDataDir() from an arbitrary backup zip file - not
+  // necessarily one this machine created, e.g. one imported from another
+  // machine via ExportLatestBackupToFile there. Refuses while n8n is
+  // running (IsRunning()) - the data dir must be quiescent to safely
+  // overwrite.
+  using ImportBackupCallback =
+      base::OnceCallback<void(bool success, std::string message)>;
+  void ImportBackupFromFile(const base::FilePath& backup_zip_path,
+                            ImportBackupCallback callback);
+
   void AddObserver(Observer* observer);
   void RemoveObserver(Observer* observer);
 
@@ -200,6 +279,7 @@ class N8nProcessManager : public KeyedService {
   int port_ = 0;
   bool restore_checked_ = false;
   bool is_ready_ = false;
+  bool backup_task_registration_attempted_ = false;
   std::vector<StartedCallback> pending_started_callbacks_;
   std::unique_ptr<api_request_helper::APIRequestHelper> health_check_helper_;
   std::unique_ptr<api_request_helper::APIRequestHelper> mcp_discovery_helper_;

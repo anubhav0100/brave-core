@@ -36,6 +36,8 @@ class CreateWordDocumentTool;
 class ReadWordDocumentTool;
 class CallN8nMcpToolTool;
 class CreateN8nWorkflowTool;
+class ExportN8nBackupTool;
+class ImportN8nBackupTool;
 class HistorySearchTool;
 class IndexBookmarksTool;
 #if !BUILDFLAG(IS_ANDROID)
@@ -43,12 +45,15 @@ class IndexLocalFileTool;
 #endif
 class ClearResponseMemoryTool;
 class ListN8nMcpToolsTool;
+class ListN8nWorkflowVersionsTool;
 class N8nProcessManager;
 class OpenN8nTool;
 class PageCaptureSession;
 class ResponseMemorySession;
+class RollbackN8nWorkflowTool;
 class RunN8nWorkflowTool;
 class SetN8nApiKeyTool;
+class UpdateN8nWorkflowTool;
 class RunWorkflowTool;
 class SaveCapturedSessionAsWordDocumentTool;
 class SaveResponseMemoryAsWordDocumentTool;
@@ -100,8 +105,14 @@ class BrowserToolProvider : public ToolProvider {
   std::unique_ptr<SetN8nApiKeyTool> set_n8n_api_key_tool_;
   std::unique_ptr<CreateN8nWorkflowTool> create_n8n_workflow_tool_;
   std::unique_ptr<RunN8nWorkflowTool> run_n8n_workflow_tool_;
+  std::unique_ptr<UpdateN8nWorkflowTool> update_n8n_workflow_tool_;
+  std::unique_ptr<ListN8nWorkflowVersionsTool>
+      list_n8n_workflow_versions_tool_;
+  std::unique_ptr<RollbackN8nWorkflowTool> rollback_n8n_workflow_tool_;
   std::unique_ptr<ListN8nMcpToolsTool> list_n8n_mcp_tools_tool_;
   std::unique_ptr<CallN8nMcpToolTool> call_n8n_mcp_tool_tool_;
+  std::unique_ptr<ExportN8nBackupTool> export_n8n_backup_tool_;
+  std::unique_ptr<ImportN8nBackupTool> import_n8n_backup_tool_;
   std::unique_ptr<RunWorkflowTool> run_workflow_tool_;
   std::unique_ptr<CreateSpreadsheetTool> create_spreadsheet_tool_;
   std::unique_ptr<CreatePresentationTool> create_presentation_tool_;

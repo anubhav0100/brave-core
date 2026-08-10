@@ -21,6 +21,7 @@
 #include "brave/browser/ai_chat/tools/create_word_document_tool.h"
 #include "brave/browser/ai_chat/tools/history_search_tool.h"
 #include "brave/browser/ai_chat/tools/n8n_mcp_tools.h"
+#include "brave/browser/ai_chat/tools/n8n_sync_tools.h"
 #include "brave/browser/ai_chat/tools/n8n_tools.h"
 #include "brave/browser/n8n/n8n_process_manager_factory.h"
 #include "brave/browser/ai_chat/tools/page_capture_tools.h"
@@ -113,11 +114,26 @@ std::vector<base::WeakPtr<Tool>> BrowserToolProvider::GetTools() {
   if (run_n8n_workflow_tool_) {
     tool_ptrs.push_back(run_n8n_workflow_tool_->GetWeakPtr());
   }
+  if (update_n8n_workflow_tool_) {
+    tool_ptrs.push_back(update_n8n_workflow_tool_->GetWeakPtr());
+  }
+  if (list_n8n_workflow_versions_tool_) {
+    tool_ptrs.push_back(list_n8n_workflow_versions_tool_->GetWeakPtr());
+  }
+  if (rollback_n8n_workflow_tool_) {
+    tool_ptrs.push_back(rollback_n8n_workflow_tool_->GetWeakPtr());
+  }
   if (list_n8n_mcp_tools_tool_) {
     tool_ptrs.push_back(list_n8n_mcp_tools_tool_->GetWeakPtr());
   }
   if (call_n8n_mcp_tool_tool_) {
     tool_ptrs.push_back(call_n8n_mcp_tool_tool_->GetWeakPtr());
+  }
+  if (export_n8n_backup_tool_) {
+    tool_ptrs.push_back(export_n8n_backup_tool_->GetWeakPtr());
+  }
+  if (import_n8n_backup_tool_) {
+    tool_ptrs.push_back(import_n8n_backup_tool_->GetWeakPtr());
   }
   if (run_workflow_tool_) {
     tool_ptrs.push_back(run_workflow_tool_->GetWeakPtr());
@@ -199,10 +215,21 @@ void BrowserToolProvider::CreateTools(
       n8n_manager, browser_context);
   run_n8n_workflow_tool_ =
       std::make_unique<RunN8nWorkflowTool>(n8n_manager, browser_context);
+  update_n8n_workflow_tool_ = std::make_unique<UpdateN8nWorkflowTool>(
+      n8n_manager, browser_context);
+  list_n8n_workflow_versions_tool_ =
+      std::make_unique<ListN8nWorkflowVersionsTool>(n8n_manager,
+                                                     browser_context);
+  rollback_n8n_workflow_tool_ = std::make_unique<RollbackN8nWorkflowTool>(
+      n8n_manager, browser_context);
   list_n8n_mcp_tools_tool_ = std::make_unique<ListN8nMcpToolsTool>(
       n8n_manager, browser_context);
   call_n8n_mcp_tool_tool_ = std::make_unique<CallN8nMcpToolTool>(
       n8n_manager, browser_context);
+  export_n8n_backup_tool_ =
+      std::make_unique<ExportN8nBackupTool>(n8n_manager, browser_context);
+  import_n8n_backup_tool_ =
+      std::make_unique<ImportN8nBackupTool>(n8n_manager, browser_context);
   run_workflow_tool_ = std::make_unique<RunWorkflowTool>(browser_context);
   create_spreadsheet_tool_ =
       std::make_unique<CreateSpreadsheetTool>(browser_context);

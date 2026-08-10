@@ -62,6 +62,8 @@ static_library("ai_chat") {
     "tools/history_search_tool.h",
     "tools/n8n_mcp_tools.cc",
     "tools/n8n_mcp_tools.h",
+    "tools/n8n_sync_tools.cc",
+    "tools/n8n_sync_tools.h",
     "tools/n8n_tools.cc",
     "tools/n8n_tools.h",
     "tools/image_embed_util.cc",

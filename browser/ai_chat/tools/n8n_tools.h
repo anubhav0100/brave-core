@@ -162,6 +162,134 @@ class RunN8nWorkflowTool : public Tool {
   base::WeakPtrFactory<RunN8nWorkflowTool> weak_ptr_factory_{this};
 };
 
+// Updates an existing n8n workflow's node/connection graph by id, via its
+// versioned Public REST API. Before overwriting, automatically snapshots
+// the workflow's *current* definition (fetched fresh from n8n) to local
+// version history - see RollbackN8nWorkflowTool and
+// N8nProcessManager::SaveWorkflowVersionSnapshot. Starts n8n first if it
+// isn't already running.
+class UpdateN8nWorkflowTool : public Tool {
+ public:
+  UpdateN8nWorkflowTool(N8nProcessManager* manager,
+                        content::BrowserContext* browser_context);
+  ~UpdateN8nWorkflowTool() override;
+
+  UpdateN8nWorkflowTool(const UpdateN8nWorkflowTool&) = delete;
+  UpdateN8nWorkflowTool& operator=(const UpdateN8nWorkflowTool&) = delete;
+
+  std::string_view Name() const override;
+  std::string_view Description() const override;
+  std::optional<base::DictValue> InputProperties() const override;
+  std::optional<std::vector<std::string>> RequiredProperties() const override;
+  void UseTool(const std::string& input_json,
+               UseToolCallback callback) override;
+
+ private:
+  void OnStarted(std::string workflow_id,
+                std::string name,
+                std::string nodes_json,
+                std::string connections_json,
+                UseToolCallback callback,
+                bool success);
+  void OnCurrentWorkflowFetched(std::string workflow_id,
+                                std::string name,
+                                std::string nodes_json,
+                                std::string connections_json,
+                                UseToolCallback callback,
+                                api_request_helper::APIRequestResult result);
+  void OnSnapshotSaved(std::string workflow_id,
+                       std::string name,
+                       std::string nodes_json,
+                       std::string connections_json,
+                       UseToolCallback callback,
+                       bool snapshot_success);
+  void OnUpdateResponse(UseToolCallback callback,
+                        api_request_helper::APIRequestResult result);
+
+  raw_ptr<N8nProcessManager> manager_ = nullptr;
+  raw_ptr<content::BrowserContext> browser_context_ = nullptr;
+  std::unique_ptr<api_request_helper::APIRequestHelper> api_request_helper_;
+
+  base::WeakPtrFactory<UpdateN8nWorkflowTool> weak_ptr_factory_{this};
+};
+
+// Lists the locally-saved version snapshots for one workflow (see
+// UpdateN8nWorkflowTool), most recent last. Use the returned timestamps
+// with RollbackN8nWorkflowTool.
+class ListN8nWorkflowVersionsTool : public Tool {
+ public:
+  ListN8nWorkflowVersionsTool(N8nProcessManager* manager,
+                              content::BrowserContext* browser_context);
+  ~ListN8nWorkflowVersionsTool() override;
+
+  ListN8nWorkflowVersionsTool(const ListN8nWorkflowVersionsTool&) = delete;
+  ListN8nWorkflowVersionsTool& operator=(const ListN8nWorkflowVersionsTool&) =
+      delete;
+
+  std::string_view Name() const override;
+  std::string_view Description() const override;
+  std::optional<base::DictValue> InputProperties() const override;
+  std::optional<std::vector<std::string>> RequiredProperties() const override;
+  void UseTool(const std::string& input_json,
+               UseToolCallback callback) override;
+
+ private:
+  void OnVersionsListed(UseToolCallback callback,
+                        std::vector<std::string> timestamps);
+
+  raw_ptr<N8nProcessManager> manager_ = nullptr;
+
+  base::WeakPtrFactory<ListN8nWorkflowVersionsTool> weak_ptr_factory_{this};
+};
+
+// Rolls a workflow back to a previously-saved local version snapshot (see
+// ListN8nWorkflowVersionsTool for available timestamps), by PUTting that
+// snapshot's JSON back to n8n. Snapshots the workflow's state immediately
+// before the rollback too, so rolling back is itself reversible. Starts
+// n8n first if it isn't already running.
+class RollbackN8nWorkflowTool : public Tool {
+ public:
+  RollbackN8nWorkflowTool(N8nProcessManager* manager,
+                          content::BrowserContext* browser_context);
+  ~RollbackN8nWorkflowTool() override;
+
+  RollbackN8nWorkflowTool(const RollbackN8nWorkflowTool&) = delete;
+  RollbackN8nWorkflowTool& operator=(const RollbackN8nWorkflowTool&) = delete;
+
+  std::string_view Name() const override;
+  std::string_view Description() const override;
+  std::optional<base::DictValue> InputProperties() const override;
+  std::optional<std::vector<std::string>> RequiredProperties() const override;
+  void UseTool(const std::string& input_json,
+               UseToolCallback callback) override;
+
+ private:
+  void OnStarted(std::string workflow_id,
+                std::string timestamp,
+                UseToolCallback callback,
+                bool success);
+  void OnCurrentWorkflowFetchedForRollback(
+      std::string workflow_id,
+      std::string timestamp,
+      UseToolCallback callback,
+      api_request_helper::APIRequestResult result);
+  void OnPreRollbackSnapshotSaved(std::string workflow_id,
+                                  std::string timestamp,
+                                  UseToolCallback callback,
+                                  bool snapshot_success);
+  void OnVersionRead(std::string workflow_id,
+                     UseToolCallback callback,
+                     std::optional<std::string> workflow_json);
+  void OnRollbackResponse(UseToolCallback callback,
+                          api_request_helper::APIRequestResult result);
+
+  raw_ptr<N8nProcessManager> manager_ = nullptr;
+  raw_ptr<content::BrowserContext> browser_context_ = nullptr;
+  std::unique_ptr<api_request_helper::APIRequestHelper> api_request_helper_;
+
+  base::WeakPtrFactory<RollbackN8nWorkflowTool> weak_ptr_factory_{this};
+};
+
 }  // namespace ai_chat
 
 #endif  // BRAVE_BROWSER_AI_CHAT_TOOLS_N8N_TOOLS_H_

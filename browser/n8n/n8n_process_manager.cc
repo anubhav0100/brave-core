@@ -21,6 +21,7 @@
 #include "base/process/launch.h"
 #include "base/strings/strcat.h"
 #include "base/strings/string_number_conversions.h"
+#include "base/strings/string_util.h"
 #include "base/task/bind_post_task.h"
 #include "base/task/sequenced_task_runner.h"
 #include "base/task/thread_pool.h"
@@ -70,6 +71,26 @@ constexpr int kMaxHealthCheckAttempts = 90;
 constexpr size_t kMaxBackupsToKeep = 7;
 constexpr char kBackupFilePrefix[] = "n8n_backup_";
 constexpr char kBackupFileExtension[] = ".zip";
+
+// Name of the Windows Scheduled Task that backs up GetDataDir() even when
+// the browser isn't running - see EnsureBackupScheduledTaskRegistered().
+constexpr char kBackupScheduledTaskName[] = "BraveN8nDailyBackup";
+
+// Workflow ids come from n8n's own API responses (normally short
+// alphanumeric ids), but are used directly as a filesystem directory
+// name for version snapshots - sanitize defensively so a surprising id
+// can't escape GetWorkflowVersionsDir() or contain path separators.
+std::string SanitizeForFileName(const std::string& value) {
+  std::string result;
+  result.reserve(value.size());
+  for (char c : value) {
+    result.push_back((base::IsAsciiAlpha(c) || base::IsAsciiDigit(c) ||
+                      c == '-' || c == '_')
+                          ? c
+                          : '_');
+  }
+  return result.empty() ? "unknown" : result;
+}
 
 // Captured n8n stdout/stderr is trimmed to roughly this many bytes (at a
 // newline boundary) so a long-running n8n instance can't grow the buffer
@@ -182,6 +203,196 @@ bool RestoreBackupOnBackgroundSequence(base::FilePath backup_file,
     return false;
   }
   return zip::Unzip(backup_file, data_dir);
+}
+
+// Runs on a background sequence. Returns the most recent backup file
+// under `backup_dir`, if any - unlike
+// FindBackupToRestoreOnBackgroundSequence, doesn't care about
+// GetDataDir()'s state, since this is for exporting rather than the
+// auto-restore-on-fresh-install path.
+std::optional<base::FilePath> FindMostRecentBackupOnBackgroundSequence(
+    base::FilePath backup_dir) {
+  if (!base::DirectoryExists(backup_dir)) {
+    return std::nullopt;
+  }
+  std::optional<base::FilePath> most_recent;
+  base::FileEnumerator enumerator(backup_dir, /*recursive=*/false,
+                                  base::FileEnumerator::FILES);
+  for (base::FilePath path = enumerator.Next(); !path.empty();
+       path = enumerator.Next()) {
+    if (path.BaseName().AsUTF8Unsafe().find(kBackupFilePrefix) != 0) {
+      continue;
+    }
+    if (!most_recent || path.BaseName().AsUTF8Unsafe() >
+                            most_recent->BaseName().AsUTF8Unsafe()) {
+      most_recent = path;
+    }
+  }
+  return most_recent;
+}
+
+// Runs on a background sequence. Ensures at least one backup exists
+// (backing up right now if not), then copies the most recent one to
+// `destination` - see ExportLatestBackupToFile().
+std::pair<bool, std::string> ExportLatestBackupOnBackgroundSequence(
+    base::FilePath data_dir,
+    base::FilePath backup_dir,
+    base::FilePath destination) {
+  std::optional<base::FilePath> latest =
+      FindMostRecentBackupOnBackgroundSequence(backup_dir);
+  if (!latest) {
+    PerformBackupOnBackgroundSequence(data_dir, backup_dir);
+    latest = FindMostRecentBackupOnBackgroundSequence(backup_dir);
+  }
+  if (!latest) {
+    return {false, "No n8n data to back up yet - open n8n and create a "
+                   "flow first."};
+  }
+  if (!base::CopyFile(*latest, destination)) {
+    return {false, "Failed to copy the backup file to the chosen "
+                   "location."};
+  }
+  return {true, base::StrCat({"Exported to ", destination.AsUTF8Unsafe(),
+                              " - copy this file to the other machine and "
+                              "import it there."})};
+}
+
+// Runs on a background sequence. See ImportBackupFromFile().
+std::pair<bool, std::string> ImportBackupOnBackgroundSequence(
+    base::FilePath backup_zip_path,
+    base::FilePath data_dir) {
+  if (!base::PathExists(backup_zip_path)) {
+    return {false, "That backup file doesn't exist."};
+  }
+  if (!base::CreateDirectory(data_dir)) {
+    return {false, "Couldn't create the n8n data directory."};
+  }
+  if (!zip::Unzip(backup_zip_path, data_dir)) {
+    return {false, "Failed to extract the backup - it may be corrupted "
+                   "or not a real n8n backup file."};
+  }
+  return {true, "Imported successfully - start n8n to use the imported "
+                "flows."};
+}
+
+// Builds the PowerShell command the scheduled task runs: zips `data_dir`
+// into a fresh timestamped file under `backup_dir` (computing the
+// timestamp itself, at run time - the whole point of a scheduled task is
+// that this runs long after registration) and prunes old backups beyond
+// kMaxBackupsToKeep, mirroring PerformBackupOnBackgroundSequence's
+// behavior without depending on any brave-core code at all - this needs
+// to work even if the browser was uninstalled. AppendArg() (used to send
+// this to schtasks.exe below) treats non-ASCII as UTF-8 and quotes it
+// correctly, so plain UTF-8 std::string is fine here despite paths being
+// native-encoding on Windows.
+std::string BuildBackupPowerShellCommand(const base::FilePath& data_dir,
+                                         const base::FilePath& backup_dir) {
+  std::string data_dir_utf8 = data_dir.AsUTF8Unsafe();
+  std::string backup_dir_utf8 = backup_dir.AsUTF8Unsafe();
+  return base::StrCat(
+      {"$ts=(Get-Date).ToString('yyyyMMddHHmmss'); ",
+       "New-Item -ItemType Directory -Force -Path '", backup_dir_utf8,
+       "' | Out-Null; ", "if (Test-Path '", data_dir_utf8, "') { ",
+       "Compress-Archive -Path '", data_dir_utf8,
+       "\\*' -DestinationPath (Join-Path '", backup_dir_utf8,
+       "' \"n8n_backup_$ts.zip\") -Force }; ", "Get-ChildItem '",
+       backup_dir_utf8,
+       "' -Filter 'n8n_backup_*.zip' -ErrorAction SilentlyContinue | ",
+       "Sort-Object Name -Descending | Select-Object -Skip ",
+       base::NumberToString(kMaxBackupsToKeep), " | Remove-Item -Force"});
+}
+
+// Runs on a background sequence. Registers (or overwrites, via /F) a
+// Windows Scheduled Task that runs BuildBackupPowerShellCommand() daily -
+// see EnsureBackupScheduledTaskRegistered(). Fire-and-forget: nothing
+// reads the result, this is best-effort on top of the in-browser daily
+// timer.
+void RegisterBackupScheduledTaskOnBackgroundSequence(
+    base::FilePath data_dir,
+    base::FilePath backup_dir) {
+  std::string inner_command =
+      BuildBackupPowerShellCommand(data_dir, backup_dir);
+  std::string task_run_command = base::StrCat(
+      {"powershell.exe -NoProfile -WindowStyle Hidden -Command \"",
+       inner_command, "\""});
+
+  base::CommandLine cmd(base::FilePath(FILE_PATH_LITERAL("schtasks.exe")));
+  cmd.AppendArg("/Create");
+  cmd.AppendArg("/TN");
+  cmd.AppendArg(kBackupScheduledTaskName);
+  cmd.AppendArg("/TR");
+  cmd.AppendArg(task_run_command);
+  cmd.AppendArg("/SC");
+  cmd.AppendArg("DAILY");
+  cmd.AppendArg("/ST");
+  cmd.AppendArg("03:30");
+  cmd.AppendArg("/F");
+
+  base::LaunchOptions options;
+  options.start_hidden = true;
+  options.wait = true;
+  base::LaunchProcess(cmd, options);
+}
+
+// Runs on a background sequence.
+base::FilePath WorkflowVersionsSubdirForOnBackgroundSequence(
+    const base::FilePath& versions_dir,
+    const std::string& workflow_id) {
+  return versions_dir.AppendASCII(SanitizeForFileName(workflow_id));
+}
+
+// Runs on a background sequence.
+bool SaveWorkflowVersionSnapshotOnBackgroundSequence(
+    base::FilePath versions_dir,
+    std::string workflow_id,
+    std::string workflow_json) {
+  base::FilePath dir =
+      WorkflowVersionsSubdirForOnBackgroundSequence(versions_dir, workflow_id);
+  if (!base::CreateDirectory(dir)) {
+    return false;
+  }
+  std::string timestamp =
+      base::NumberToString(base::Time::Now().InMillisecondsSinceUnixEpoch());
+  base::FilePath file = dir.AppendASCII(base::StrCat({timestamp, ".json"}));
+  return base::WriteFile(file, workflow_json);
+}
+
+// Runs on a background sequence.
+std::vector<std::string> ListWorkflowVersionsOnBackgroundSequence(
+    base::FilePath versions_dir,
+    std::string workflow_id) {
+  std::vector<std::string> timestamps;
+  base::FilePath dir =
+      WorkflowVersionsSubdirForOnBackgroundSequence(versions_dir, workflow_id);
+  if (!base::DirectoryExists(dir)) {
+    return timestamps;
+  }
+  base::FileEnumerator enumerator(dir, /*recursive=*/false,
+                                  base::FileEnumerator::FILES);
+  for (base::FilePath path = enumerator.Next(); !path.empty();
+       path = enumerator.Next()) {
+    if (path.Extension() == FILE_PATH_LITERAL(".json")) {
+      timestamps.push_back(path.BaseName().RemoveExtension().AsUTF8Unsafe());
+    }
+  }
+  std::ranges::sort(timestamps);
+  return timestamps;
+}
+
+// Runs on a background sequence.
+std::optional<std::string> ReadWorkflowVersionSnapshotOnBackgroundSequence(
+    base::FilePath versions_dir,
+    std::string workflow_id,
+    std::string timestamp) {
+  base::FilePath dir =
+      WorkflowVersionsSubdirForOnBackgroundSequence(versions_dir, workflow_id);
+  base::FilePath file = dir.AppendASCII(
+      base::StrCat({SanitizeForFileName(timestamp), ".json"}));
+  std::string contents;
+  if (!base::ReadFileToString(file, &contents)) {
+    return std::nullopt;
+  }
+  return contents;
 }
 
 net::NetworkTrafficAnnotationTag GetHealthCheckTrafficAnnotationTag() {
@@ -386,6 +597,81 @@ base::FilePath N8nProcessManager::GetBackupDir() {
   return user_data_dir.Append(FILE_PATH_LITERAL("BraveN8nBackups"));
 }
 
+// static
+base::FilePath N8nProcessManager::GetWorkflowVersionsDir() {
+  base::FilePath user_data_dir;
+  base::PathService::Get(base::DIR_LOCAL_APP_DATA, &user_data_dir);
+  return user_data_dir.Append(FILE_PATH_LITERAL("BraveN8nWorkflowVersions"));
+}
+
+void N8nProcessManager::SaveWorkflowVersionSnapshot(
+    const std::string& workflow_id,
+    const std::string& workflow_json,
+    SaveWorkflowVersionCallback callback) {
+  base::ThreadPool::PostTaskAndReplyWithResult(
+      FROM_HERE, {base::MayBlock()},
+      base::BindOnce(&SaveWorkflowVersionSnapshotOnBackgroundSequence,
+                     GetWorkflowVersionsDir(), workflow_id, workflow_json),
+      std::move(callback));
+}
+
+void N8nProcessManager::ListWorkflowVersions(
+    const std::string& workflow_id,
+    ListWorkflowVersionsCallback callback) {
+  base::ThreadPool::PostTaskAndReplyWithResult(
+      FROM_HERE, {base::MayBlock()},
+      base::BindOnce(&ListWorkflowVersionsOnBackgroundSequence,
+                     GetWorkflowVersionsDir(), workflow_id),
+      std::move(callback));
+}
+
+void N8nProcessManager::ReadWorkflowVersionSnapshot(
+    const std::string& workflow_id,
+    const std::string& timestamp,
+    ReadWorkflowVersionCallback callback) {
+  base::ThreadPool::PostTaskAndReplyWithResult(
+      FROM_HERE, {base::MayBlock()},
+      base::BindOnce(&ReadWorkflowVersionSnapshotOnBackgroundSequence,
+                     GetWorkflowVersionsDir(), workflow_id, timestamp),
+      std::move(callback));
+}
+
+void N8nProcessManager::ExportLatestBackupToFile(
+    const base::FilePath& destination_zip_path,
+    ExportBackupCallback callback) {
+  base::ThreadPool::PostTaskAndReplyWithResult(
+      FROM_HERE, {base::MayBlock()},
+      base::BindOnce(&ExportLatestBackupOnBackgroundSequence, GetDataDir(),
+                     GetBackupDir(), destination_zip_path),
+      base::BindOnce(
+          [](ExportBackupCallback callback,
+             std::pair<bool, std::string> result) {
+            std::move(callback).Run(result.first, std::move(result.second));
+          },
+          std::move(callback)));
+}
+
+void N8nProcessManager::ImportBackupFromFile(
+    const base::FilePath& backup_zip_path,
+    ImportBackupCallback callback) {
+  if (IsRunning()) {
+    std::move(callback).Run(
+        false, "Stop n8n before importing a backup (it's currently "
+              "running).");
+    return;
+  }
+  base::ThreadPool::PostTaskAndReplyWithResult(
+      FROM_HERE, {base::MayBlock()},
+      base::BindOnce(&ImportBackupOnBackgroundSequence, backup_zip_path,
+                     GetDataDir()),
+      base::BindOnce(
+          [](ImportBackupCallback callback,
+             std::pair<bool, std::string> result) {
+            std::move(callback).Run(result.first, std::move(result.second));
+          },
+          std::move(callback)));
+}
+
 N8nProcessManager::N8nProcessManager(content::BrowserContext* browser_context)
     : browser_context_(browser_context) {
   // Runs roughly once a day for as long as the browser process is alive -
@@ -412,6 +698,17 @@ void N8nProcessManager::PerformBackup() {
       FROM_HERE, {base::MayBlock(), base::TaskPriority::BEST_EFFORT},
       base::BindOnce(&PerformBackupOnBackgroundSequence, GetDataDir(),
                      GetBackupDir()));
+}
+
+void N8nProcessManager::EnsureBackupScheduledTaskRegistered() {
+  if (backup_task_registration_attempted_) {
+    return;
+  }
+  backup_task_registration_attempted_ = true;
+  base::ThreadPool::PostTask(
+      FROM_HERE, {base::MayBlock(), base::TaskPriority::BEST_EFFORT},
+      base::BindOnce(&RegisterBackupScheduledTaskOnBackgroundSequence,
+                     GetDataDir(), GetBackupDir()));
 }
 
 void N8nProcessManager::MaybeRestoreFromBackup(base::OnceClosure done) {
@@ -569,6 +866,8 @@ void N8nProcessManager::LaunchProcessAndReport() {
 
   port_ = kN8nPort;
   base_url_ = base::StrCat({"http://localhost:", base::NumberToString(port_)});
+
+  EnsureBackupScheduledTaskRegistered();
 
   base::SequencedTaskRunner::GetCurrentDefault()->PostDelayedTask(
       FROM_HERE,
