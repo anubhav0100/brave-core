@@ -957,6 +957,24 @@
   <message name="IDS_CHAT_UI_CODE_EXECUTION_OUTPUT_LABEL" desc="Label for output section in code execution tool" formatter_data="webui=AiChat">
     Output:
   </message>
+  <message name="IDS_CHAT_UI_TOOL_CALL_SHOW_DETAILS" desc="Button label to expand raw details (tool name, arguments, output) for a tool call" formatter_data="webui=AiChat">
+    Show call details
+  </message>
+  <message name="IDS_CHAT_UI_TOOL_CALL_HIDE_DETAILS" desc="Button label to collapse raw details for a tool call" formatter_data="webui=AiChat">
+    Hide call details
+  </message>
+  <message name="IDS_CHAT_UI_TOOL_CALL_NAME_LABEL" desc="Label preceding the raw tool name in the tool call details view" formatter_data="webui=AiChat">
+    Tool:
+  </message>
+  <message name="IDS_CHAT_UI_TOOL_CALL_ID_LABEL" desc="Label preceding the tool call id in the tool call details view" formatter_data="webui=AiChat">
+    Call ID:
+  </message>
+  <message name="IDS_CHAT_UI_TOOL_CALL_ARGUMENTS_LABEL" desc="Label preceding the raw JSON arguments in the tool call details view" formatter_data="webui=AiChat">
+    Arguments:
+  </message>
+  <message name="IDS_CHAT_UI_TOOL_CALL_OUTPUT_LABEL" desc="Label preceding the raw output in the tool call details view" formatter_data="webui=AiChat">
+    Output:
+  </message>
   <message name="IDS_CHAT_UI_TOOL_LABEL_USER_CHOICE" desc="Label for when the assistant is waiting for the user to make a choice"  formatter_data="webui=AiChat">
     Generating some options for you to choose from
   </message>

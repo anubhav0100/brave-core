@@ -12,6 +12,7 @@ import ToolEventContentUserChoice from './tool_event_content_user_choice'
 import ToolEventContentAssistantDetailStorage from './tool_event_content_assistant_detail_storage'
 import ToolEventCodeExecution from './tool_event_code_execution'
 import ToolEventSearch from './tool_event_search'
+import ToolCallDetails from './tool_call_details'
 import styles from './tool_event.module.scss'
 
 interface Props {
@@ -203,6 +204,10 @@ export default function ToolEvent(props: Props) {
 
             {!isExpandable && content.expandedContent && (
               <div>{content.expandedContent}</div>
+            )}
+
+            {!props.toolUseEvent.permissionChallenge && !isExecuting && (
+              <ToolCallDetails toolUseEvent={props.toolUseEvent} />
             )}
           </div>
         )
