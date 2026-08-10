@@ -160,6 +160,7 @@ export default function createAIChatApi(
         | `processImageFile`
         | `processPdfFile`
         | `getContentIndexingEnabled`
+        | `getActiveMcpConnections`
       >,
       metrics: metrics as Pick<
         Mojom.MetricsInterface,

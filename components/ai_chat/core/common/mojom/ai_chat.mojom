@@ -233,6 +233,14 @@ struct WorkflowSummary {
   string status;
 };
 
+// One n8n workflow currently connected to the AI Assistant as an MCP tool
+// source - see the "n8n" Settings page for the full connect/disconnect
+// control; this is the read-only list shown in the chat UI's menu.
+struct McpConnectionInfo {
+  string name;
+  string mcp_url;
+};
+
 // Browser-side handler for general AI Chat UI functions, implemented
 // per-platform
 interface AIChatUIHandler {
@@ -249,6 +257,12 @@ interface AIChatUIHandler {
   // directly without it retrieving indexed content first.
   GetContentIndexingEnabled() => (bool enabled);
   SetContentIndexingEnabled(bool enabled);
+
+  // Currently-connected n8n MCP workflows (see the "n8n" Settings page),
+  // for the chat UI menu's "Active MCPs" list. Empty if n8n isn't running
+  // or nothing is connected - does not start n8n as a side effect of
+  // opening the menu.
+  GetActiveMcpConnections() => (array<McpConnectionInfo> connections);
 
   // From a sidebar or popup conversation, open the conversation in the
   // full-page UI.

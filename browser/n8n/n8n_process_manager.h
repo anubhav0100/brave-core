@@ -77,6 +77,46 @@ class N8nProcessManager : public KeyedService {
   static void SetApiKey(PrefService* prefs, const std::string& api_key);
   static std::string GetApiKey(PrefService* prefs);
 
+  // One activated workflow found to expose an MCP Server Trigger node,
+  // with the URL its MCP endpoint is reachable at and whether the browser
+  // currently allows the AI to use it (see SetMcpWorkflowEnabled - this is
+  // independent of n8n's own "active" state).
+  struct McpWorkflowInfo {
+    McpWorkflowInfo();
+    McpWorkflowInfo(McpWorkflowInfo&&);
+    McpWorkflowInfo& operator=(McpWorkflowInfo&&);
+    ~McpWorkflowInfo();
+
+    std::string id;
+    std::string name;
+    std::string mcp_url;
+    bool enabled = true;
+  };
+  using ListMcpWorkflowsCallback =
+      base::OnceCallback<void(bool success,
+                              std::string error_message,
+                              std::vector<McpWorkflowInfo> workflows)>;
+
+  // Discovers this profile's activated n8n workflows that expose an MCP
+  // Server Trigger node, via n8n's own REST API - the same discovery
+  // ListN8nMcpToolsTool uses, but exposed here so the Settings "n8n" page
+  // and the AI Assistant chat menu's "Active MCPs" list can show the same
+  // information without starting n8n themselves (a Settings/chat page
+  // shouldn't launch a background process just to render a list - the
+  // list is simply empty/unreachable if n8n isn't running).
+  void ListMcpWorkflows(ListMcpWorkflowsCallback callback);
+
+  // Browser-side "connect/disconnect" toggle for one workflow, keyed by
+  // its n8n workflow id - independent of n8n's own active/inactive state.
+  // Turned off, ListN8nMcpToolsTool/CallN8nMcpToolTool won't expose or
+  // call that workflow's tools even though n8n itself still has it
+  // activated. Any workflow not explicitly disabled defaults to enabled.
+  static void SetMcpWorkflowEnabled(PrefService* prefs,
+                                    const std::string& workflow_id,
+                                    bool enabled);
+  static bool IsMcpWorkflowEnabled(PrefService* prefs,
+                                   const std::string& workflow_id);
+
   // Launches n8n if it isn't already running, and reports success once its
   // web server actually answers an HTTP request - not just once the OS
   // process has started, which can be well before `npx` has finished
@@ -151,6 +191,8 @@ class N8nProcessManager : public KeyedService {
   void OnHealthCheckResponse(int attempts_remaining,
                              api_request_helper::APIRequestResult result);
   void ResolvePendingStartedCallbacks(bool success);
+  void OnMcpWorkflowsListed(ListMcpWorkflowsCallback callback,
+                            api_request_helper::APIRequestResult result);
 
   raw_ptr<content::BrowserContext> browser_context_ = nullptr;
   base::Process process_;
@@ -160,6 +202,7 @@ class N8nProcessManager : public KeyedService {
   bool is_ready_ = false;
   std::vector<StartedCallback> pending_started_callbacks_;
   std::unique_ptr<api_request_helper::APIRequestHelper> health_check_helper_;
+  std::unique_ptr<api_request_helper::APIRequestHelper> mcp_discovery_helper_;
   base::RepeatingTimer backup_timer_;
 
   // Captured n8n console output, and the observers watching it live (the

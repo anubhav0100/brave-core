@@ -15,7 +15,8 @@ import { PolymerElement } from
 import { BaseMixin, BaseMixinInterface } from '../base_mixin.js'
 import {
   BraveLeoAssistantBrowserProxy,
-  BraveLeoAssistantBrowserProxyImpl
+  BraveLeoAssistantBrowserProxyImpl,
+  McpWorkflowListItem
 } from './brave_leo_assistant_browser_proxy.js'
 import { getTemplate } from './n8n_terminal_section.html.js'
 
@@ -44,7 +45,8 @@ class N8nTerminalSection extends N8nTerminalSectionBase {
       running_: { type: Boolean, value: false },
       starting_: { type: Boolean, value: false },
       baseUrl_: { type: String, value: '' },
-      outputText_: { type: String, value: '' }
+      outputText_: { type: String, value: '' },
+      mcpWorkflows_: { type: Array, value: [] }
     }
   }
 
@@ -54,6 +56,7 @@ class N8nTerminalSection extends N8nTerminalSectionBase {
   declare starting_: boolean
   declare baseUrl_: string
   declare outputText_: string
+  declare mcpWorkflows_: McpWorkflowListItem[]
 
   override ready() {
     super.ready()
@@ -62,7 +65,10 @@ class N8nTerminalSection extends N8nTerminalSectionBase {
       'n8n-output-appended', (chunk: string) => this.appendOutput_(chunk))
     this.addWebUiListener(
       'n8n-running-state-changed',
-      (running: boolean) => { this.running_ = running })
+      (running: boolean) => {
+        this.running_ = running
+        this.loadMcpWorkflows_()
+      })
 
     this.browserProxy_.getN8nStatus().then((status) => {
       this.running_ = status.running
@@ -72,6 +78,31 @@ class N8nTerminalSection extends N8nTerminalSectionBase {
       this.outputText_ = output
       this.scrollToBottom_()
     })
+    this.loadMcpWorkflows_()
+  }
+
+  loadMcpWorkflows_() {
+    this.browserProxy_.getMcpWorkflows().then((workflows) => {
+      this.mcpWorkflows_ = workflows
+    })
+  }
+
+  handleMcpWorkflowToggle_(e: { model: { item: McpWorkflowListItem } }) {
+    const item = e.model.item
+    const enabled = !item.enabled
+    this.browserProxy_.setMcpWorkflowEnabled(item.id, enabled).then(() => {
+      this.loadMcpWorkflows_()
+    })
+  }
+
+  hasMcpWorkflows_(workflows: McpWorkflowListItem[]): boolean {
+    return workflows.length > 0
+  }
+
+  getMcpConnectionLabel_(enabled: boolean): string {
+    return enabled
+      ? this.i18n('n8nMcpConnectedLabel')
+      : this.i18n('n8nMcpDisconnectedLabel')
   }
 
   appendOutput_(chunk: string) {

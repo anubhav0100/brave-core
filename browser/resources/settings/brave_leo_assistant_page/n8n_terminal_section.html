@@ -68,6 +68,56 @@ You can obtain one at https://mozilla.org/MPL/2.0/. -->
     color: #6b7a7a;
     font-style: italic;
   }
+
+  .mcp-header {
+    padding: var(--leo-spacing-l) var(--leo-spacing-2xl) 0 var(--leo-spacing-2xl);
+    font: var(--leo-font-small-semibold);
+  }
+
+  .mcp-desc {
+    padding: 0 var(--leo-spacing-2xl);
+    color: var(--leo-color-text-tertiary);
+    font: var(--leo-font-small-regular);
+  }
+
+  .mcp-list {
+    margin: var(--leo-spacing-l) var(--leo-spacing-2xl) var(--leo-spacing-xl) var(--leo-spacing-2xl);
+    display: flex;
+    flex-direction: column;
+    border: 1px solid var(--leo-color-divider-subtle);
+    border-radius: var(--leo-radius-m);
+  }
+
+  .mcp-row {
+    display: flex;
+    align-items: center;
+    gap: var(--leo-spacing-m);
+    padding: var(--leo-spacing-m) var(--leo-spacing-l);
+    border-bottom: 1px solid var(--leo-color-divider-subtle);
+  }
+
+  .mcp-row:last-of-type {
+    border-bottom: none;
+  }
+
+  .mcp-name {
+    font-weight: 600;
+  }
+
+  .mcp-url {
+    color: var(--leo-color-text-tertiary);
+    font: var(--leo-font-small-regular);
+    word-break: break-all;
+  }
+
+  .mcp-empty {
+    margin: var(--leo-spacing-l) var(--leo-spacing-2xl) var(--leo-spacing-xl) var(--leo-spacing-2xl);
+    color: var(--leo-color-text-tertiary);
+    text-align: center;
+    padding: var(--leo-spacing-l) 0;
+    border: 1px solid var(--leo-color-divider-subtle);
+    border-radius: var(--leo-radius-m);
+  }
 </style>
 
 <div class="settings-box header">
@@ -98,3 +148,25 @@ You can obtain one at https://mozilla.org/MPL/2.0/. -->
 <div class="terminal-container">
   <pre class="terminal-output">[[outputText_]]<template is="dom-if" if="[[!hasOutput_(outputText_)]]"><span class="terminal-empty">$i18n{n8nTerminalEmptyLabel}</span></template></pre>
 </div>
+
+<div class="mcp-header">$i18n{n8nMcpConnectionsTitle}</div>
+<div class="mcp-desc">$i18n{n8nMcpConnectionsDesc}</div>
+<template is="dom-if" if="[[!hasMcpWorkflows_(mcpWorkflows_)]]">
+  <div class="mcp-empty">$i18n{n8nMcpConnectionsEmptyLabel}</div>
+</template>
+<template is="dom-if" if="[[hasMcpWorkflows_(mcpWorkflows_)]]">
+  <div class="mcp-list">
+    <template is="dom-repeat" items="[[mcpWorkflows_]]">
+      <div class="mcp-row">
+        <div class="flex">
+          <div class="mcp-name">[[item.name]]</div>
+          <div class="mcp-url">[[item.mcpUrl]]</div>
+        </div>
+        <div class="spacer"></div>
+        <cr-button on-click="handleMcpWorkflowToggle_">
+          [[getMcpConnectionLabel_(item.enabled)]]
+        </cr-button>
+      </div>
+    </template>
+  </div>
+</template>

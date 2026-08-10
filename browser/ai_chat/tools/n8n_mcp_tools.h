@@ -15,21 +15,16 @@
 #include "base/memory/raw_ptr.h"
 #include "base/memory/weak_ptr.h"
 #include "base/values.h"
+#include "brave/browser/n8n/n8n_process_manager.h"
 #include "brave/components/ai_chat/core/browser/tools/tool.h"
 
 namespace content {
 class BrowserContext;
 }  // namespace content
 
-namespace api_request_helper {
-class APIRequestHelper;
-class APIRequestResult;
-}  // namespace api_request_helper
-
 namespace ai_chat {
 
 class McpClient;
-class N8nProcessManager;
 
 // Lists the MCP tools currently exposed by this profile's n8n instance -
 // every *activated* workflow containing an "MCP Server Trigger" node (see
@@ -58,14 +53,16 @@ class ListN8nMcpToolsTool : public Tool {
  private:
   void OnStarted(UseToolCallback callback, bool success);
   void OnWorkflowsListed(UseToolCallback callback,
-                        api_request_helper::APIRequestResult result);
+                        bool success,
+                        std::string error_message,
+                        std::vector<N8nProcessManager::McpWorkflowInfo>
+                            workflows);
   void OnAllServersListed(UseToolCallback callback,
                          std::vector<std::string> server_labels,
                          std::vector<std::unique_ptr<McpClient>> clients);
 
   raw_ptr<N8nProcessManager> manager_ = nullptr;
   raw_ptr<content::BrowserContext> browser_context_ = nullptr;
-  std::unique_ptr<api_request_helper::APIRequestHelper> api_request_helper_;
 
   base::WeakPtrFactory<ListN8nMcpToolsTool> weak_ptr_factory_{this};
 };
@@ -96,11 +93,14 @@ class CallN8nMcpToolTool : public Tool {
                 std::string arguments_json,
                 UseToolCallback callback,
                 bool success);
-  void OnWorkflowsListedForCall(std::string workflow_name,
-                               std::string tool_name,
-                               base::DictValue arguments,
-                               UseToolCallback callback,
-                               api_request_helper::APIRequestResult result);
+  void OnWorkflowsListedForCall(
+      std::string workflow_name,
+      std::string tool_name,
+      base::DictValue arguments,
+      UseToolCallback callback,
+      bool success,
+      std::string error_message,
+      std::vector<N8nProcessManager::McpWorkflowInfo> workflows);
   void OnToolCalled(std::unique_ptr<McpClient> client,
                     UseToolCallback callback,
                     bool success,
@@ -108,7 +108,6 @@ class CallN8nMcpToolTool : public Tool {
 
   raw_ptr<N8nProcessManager> manager_ = nullptr;
   raw_ptr<content::BrowserContext> browser_context_ = nullptr;
-  std::unique_ptr<api_request_helper::APIRequestHelper> api_request_helper_;
 
   base::WeakPtrFactory<CallN8nMcpToolTool> weak_ptr_factory_{this};
 };

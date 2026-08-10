@@ -57,3 +57,22 @@ leo-toggle {
 .lockOpen {
   --leo-icon-color: var(--leo-color-systemfeedback-success-icon);
 }
+
+.mcpConnectionRow {
+  padding: var(--leo-spacing-m) 0;
+  border-bottom: 1px solid var(--leo-color-divider-subtle);
+
+  &:last-of-type {
+    border-bottom: none;
+  }
+}
+
+.mcpConnectionName {
+  font-weight: 600;
+}
+
+.mcpConnectionUrl {
+  color: var(--leo-color-text-tertiary);
+  font: var(--leo-font-small-regular);
+  word-break: break-all;
+}

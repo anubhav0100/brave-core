@@ -46,6 +46,13 @@
   updatedTimeMs: number
  }
 
+ export interface McpWorkflowListItem {
+  id: string
+  name: string
+  mcpUrl: string
+  enabled: boolean
+ }
+
  export interface WorkflowListItem {
   id: string
   name: string
@@ -105,6 +112,8 @@
   getN8nStatus(): Promise<{running: boolean, baseUrl: string}>
   getN8nBufferedOutput(): Promise<string>
   startN8n(): Promise<boolean>
+  getMcpWorkflows(): Promise<McpWorkflowListItem[]>
+  setMcpWorkflowEnabled(id: string, enabled: boolean): Promise<boolean>
  }
 
  export class BraveLeoAssistantBrowserProxyImpl
@@ -250,6 +259,14 @@
 
    startN8n() {
      return sendWithPromise<boolean>('startN8n')
+   }
+
+   getMcpWorkflows() {
+     return sendWithPromise<McpWorkflowListItem[]>('getMcpWorkflows')
+   }
+
+   setMcpWorkflowEnabled(id: string, enabled: boolean) {
+     return sendWithPromise<boolean>('setMcpWorkflowEnabled', id, enabled)
    }
  }
 

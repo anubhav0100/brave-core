@@ -251,6 +251,7 @@ export function createMockUIHandler(
     openMemorySettings: () => {},
     getContentIndexingEnabled: () => Promise.resolve({ enabled: false }),
     setContentIndexingEnabled: () => {},
+    getActiveMcpConnections: () => Promise.resolve({ connections: [] }),
     openConversationFullPage: () => {},
     associateTab: () => {},
     associateUrlContent: () => {},

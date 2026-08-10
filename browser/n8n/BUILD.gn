@@ -18,6 +18,8 @@ source_set("n8n") {
     "//brave/components/api_request_helper",
     "//components/keyed_service/content",
     "//components/keyed_service/core",
+    "//components/prefs",
+    "//components/user_prefs",
     "//content/public/browser",
     "//net",
     "//services/network/public/cpp",

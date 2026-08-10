@@ -21,6 +21,8 @@
 #include "brave/browser/ai_chat/ai_chat_service_factory.h"
 #include "brave/browser/ai_chat/content_index/ai_chat_content_index.h"
 #include "brave/browser/ai_chat/workflows/workflow_repository.h"
+#include "brave/browser/n8n/n8n_process_manager.h"
+#include "brave/browser/n8n/n8n_process_manager_factory.h"
 #include "brave/browser/ai_chat/workflows/workflow_repository_factory.h"
 #include "brave/browser/brave_tab_helpers.h"
 #include "brave/browser/misc_metrics/profile_misc_metrics_service.h"
@@ -412,6 +414,33 @@ void AIChatUIPageHandler::SetContentIndexingEnabled(bool enabled) {
     profile_->GetPrefs()->SetBoolean(
         ai_chat::prefs::kBraveAIChatContentIndexingEnabled, enabled);
   }
+}
+
+void AIChatUIPageHandler::GetActiveMcpConnections(
+    GetActiveMcpConnectionsCallback callback) {
+  auto* n8n_manager =
+      profile_ ? N8nProcessManagerFactory::GetForBrowserContext(profile_)
+              : nullptr;
+  if (!n8n_manager) {
+    std::move(callback).Run({});
+    return;
+  }
+  n8n_manager->ListMcpWorkflows(base::BindOnce(
+      [](GetActiveMcpConnectionsCallback callback, bool success,
+         std::string error_message,
+         std::vector<N8nProcessManager::McpWorkflowInfo> workflows) {
+        std::vector<mojom::McpConnectionInfoPtr> connections;
+        if (success) {
+          for (const auto& workflow : workflows) {
+            if (workflow.enabled) {
+              connections.push_back(mojom::McpConnectionInfo::New(
+                  workflow.name, workflow.mcp_url));
+            }
+          }
+        }
+        std::move(callback).Run(std::move(connections));
+      },
+      std::move(callback)));
 }
 
 void AIChatUIPageHandler::OpenConversationFullPage(

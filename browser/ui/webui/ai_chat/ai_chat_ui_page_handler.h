@@ -86,6 +86,8 @@ class AIChatUIPageHandler : public mojom::AIChatUIHandler,
   void GetContentIndexingEnabled(
       GetContentIndexingEnabledCallback callback) override;
   void SetContentIndexingEnabled(bool enabled) override;
+  void GetActiveMcpConnections(
+      GetActiveMcpConnectionsCallback callback) override;
   void OpenConversationFullPage(const std::string& conversation_uuid) override;
   void OpenAIChatAgentProfile() override;
   void OpenURL(const GURL& url) override;

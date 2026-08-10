@@ -80,6 +80,13 @@ class BraveLeoAssistantHandler : public settings::SettingsPageUIHandler,
   void HandleGetN8nBufferedOutput(const base::ListValue& args);
   void HandleStartN8n(const base::ListValue& args);
   void OnN8nStarted(base::Value callback_id, bool success);
+  void HandleGetMcpWorkflows(const base::ListValue& args);
+  void OnMcpWorkflowsListedForSettings(
+      base::Value callback_id,
+      bool success,
+      std::string error_message,
+      std::vector<ai_chat::N8nProcessManager::McpWorkflowInfo> workflows);
+  void HandleSetMcpWorkflowEnabled(const base::ListValue& args);
 
   raw_ptr<Profile> profile_ = nullptr;
   base::ScopedObservation<sidebar::SidebarService,

@@ -204,6 +204,12 @@
   <message name="IDS_CHAT_UI_MENU_CONTENT_INDEXING_LABEL" desc="Menu item toggle for enabling/disabling on-device content indexing (RAG)" formatter_data="webui=AiChat">
     Use indexed content (RAG)
   </message>
+  <message name="IDS_CHAT_UI_MENU_ACTIVE_MCPS_LABEL" desc="Menu item that opens a dialog listing currently connected n8n MCP tool sources" formatter_data="webui=AiChat">
+    Active MCPs
+  </message>
+  <message name="IDS_CHAT_UI_ACTIVE_MCPS_EMPTY_LABEL" desc="Shown in the Active MCPs dialog when no n8n workflows are connected" formatter_data="webui=AiChat">
+    No MCP tools connected. Connect one on the AI Assistant Settings page.
+  </message>
   <message name="IDS_CHAT_UI_MENU_SETTINGS" desc="Menu item for Settings" formatter_data="webui=AiChat">
     Advanced Settings
   </message>

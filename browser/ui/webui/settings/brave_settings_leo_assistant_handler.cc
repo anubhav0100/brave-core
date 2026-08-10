@@ -244,6 +244,15 @@ void BraveLeoAssistantHandler::RegisterMessages() {
       "startN8n",
       base::BindRepeating(&BraveLeoAssistantHandler::HandleStartN8n,
                           base::Unretained(this)));
+  web_ui()->RegisterMessageCallback(
+      "getMcpWorkflows",
+      base::BindRepeating(&BraveLeoAssistantHandler::HandleGetMcpWorkflows,
+                          base::Unretained(this)));
+  web_ui()->RegisterMessageCallback(
+      "setMcpWorkflowEnabled",
+      base::BindRepeating(
+          &BraveLeoAssistantHandler::HandleSetMcpWorkflowEnabled,
+          base::Unretained(this)));
 }
 
 void BraveLeoAssistantHandler::OnJavascriptAllowed() {
@@ -740,6 +749,50 @@ void BraveLeoAssistantHandler::HandleStartN8n(const base::ListValue& args) {
 void BraveLeoAssistantHandler::OnN8nStarted(base::Value callback_id,
                                             bool success) {
   ResolveJavascriptCallback(callback_id, base::Value(success));
+}
+
+void BraveLeoAssistantHandler::HandleGetMcpWorkflows(
+    const base::ListValue& args) {
+  AllowJavascript();
+  base::Value callback_id = args[0].Clone();
+  auto* n8n_manager =
+      ai_chat::N8nProcessManagerFactory::GetForBrowserContext(profile_);
+  if (!n8n_manager) {
+    ResolveJavascriptCallback(callback_id, base::ListValue());
+    return;
+  }
+  n8n_manager->ListMcpWorkflows(base::BindOnce(
+      &BraveLeoAssistantHandler::OnMcpWorkflowsListedForSettings,
+      weak_ptr_factory_.GetWeakPtr(), std::move(callback_id)));
+}
+
+void BraveLeoAssistantHandler::OnMcpWorkflowsListedForSettings(
+    base::Value callback_id,
+    bool success,
+    std::string error_message,
+    std::vector<ai_chat::N8nProcessManager::McpWorkflowInfo> workflows) {
+  base::ListValue result;
+  for (const auto& workflow : workflows) {
+    base::DictValue entry;
+    entry.Set("id", workflow.id);
+    entry.Set("name", workflow.name);
+    entry.Set("mcpUrl", workflow.mcp_url);
+    entry.Set("enabled", workflow.enabled);
+    result.Append(std::move(entry));
+  }
+  ResolveJavascriptCallback(callback_id, result);
+}
+
+void BraveLeoAssistantHandler::HandleSetMcpWorkflowEnabled(
+    const base::ListValue& args) {
+  AllowJavascript();
+  const std::string* workflow_id = args[1].GetIfString();
+  std::optional<bool> enabled = args[2].GetIfBool();
+  if (workflow_id && enabled.has_value() && profile_) {
+    ai_chat::N8nProcessManager::SetMcpWorkflowEnabled(profile_->GetPrefs(),
+                                                       *workflow_id, *enabled);
+  }
+  ResolveJavascriptCallback(args[0], base::Value(true));
 }
 
 void BraveLeoAssistantHandler::HandleResetLeoData(const base::ListValue& args) {

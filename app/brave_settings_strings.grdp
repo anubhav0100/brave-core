@@ -1968,6 +1968,21 @@
   <message name="IDS_SETTINGS_N8N_TERMINAL_EMPTY_LABEL" desc="Shown in the output area before n8n has printed anything yet.">
     No output yet. Start n8n to see its output here.
   </message>
+  <message name="IDS_SETTINGS_N8N_MCP_CONNECTIONS_TITLE" desc="Header for the list of n8n workflows exposed to the AI Assistant as MCP tools.">
+    MCP connections
+  </message>
+  <message name="IDS_SETTINGS_N8N_MCP_CONNECTIONS_DESC" desc="Description for the MCP connections list.">
+    n8n workflows with an MCP Server Trigger node, discovered automatically once activated. Disconnect one to stop the AI Assistant from using it, without changing anything in n8n itself.
+  </message>
+  <message name="IDS_SETTINGS_N8N_MCP_CONNECTIONS_EMPTY_LABEL" desc="Shown when no n8n workflows expose an MCP Server Trigger.">
+    No MCP-connected workflows found yet.
+  </message>
+  <message name="IDS_SETTINGS_N8N_MCP_CONNECTED_LABEL" desc="Button label/status for a connected MCP workflow - also acts as the disconnect button.">
+    Connected
+  </message>
+  <message name="IDS_SETTINGS_N8N_MCP_DISCONNECTED_LABEL" desc="Button label/status for a disconnected MCP workflow - also acts as the reconnect button.">
+    Disconnected
+  </message>
   <message name="IDS_SETTINGS_LEO_ASSISTANT_INPUT_CONTEXT_SIZE" desc="An input title for context size, which refers to the maximum number of tokens (small units of text, usually a few characters or words) that an AI model can process in one go. The context size determines how much data the model can consider simultaneously. For example, the Phi 3.5 model can process up to 131072 tokens in its context window.">
     Context size
   </message>

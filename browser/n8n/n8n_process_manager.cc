@@ -12,6 +12,7 @@
 #include <vector>
 
 #include "base/command_line.h"
+#include "base/containers/flat_map.h"
 #include "base/environment.h"
 #include "base/files/file_enumerator.h"
 #include "base/files/file_util.h"
@@ -24,9 +25,12 @@
 #include "base/task/sequenced_task_runner.h"
 #include "base/task/thread_pool.h"
 #include "base/time/time.h"
+#include "base/values.h"
 #include "base/win/scoped_handle.h"
 #include "components/prefs/pref_registry_simple.h"
 #include "components/prefs/pref_service.h"
+#include "components/prefs/scoped_user_pref_update.h"
+#include "components/user_prefs/user_prefs.h"
 #include "content/public/browser/browser_context.h"
 #include "content/public/browser/storage_partition.h"
 #include "net/traffic_annotation/network_traffic_annotation.h"
@@ -39,6 +43,14 @@ namespace ai_chat {
 namespace {
 
 constexpr char kN8nApiKeyPref[] = "brave.n8n.api_key";
+
+// List of n8n workflow ids the user has explicitly disconnected from the
+// AI Assistant - see SetMcpWorkflowEnabled(). Anything not in this list is
+// enabled by default once discovered.
+constexpr char kN8nDisabledMcpWorkflowsPref[] =
+    "brave.n8n.disabled_mcp_workflows";
+
+constexpr char kMcpTriggerNodeType[] = "@n8n/n8n-nodes-langchain.mcpTrigger";
 
 // n8n's own default port - kept fixed rather than finding a free port so
 // the side panel and REST-API tools can build URLs without a round trip to
@@ -202,11 +214,122 @@ net::NetworkTrafficAnnotationTag GetHealthCheckTrafficAnnotationTag() {
       })");
 }
 
+net::NetworkTrafficAnnotationTag GetMcpDiscoveryTrafficAnnotationTag() {
+  return net::DefineNetworkTrafficAnnotation("n8n_mcp_workflow_discovery", R"(
+      semantics {
+        sender: "n8n Process Manager"
+        description:
+          "Lists the user's local n8n workflows to find which ones expose "
+          "an MCP Server Trigger, for the Settings \"n8n\" page and the AI "
+          "Assistant chat menu's \"Active MCPs\" list."
+        trigger:
+          "The user opens the n8n Settings section or the chat menu's "
+          "Active MCPs list."
+        data: "None sent beyond an API key header; localhost only."
+        destination: LOCAL
+        internal {
+          contacts {
+            email: "ai-chat@brave.com"
+          }
+        }
+        user_data {
+          type: NONE
+        }
+        last_reviewed: "2026-08-10"
+      }
+      policy {
+        cookies_allowed: NO
+        setting: "This feature cannot be disabled independently of AI Chat."
+        policy_exception_justification:
+          "Only ever talks to a localhost n8n instance the browser itself "
+          "started."
+      })");
+}
+
+// Extracts every activated workflow with an MCP Server Trigger node from
+// n8n's `GET /api/v1/workflows` response - which may be either
+// `{"data": [...]}` (the documented Public API shape) or a bare array,
+// depending on n8n version, so both are accepted defensively. Mirrors
+// n8n_mcp_tools.cc's ExtractMcpWorkflows, but also keeps each workflow's
+// id (needed to key the enable/disable pref) and its enabled state.
+std::vector<N8nProcessManager::McpWorkflowInfo> ExtractMcpWorkflowInfos(
+    const base::Value& body,
+    const std::string& base_url,
+    PrefService* prefs) {
+  std::vector<N8nProcessManager::McpWorkflowInfo> result;
+  const base::ListValue* list = nullptr;
+  if (body.is_dict()) {
+    list = body.GetDict().FindList("data");
+  } else if (body.is_list()) {
+    list = &body.GetList();
+  }
+  if (!list) {
+    return result;
+  }
+  for (const auto& workflow_value : *list) {
+    if (!workflow_value.is_dict()) {
+      continue;
+    }
+    const base::DictValue& workflow = workflow_value.GetDict();
+    if (!workflow.FindBool("active").value_or(false)) {
+      continue;
+    }
+    const base::ListValue* nodes = workflow.FindList("nodes");
+    if (!nodes) {
+      continue;
+    }
+    for (const auto& node_value : *nodes) {
+      if (!node_value.is_dict()) {
+        continue;
+      }
+      const base::DictValue& node = node_value.GetDict();
+      const std::string* type = node.FindString("type");
+      if (!type || *type != kMcpTriggerNodeType) {
+        continue;
+      }
+      std::string path;
+      if (const base::DictValue* params = node.FindDict("parameters")) {
+        if (const std::string* path_param = params->FindString("path")) {
+          path = *path_param;
+        }
+      }
+      if (path.empty()) {
+        if (const std::string* webhook_id = node.FindString("webhookId")) {
+          path = *webhook_id;
+        }
+      }
+      if (path.empty()) {
+        continue;
+      }
+      const std::string* id = workflow.FindString("id");
+      const std::string* name = workflow.FindString("name");
+      N8nProcessManager::McpWorkflowInfo info;
+      info.id = id ? *id : "";
+      info.name = name ? *name : "(unnamed workflow)";
+      info.mcp_url = base::StrCat({base_url, "/mcp/", path});
+      info.enabled =
+          info.id.empty() ||
+          N8nProcessManager::IsMcpWorkflowEnabled(prefs, info.id);
+      result.push_back(std::move(info));
+      break;  // Only one MCP trigger per workflow is meaningful.
+    }
+  }
+  return result;
+}
+
 }  // namespace
+
+N8nProcessManager::McpWorkflowInfo::McpWorkflowInfo() = default;
+N8nProcessManager::McpWorkflowInfo::McpWorkflowInfo(McpWorkflowInfo&&) =
+    default;
+N8nProcessManager::McpWorkflowInfo& N8nProcessManager::McpWorkflowInfo::
+operator=(McpWorkflowInfo&&) = default;
+N8nProcessManager::McpWorkflowInfo::~McpWorkflowInfo() = default;
 
 // static
 void N8nProcessManager::RegisterProfilePrefs(PrefRegistrySimple* registry) {
   registry->RegisterStringPref(kN8nApiKeyPref, std::string());
+  registry->RegisterListPref(kN8nDisabledMcpWorkflowsPref);
 }
 
 // static
@@ -218,6 +341,35 @@ void N8nProcessManager::SetApiKey(PrefService* prefs,
 // static
 std::string N8nProcessManager::GetApiKey(PrefService* prefs) {
   return prefs->GetString(kN8nApiKeyPref);
+}
+
+// static
+void N8nProcessManager::SetMcpWorkflowEnabled(PrefService* prefs,
+                                              const std::string& workflow_id,
+                                              bool enabled) {
+  if (!prefs || workflow_id.empty()) {
+    return;
+  }
+  ScopedListPrefUpdate update(prefs, kN8nDisabledMcpWorkflowsPref);
+  if (enabled) {
+    update->EraseValue(base::Value(workflow_id));
+  } else if (!IsMcpWorkflowEnabled(prefs, workflow_id)) {
+    return;  // Already disabled - avoid a duplicate entry.
+  } else {
+    update->Append(workflow_id);
+  }
+}
+
+// static
+bool N8nProcessManager::IsMcpWorkflowEnabled(PrefService* prefs,
+                                             const std::string& workflow_id) {
+  if (!prefs || workflow_id.empty()) {
+    return true;
+  }
+  const base::ListValue& disabled =
+      prefs->GetList(kN8nDisabledMcpWorkflowsPref);
+  return std::ranges::find(disabled, base::Value(workflow_id)) ==
+         disabled.end();
 }
 
 // static
@@ -487,6 +639,55 @@ void N8nProcessManager::ResolvePendingStartedCallbacks(bool success) {
   for (auto& callback : callbacks) {
     std::move(callback).Run(success);
   }
+}
+
+void N8nProcessManager::ListMcpWorkflows(ListMcpWorkflowsCallback callback) {
+  if (!IsReady()) {
+    // Deliberately not calling EnsureStarted() here - a Settings page or
+    // chat menu listing shouldn't launch n8n as a side effect of being
+    // opened. An empty list is the correct answer if n8n isn't running.
+    std::move(callback).Run(true, "", {});
+    return;
+  }
+  auto* prefs = user_prefs::UserPrefs::Get(browser_context_);
+  std::string api_key = prefs ? GetApiKey(prefs) : "";
+  if (api_key.empty()) {
+    std::move(callback).Run(false, "No n8n API key stored yet.", {});
+    return;
+  }
+  if (!mcp_discovery_helper_) {
+    auto url_loader_factory = browser_context_->GetDefaultStoragePartition()
+                                  ->GetURLLoaderFactoryForBrowserProcess();
+    mcp_discovery_helper_ =
+        std::make_unique<api_request_helper::APIRequestHelper>(
+            GetMcpDiscoveryTrafficAnnotationTag(),
+            std::move(url_loader_factory));
+  }
+  base::flat_map<std::string, std::string> headers;
+  headers.emplace("X-N8N-API-KEY", api_key);
+  mcp_discovery_helper_->Request(
+      "GET", GURL(base::StrCat({base_url_, "/api/v1/workflows"})), "", "",
+      base::BindOnce(&N8nProcessManager::OnMcpWorkflowsListed,
+                     weak_ptr_factory_.GetWeakPtr(), std::move(callback)),
+      headers);
+}
+
+void N8nProcessManager::OnMcpWorkflowsListed(
+    ListMcpWorkflowsCallback callback,
+    api_request_helper::APIRequestResult result) {
+  if (!result.Is2XXResponseCode()) {
+    std::move(callback).Run(
+        false,
+        base::StrCat({"n8n returned ",
+                      base::NumberToString(result.response_code()),
+                      " listing workflows."}),
+        {});
+    return;
+  }
+  auto* prefs = user_prefs::UserPrefs::Get(browser_context_);
+  std::move(callback).Run(
+      true, "",
+      ExtractMcpWorkflowInfos(result.value_body(), base_url_, prefs));
 }
 
 void N8nProcessManager::AddObserver(Observer* observer) {

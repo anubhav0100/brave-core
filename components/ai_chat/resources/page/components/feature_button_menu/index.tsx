@@ -6,6 +6,7 @@
 import * as React from 'react'
 import ButtonMenu from '@brave/leo/react/buttonMenu'
 import Button from '@brave/leo/react/button'
+import Dialog from '@brave/leo/react/dialog'
 import Icon from '@brave/leo/react/icon'
 import Toggle from '@brave/leo/react/toggle'
 import { showAlert } from '@brave/leo/react/alertCenter'
@@ -60,6 +61,22 @@ export default function FeatureMenu(props: Props) {
     setContentIndexingEnabledState(detail.checked)
   }
 
+  // Read-only list of n8n workflows currently connected as MCP tool
+  // sources - connect/disconnect happens on the "n8n" Settings page, this
+  // is just visibility into what's active from the chat UI itself.
+  const [showMcpDialog, setShowMcpDialog] = React.useState(false)
+  const [mcpConnections, setMcpConnections] = React.useState<
+    Array<{ name: string; mcpUrl: string }>
+  >([])
+
+  const handleActiveMcpsClick = () => {
+    setShowMcpDialog(true)
+    aiChatContext.api.uiHandler.getActiveMcpConnections().then(
+      ({ connections }: { connections: Array<{ name: string; mcpUrl: string }> }) =>
+        setMcpConnections(connections),
+    )
+  }
+
   const copyEntireConversation = async () => {
     const conversationHistory =
       conversationContext.api.getConversationHistory.current()
@@ -75,6 +92,29 @@ export default function FeatureMenu(props: Props) {
   }
 
   return (
+    <>
+    <Dialog
+      isOpen={showMcpDialog}
+      showClose
+      onClose={() => setShowMcpDialog(false)}
+    >
+      <div slot='title'>{getLocale(S.CHAT_UI_MENU_ACTIVE_MCPS_LABEL)}</div>
+      {mcpConnections.length === 0 ? (
+        <div>{getLocale(S.CHAT_UI_ACTIVE_MCPS_EMPTY_LABEL)}</div>
+      ) : (
+        mcpConnections.map((connection) => (
+          <div key={connection.name} className={styles.mcpConnectionRow}>
+            <div className={styles.mcpConnectionName}>{connection.name}</div>
+            <div className={styles.mcpConnectionUrl}>{connection.mcpUrl}</div>
+          </div>
+        ))
+      )}
+      <div slot='actions'>
+        <Button kind='plain-faint' onClick={handleSettingsClick}>
+          {getLocale(S.CHAT_UI_MENU_SETTINGS)}
+        </Button>
+      </div>
+    </Dialog>
     <ButtonMenu className={styles.buttonMenu}>
       <Button
         slot='anchor-content'
@@ -231,6 +271,21 @@ export default function FeatureMenu(props: Props) {
           </div>
         </leo-menu-item>
       )}
+      {!aiChatContext.isMobile && (
+        <leo-menu-item onClick={handleActiveMcpsClick}>
+          <div
+            className={classnames(
+              styles.menuItemWithIcon,
+              styles.menuItemMainItem,
+            )}
+          >
+            <Icon name='link-normal' />
+            <span className={styles.menuText}>
+              {getLocale(S.CHAT_UI_MENU_ACTIVE_MCPS_LABEL)}
+            </span>
+          </div>
+        </leo-menu-item>
+      )}
       {aiChatContext.isPremiumUser && (
         <leo-menu-item onClick={aiChatContext.managePremium}>
           <div
@@ -261,5 +316,6 @@ export default function FeatureMenu(props: Props) {
         </div>
       </leo-menu-item>
     </ButtonMenu>
+    </>
   )
 }
