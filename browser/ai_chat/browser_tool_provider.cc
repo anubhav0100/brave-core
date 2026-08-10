@@ -28,6 +28,7 @@
 #include "brave/browser/ai_chat/tools/read_word_document_tool.h"
 #include "brave/browser/ai_chat/tools/response_memory_tools.h"
 #include "brave/browser/ai_chat/tools/run_workflow_tool.h"
+#include "brave/browser/ai_chat/tools/subagent_tool.h"
 #include "brave/components/ai_chat/core/browser/tools/tool.h"
 #include "brave/components/ai_chat/core/common/buildflags/buildflags.h"
 #include "brave/components/ai_chat/core/common/features.h"
@@ -64,6 +65,9 @@ std::vector<base::WeakPtr<Tool>> BrowserToolProvider::GetTools() {
   }
   if (history_search_tool_) {
     tool_ptrs.push_back(history_search_tool_->GetWeakPtr());
+  }
+  if (delegate_to_subagent_tool_) {
+    tool_ptrs.push_back(delegate_to_subagent_tool_->GetWeakPtr());
   }
   if (create_word_document_tool_) {
     tool_ptrs.push_back(create_word_document_tool_->GetWeakPtr());
@@ -173,6 +177,8 @@ void BrowserToolProvider::CreateTools(
           Profile::FromBrowserContext(browser_context))) {
     history_search_tool_ = std::make_unique<HistorySearchTool>(browser_context);
   }
+  delegate_to_subagent_tool_ =
+      std::make_unique<DelegateToSubagentTool>(browser_context);
   create_word_document_tool_ =
       std::make_unique<CreateWordDocumentTool>(browser_context);
   read_word_document_tool_ =

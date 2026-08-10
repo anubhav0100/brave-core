@@ -76,6 +76,8 @@ static_library("ai_chat") {
     "tools/response_memory_tools.h",
     "tools/run_workflow_tool.cc",
     "tools/run_workflow_tool.h",
+    "tools/subagent_tool.cc",
+    "tools/subagent_tool.h",
     "webhook_tool_provider.cc",
     "webhook_tool_provider.h",
     "webhook_tool_provider_factory.cc",

@@ -33,6 +33,7 @@ class CreatePdfDocumentTool;
 class CreatePresentationTool;
 class CreateSpreadsheetTool;
 class CreateWordDocumentTool;
+class DelegateToSubagentTool;
 class ReadWordDocumentTool;
 class CallN8nMcpToolTool;
 class CreateN8nWorkflowTool;
@@ -120,6 +121,7 @@ class BrowserToolProvider : public ToolProvider {
   std::unique_ptr<CreatePdfDocumentTool> create_pdf_document_tool_;
 #endif
   std::unique_ptr<HistorySearchTool> history_search_tool_;
+  std::unique_ptr<DelegateToSubagentTool> delegate_to_subagent_tool_;
 #if BUILDFLAG(ENABLE_AI_CHAT_TAB_MANAGEMENT_TOOL)
   std::unique_ptr<TabManagementTool> tab_management_tool_;
 #endif
