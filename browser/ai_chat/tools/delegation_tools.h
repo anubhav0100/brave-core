@@ -149,6 +149,37 @@ class InjectDelegationBriefTool : public Tool {
   base::WeakPtrFactory<InjectDelegationBriefTool> weak_ptr_factory_{this};
 };
 
+// Adds a new task directly to a running Delegation project, assigned to a
+// specific agent - the same effect as one of Delegation's own agents
+// proposing a task via its internal proposeTask tool (same status, same
+// action-log entry shape), just triggered externally instead of requiring
+// Delegation's own Gemini-backed Lead Agent to decide to propose it. Only
+// takes effect while a project is actively running (phase 'working') -
+// check with get_delegation_status first to see valid agent ids.
+class CreateDelegationTaskTool : public Tool {
+ public:
+  explicit CreateDelegationTaskTool(DelegationProcessManager* manager);
+  ~CreateDelegationTaskTool() override;
+
+  CreateDelegationTaskTool(const CreateDelegationTaskTool&) = delete;
+  CreateDelegationTaskTool& operator=(const CreateDelegationTaskTool&) =
+      delete;
+
+  std::string_view Name() const override;
+  std::string_view Description() const override;
+  std::optional<base::DictValue> InputProperties() const override;
+  std::optional<std::vector<std::string>> RequiredProperties() const override;
+  void UseTool(const std::string& input_json,
+               UseToolCallback callback) override;
+
+ private:
+  void OnResult(UseToolCallback callback, bool success, std::string error);
+
+  raw_ptr<DelegationProcessManager> manager_ = nullptr;
+
+  base::WeakPtrFactory<CreateDelegationTaskTool> weak_ptr_factory_{this};
+};
+
 }  // namespace ai_chat
 
 #endif  // BRAVE_BROWSER_AI_CHAT_TOOLS_DELEGATION_TOOLS_H_

@@ -13,6 +13,7 @@
 #include "base/json/json_writer.h"
 #include "base/strings/strcat.h"
 #include "base/strings/string_number_conversions.h"
+#include "brave/browser/ai_chat/tools/tab_utils.h"
 #include "brave/browser/n8n/n8n_process_manager.h"
 #include "brave/components/ai_chat/core/browser/tools/tool_input_properties.h"
 #include "brave/components/ai_chat/core/browser/tools/tool_utils.h"
@@ -136,8 +137,19 @@ void OpenN8nTool::OnStarted(UseToolCallback callback, bool success) {
         {});
     return;
   }
+
+  GURL n8n_url(manager_->base_url());
+  Profile* profile = Profile::FromBrowserContext(browser_context_);
+  if (profile && FindAndActivateExistingTab(profile, n8n_url)) {
+    std::move(callback).Run(
+        CreateContentBlocksForText("n8n was already open - switched to its "
+                                   "tab."),
+        {});
+    return;
+  }
+
   content::WebContents* web_contents = nullptr;
-  if (Profile* profile = Profile::FromBrowserContext(browser_context_)) {
+  if (profile) {
     if (BrowserWindowInterface* browser =
             ProfileBrowserCollection::GetForProfile(profile)
                 ->FindTabbedBrowser()) {
@@ -154,9 +166,8 @@ void OpenN8nTool::OnStarted(UseToolCallback callback, bool success) {
     return;
   }
   web_contents->OpenURL(
-      {GURL(manager_->base_url()), content::Referrer(),
-       WindowOpenDisposition::NEW_FOREGROUND_TAB, ui::PAGE_TRANSITION_LINK,
-       /*is_renderer_initiated=*/false},
+      {n8n_url, content::Referrer(), WindowOpenDisposition::NEW_FOREGROUND_TAB,
+       ui::PAGE_TRANSITION_LINK, /*is_renderer_initiated=*/false},
       /*navigation_handle_callback=*/{});
   std::move(callback).Run(
       CreateContentBlocksForText(

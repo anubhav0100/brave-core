@@ -86,6 +86,9 @@ std::vector<base::WeakPtr<Tool>> BrowserToolProvider::GetTools() {
   if (inject_delegation_brief_tool_) {
     tool_ptrs.push_back(inject_delegation_brief_tool_->GetWeakPtr());
   }
+  if (create_delegation_task_tool_) {
+    tool_ptrs.push_back(create_delegation_task_tool_->GetWeakPtr());
+  }
   if (create_word_document_tool_) {
     tool_ptrs.push_back(create_word_document_tool_->GetWeakPtr());
   }
@@ -208,6 +211,8 @@ void BrowserToolProvider::CreateTools(
       std::make_unique<RejectDelegationTaskTool>(delegation_manager);
   inject_delegation_brief_tool_ =
       std::make_unique<InjectDelegationBriefTool>(delegation_manager);
+  create_delegation_task_tool_ =
+      std::make_unique<CreateDelegationTaskTool>(delegation_manager);
   create_word_document_tool_ =
       std::make_unique<CreateWordDocumentTool>(browser_context);
   read_word_document_tool_ =

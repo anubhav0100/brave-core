@@ -33,6 +33,7 @@ class CreatePdfDocumentTool;
 class CreatePresentationTool;
 class CreateSpreadsheetTool;
 class ApproveDelegationTaskTool;
+class CreateDelegationTaskTool;
 class CreateWordDocumentTool;
 class DelegateToSubagentTool;
 class DelegationProcessManager;
@@ -133,6 +134,7 @@ class BrowserToolProvider : public ToolProvider {
   std::unique_ptr<ApproveDelegationTaskTool> approve_delegation_task_tool_;
   std::unique_ptr<RejectDelegationTaskTool> reject_delegation_task_tool_;
   std::unique_ptr<InjectDelegationBriefTool> inject_delegation_brief_tool_;
+  std::unique_ptr<CreateDelegationTaskTool> create_delegation_task_tool_;
 #if BUILDFLAG(ENABLE_AI_CHAT_TAB_MANAGEMENT_TOOL)
   std::unique_ptr<TabManagementTool> tab_management_tool_;
 #endif

@@ -10,6 +10,7 @@
 #include "base/json/json_reader.h"
 #include "base/strings/strcat.h"
 #include "base/strings/string_number_conversions.h"
+#include "brave/browser/ai_chat/tools/tab_utils.h"
 #include "brave/browser/delegation/delegation_process_manager.h"
 #include "brave/components/ai_chat/core/browser/tools/tool_input_properties.h"
 #include "brave/components/ai_chat/core/browser/tools/tool_utils.h"
@@ -28,6 +29,10 @@ namespace {
 constexpr char kPropertyNameTaskId[] = "task_id";
 constexpr char kPropertyNameComments[] = "comments";
 constexpr char kPropertyNameBrief[] = "brief";
+constexpr char kPropertyNameTitle[] = "title";
+constexpr char kPropertyNameDescription[] = "description";
+constexpr char kPropertyNameAssignedAgentId[] = "assigned_agent_id";
+constexpr char kPropertyNameRequiresApproval[] = "requires_approval";
 
 std::string FormatStatus(const base::DictValue& state) {
   const std::string* phase = state.FindString("phase");
@@ -150,8 +155,19 @@ void OpenDelegationTool::OnStarted(UseToolCallback callback, bool success) {
         {});
     return;
   }
+
+  GURL url(base::StrCat({manager_->base_url(), "/the-delegation/"}));
+  Profile* profile = Profile::FromBrowserContext(browser_context_);
+  if (profile && FindAndActivateExistingTab(profile, url)) {
+    std::move(callback).Run(
+        CreateContentBlocksForText("Delegation was already open - switched "
+                                   "to its tab."),
+        {});
+    return;
+  }
+
   content::WebContents* web_contents = nullptr;
-  if (Profile* profile = Profile::FromBrowserContext(browser_context_)) {
+  if (profile) {
     if (BrowserWindowInterface* browser =
             ProfileBrowserCollection::GetForProfile(profile)
                 ->FindTabbedBrowser()) {
@@ -167,7 +183,6 @@ void OpenDelegationTool::OnStarted(UseToolCallback callback, bool success) {
         {});
     return;
   }
-  GURL url(base::StrCat({manager_->base_url(), "/the-delegation/"}));
   web_contents->OpenURL(
       {url, content::Referrer(), WindowOpenDisposition::NEW_FOREGROUND_TAB,
        ui::PAGE_TRANSITION_LINK, /*is_renderer_initiated=*/false},
@@ -421,6 +436,96 @@ void InjectDelegationBriefTool::OnResult(UseToolCallback callback,
       CreateContentBlocksForText(
           success ? "Brief submitted - open_delegation to watch the team "
                     "work."
+                 : base::StrCat({"Error: ", error})),
+      {});
+}
+
+// CreateDelegationTaskTool --------------------------------------------------
+
+CreateDelegationTaskTool::CreateDelegationTaskTool(
+    DelegationProcessManager* manager)
+    : manager_(manager) {}
+
+CreateDelegationTaskTool::~CreateDelegationTaskTool() = default;
+
+std::string_view CreateDelegationTaskTool::Name() const {
+  return "create_delegation_task";
+}
+
+std::string_view CreateDelegationTaskTool::Description() const {
+  return "Adds a new task directly to the currently running Delegation "
+         "project, assigned to a specific agent - the same effect as one of "
+         "Delegation's own agents proposing work themselves. Only works "
+         "while a project is running (check get_delegation_status's phase "
+         "first, and use it to find a valid assigned_agent_id).";
+}
+
+std::optional<base::DictValue> CreateDelegationTaskTool::InputProperties()
+    const {
+  return CreateInputProperties(
+      {{kPropertyNameTitle, StringProperty("Short task title.")},
+       {kPropertyNameDescription,
+        StringProperty("What the assigned agent should do.")},
+       {kPropertyNameAssignedAgentId,
+        IntegerProperty("The numeric index of the agent to assign this task "
+                        "to, from get_delegation_status's agentStatuses.")},
+       {kPropertyNameRequiresApproval,
+        BooleanProperty("Whether this task's output needs your review "
+                        "before being marked done. Defaults to false.")}});
+}
+
+std::optional<std::vector<std::string>>
+CreateDelegationTaskTool::RequiredProperties() const {
+  return std::vector<std::string>{kPropertyNameTitle, kPropertyNameDescription,
+                                  kPropertyNameAssignedAgentId};
+}
+
+void CreateDelegationTaskTool::UseTool(const std::string& input_json,
+                                       UseToolCallback callback) {
+  if (!manager_) {
+    std::move(callback).Run(
+        CreateContentBlocksForText("Error: Delegation isn't available."), {});
+    return;
+  }
+  auto input = base::JSONReader::ReadDict(input_json,
+                                          base::JSON_PARSE_CHROMIUM_EXTENSIONS);
+  const std::string* title =
+      input.has_value() ? input->FindString(kPropertyNameTitle) : nullptr;
+  const std::string* description =
+      input.has_value() ? input->FindString(kPropertyNameDescription)
+                        : nullptr;
+  std::optional<int> assigned_agent_id =
+      input.has_value() ? input->FindInt(kPropertyNameAssignedAgentId)
+                        : std::nullopt;
+  if (!title || title->empty() || !description || !assigned_agent_id) {
+    std::move(callback).Run(
+        CreateContentBlocksForText(
+            "Error: 'title', 'description', and 'assigned_agent_id' are "
+            "required"),
+        {});
+    return;
+  }
+
+  base::DictValue payload;
+  payload.Set("title", *title);
+  payload.Set("description", *description);
+  payload.Set("assignedAgentId", *assigned_agent_id);
+  if (std::optional<bool> requires_approval =
+          input->FindBool(kPropertyNameRequiresApproval)) {
+    payload.Set("requiresUserApproval", *requires_approval);
+  }
+  manager_->SendControlAction(
+      "createTask", std::move(payload),
+      base::BindOnce(&CreateDelegationTaskTool::OnResult,
+                     weak_ptr_factory_.GetWeakPtr(), std::move(callback)));
+}
+
+void CreateDelegationTaskTool::OnResult(UseToolCallback callback,
+                                        bool success,
+                                        std::string error) {
+  std::move(callback).Run(
+      CreateContentBlocksForText(
+          success ? "Task created and assigned."
                  : base::StrCat({"Error: ", error})),
       {});
 }
