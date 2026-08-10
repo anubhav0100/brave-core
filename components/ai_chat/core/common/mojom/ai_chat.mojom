@@ -53,6 +53,11 @@ const string kCreateSpreadsheetToolName = "create_spreadsheet";
 const string kCreatePresentationToolName = "create_presentation";
 const string kCreatePdfDocumentToolName = "create_pdf_document";
 const string kGetDesktopScreenshotToolName = "get_desktop_screenshot";
+const string kDesktopMoveMouseToolName = "desktop_move_mouse";
+const string kDesktopClickToolName = "desktop_click";
+const string kDesktopScrollToolName = "desktop_scroll";
+const string kDesktopTypeTextToolName = "desktop_type_text";
+const string kDesktopPressKeyToolName = "desktop_press_key";
 
 // Server side tools
 const string kBraveNewsSearchToolName = "brave_news_search";

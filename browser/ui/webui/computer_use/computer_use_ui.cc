@@ -35,13 +35,20 @@ void ComputerUseUI::GetState(GetStateCallback callback) {
   auto* state =
       computer_use::ComputerUseSessionStateFactory::GetForBrowserContext(
           web_ui()->GetWebContents()->GetBrowserContext());
-  std::move(callback).Run(state->IsActive(), state->GetLatestFrameDataUrl());
+  std::move(callback).Run(state->IsActive(), state->IsEmergencyStopped(),
+                          state->GetLatestFrameDataUrl());
 }
 
 void ComputerUseUI::Stop() {
   computer_use::ComputerUseSessionStateFactory::GetForBrowserContext(
       web_ui()->GetWebContents()->GetBrowserContext())
-      ->Stop();
+      ->EmergencyStop();
+}
+
+void ComputerUseUI::Resume() {
+  computer_use::ComputerUseSessionStateFactory::GetForBrowserContext(
+      web_ui()->GetWebContents()->GetBrowserContext())
+      ->ResumeAfterStop();
 }
 
 WEB_UI_CONTROLLER_TYPE_IMPL(ComputerUseUI)

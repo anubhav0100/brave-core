@@ -957,6 +957,24 @@
   <message name="IDS_CHAT_UI_TOOL_GET_DESKTOP_SCREENSHOT_PERMISSION_IMPLICATIONS" desc="Explanation shown in the permission prompt when the assistant wants to capture a screenshot of the user's entire desktop, not just this browser. Calls out that this is a whole-desktop capture and that the image is sent to the model." formatter_data="webui=AiChat">
     AI Automation Browser AI wants to see a screenshot of your entire desktop - not just this browser, whatever else is on screen too. The captured image is sent to the model as part of this conversation. You'll only be asked once per conversation; deny to keep this off for the rest of it.
   </message>
+  <message name="IDS_CHAT_UI_TOOL_LABEL_DESKTOP_MOVE_MOUSE" desc="Label shown while the assistant is moving the OS mouse pointer." formatter_data="webui=AiChat">
+    Moving the mouse
+  </message>
+  <message name="IDS_CHAT_UI_TOOL_LABEL_DESKTOP_CLICK" desc="Label shown while the assistant is clicking somewhere on the desktop." formatter_data="webui=AiChat">
+    Clicking on your desktop
+  </message>
+  <message name="IDS_CHAT_UI_TOOL_LABEL_DESKTOP_SCROLL" desc="Label shown while the assistant is scrolling somewhere on the desktop." formatter_data="webui=AiChat">
+    Scrolling
+  </message>
+  <message name="IDS_CHAT_UI_TOOL_LABEL_DESKTOP_TYPE_TEXT" desc="Label shown while the assistant is typing text into whatever has keyboard focus on the desktop." formatter_data="webui=AiChat">
+    Typing on your desktop
+  </message>
+  <message name="IDS_CHAT_UI_TOOL_LABEL_DESKTOP_PRESS_KEY" desc="Label shown while the assistant is pressing a key or key combo on the desktop." formatter_data="webui=AiChat">
+    Pressing a key
+  </message>
+  <message name="IDS_CHAT_UI_TOOL_DESKTOP_INPUT_PERMISSION_IMPLICATIONS" desc="Explanation shown in the permission prompt the first time the assistant wants to control the mouse/keyboard at the OS level, not just inside this browser tab. Calls out that this is full desktop control, that a visible banner and a global stop hotkey exist, and that some actions will still ask again even after this is granted." formatter_data="webui=AiChat">
+    AI Automation Browser AI wants to control your mouse and keyboard - anywhere on your desktop, not just this browser tab. While active, a banner on chrome://computer-use shows what's happening, and pressing Ctrl+Alt+Shift+Esc at any time immediately stops it. You'll still be asked to confirm individual risky actions (like the first action against an app it hasn't used yet, or anything touching sensitive system tools) even after granting this.
+  </message>
   <message name="IDS_CHAT_UI_CODE_EXECUTION_CODE_LABEL" desc="Label for code section in code execution tool" formatter_data="webui=AiChat">
     Code:
   </message>

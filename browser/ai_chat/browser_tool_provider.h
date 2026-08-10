@@ -39,6 +39,13 @@ class DelegateToSubagentTool;
 class DelegationProcessManager;
 class GetDelegationStatusTool;
 class GetDesktopScreenshotTool;
+#if BUILDFLAG(IS_WIN)
+class DesktopClickTool;
+class DesktopMoveMouseTool;
+class DesktopPressKeyTool;
+class DesktopScrollTool;
+class DesktopTypeTextTool;
+#endif
 class InjectDelegationBriefTool;
 class OpenDelegationTool;
 class ReadWordDocumentTool;
@@ -137,6 +144,13 @@ class BrowserToolProvider : public ToolProvider {
   std::unique_ptr<InjectDelegationBriefTool> inject_delegation_brief_tool_;
   std::unique_ptr<CreateDelegationTaskTool> create_delegation_task_tool_;
   std::unique_ptr<GetDesktopScreenshotTool> get_desktop_screenshot_tool_;
+#if BUILDFLAG(IS_WIN)
+  std::unique_ptr<DesktopMoveMouseTool> desktop_move_mouse_tool_;
+  std::unique_ptr<DesktopClickTool> desktop_click_tool_;
+  std::unique_ptr<DesktopScrollTool> desktop_scroll_tool_;
+  std::unique_ptr<DesktopTypeTextTool> desktop_type_text_tool_;
+  std::unique_ptr<DesktopPressKeyTool> desktop_press_key_tool_;
+#endif
 #if BUILDFLAG(ENABLE_AI_CHAT_TAB_MANAGEMENT_TOOL)
   std::unique_ptr<TabManagementTool> tab_management_tool_;
 #endif

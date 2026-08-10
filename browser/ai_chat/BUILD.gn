@@ -112,6 +112,26 @@ static_library("ai_chat") {
     sources += [ "tools/tab_management_tool.h" ]
   }
 
+  # Phase 2 (local input injection) OS-level tools - Windows-only for now,
+  # matching //brave/browser/computer_use's InputInjector (see
+  # brave-ai-computer-use.md).
+  if (is_win) {
+    sources += [
+      "tools/computer_use/desktop_click_tool.cc",
+      "tools/computer_use/desktop_click_tool.h",
+      "tools/computer_use/desktop_input_tool_base.cc",
+      "tools/computer_use/desktop_input_tool_base.h",
+      "tools/computer_use/desktop_move_mouse_tool.cc",
+      "tools/computer_use/desktop_move_mouse_tool.h",
+      "tools/computer_use/desktop_press_key_tool.cc",
+      "tools/computer_use/desktop_press_key_tool.h",
+      "tools/computer_use/desktop_scroll_tool.cc",
+      "tools/computer_use/desktop_scroll_tool.h",
+      "tools/computer_use/desktop_type_text_tool.cc",
+      "tools/computer_use/desktop_type_text_tool.h",
+    ]
+  }
+
   public_deps = [
     "//brave/components/restricted_web_contents_delegate",
 
@@ -416,6 +436,10 @@ source_set("unit_tests") {
 
   if (enable_pdf) {
     sources += [ "pdf_text_extractor_unittest.cc" ]
+  }
+
+  if (is_win) {
+    sources += [ "tools/computer_use/desktop_press_key_tool_unittest.cc" ]
   }
 
   if (enable_printing) {

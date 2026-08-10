@@ -6,17 +6,20 @@
 module computer_use.mojom;
 
 // Browser-side handler for the computer-use WebUI page (chrome://computer-use).
-// Phase 1 is capture-only (no input control yet), so this interface is
-// deliberately small: show the user the current session state, and let them
-// end it.
 interface PageHandler {
-  // Whether an AI computer-use session is active, and the most recently
+  // Whether an AI computer-use session is active, whether the emergency
+  // stop has been triggered (and not yet resumed), and the most recently
   // captured desktop frame (as a data: URL), if any.
-  GetState() => (bool active, string frame_data_url);
+  GetState() => (bool active, bool emergency_stopped, string frame_data_url);
 
-  // Ends the current session. Phase 1 has no continuous action to
-  // interrupt yet - this clears the session state so the banner and
-  // captured frame stop being shown. Phase 2 (input control) will make
-  // this the real emergency stop.
+  // Triggers the emergency stop - same effect as the global hotkey
+  // (Ctrl+Alt+Shift+Esc): immediately blocks all further desktop_* input
+  // tool calls until Resume() is called. See brave-ai-computer-use.md,
+  // Phase 2 safety architecture item 2.
   Stop();
+
+  // Clears the emergency stop, allowing desktop_* input tools to run
+  // again. Deliberately requires this explicit user action - the AI can't
+  // resume itself.
+  Resume();
 };

@@ -24,4 +24,32 @@ source_set("computer_use") {
     "//ui/gfx",
     "//ui/gfx/codec",
   ]
+
+  # Phase 2 (local input injection) - OS-level SendInput()/RegisterHotKey()
+  # APIs are Windows-only for now, matching this feature's grounding
+  # research (see brave-ai-computer-use.md): no equivalent precedent was
+  # found for other platforms yet.
+  if (is_win) {
+    sources += [
+      "action_risk_classifier.cc",
+      "action_risk_classifier.h",
+      "global_stop_hotkey.cc",
+      "global_stop_hotkey.h",
+      "input_injector.cc",
+      "input_injector.h",
+    ]
+  }
+}
+
+if (is_win) {
+  source_set("unit_tests") {
+    testonly = true
+    sources = [ "action_risk_classifier_unittest.cc" ]
+    deps = [
+      ":computer_use",
+      "//base",
+      "//testing/gmock",
+      "//testing/gtest",
+    ]
+  }
 }

@@ -95,6 +95,16 @@ export function getToolLabel(toolName: string, toolInput: any) {
       return getSemanticHistorySearchToolNameLabel(toolInput)
     case Mojom.GET_DESKTOP_SCREENSHOT_TOOL_NAME:
       return getLocale(S.CHAT_UI_TOOL_LABEL_GET_DESKTOP_SCREENSHOT)
+    case Mojom.DESKTOP_MOVE_MOUSE_TOOL_NAME:
+      return getLocale(S.CHAT_UI_TOOL_LABEL_DESKTOP_MOVE_MOUSE)
+    case Mojom.DESKTOP_CLICK_TOOL_NAME:
+      return getLocale(S.CHAT_UI_TOOL_LABEL_DESKTOP_CLICK)
+    case Mojom.DESKTOP_SCROLL_TOOL_NAME:
+      return getLocale(S.CHAT_UI_TOOL_LABEL_DESKTOP_SCROLL)
+    case Mojom.DESKTOP_TYPE_TEXT_TOOL_NAME:
+      return getLocale(S.CHAT_UI_TOOL_LABEL_DESKTOP_TYPE_TEXT)
+    case Mojom.DESKTOP_PRESS_KEY_TOOL_NAME:
+      return getLocale(S.CHAT_UI_TOOL_LABEL_DESKTOP_PRESS_KEY)
     // <if expr="enable_ai_chat_tab_management_tool">
     case Mojom.TAB_MANAGEMENT_TOOL_NAME:
       return getLocale(S.CHAT_UI_TOOL_LABEL_TAB_MANAGEMENT)

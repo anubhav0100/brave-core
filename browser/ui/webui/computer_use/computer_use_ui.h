@@ -36,6 +36,7 @@ class ComputerUseUI : public content::WebUIController,
   // computer_use::mojom::PageHandler:
   void GetState(GetStateCallback callback) override;
   void Stop() override;
+  void Resume() override;
 
   mojo::Receiver<computer_use::mojom::PageHandler> receiver_{this};
 
