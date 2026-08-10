@@ -52,6 +52,7 @@ const string kRunWorkflowToolName = "run_workflow";
 const string kCreateSpreadsheetToolName = "create_spreadsheet";
 const string kCreatePresentationToolName = "create_presentation";
 const string kCreatePdfDocumentToolName = "create_pdf_document";
+const string kGetDesktopScreenshotToolName = "get_desktop_screenshot";
 
 // Server side tools
 const string kBraveNewsSearchToolName = "brave_news_search";

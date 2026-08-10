@@ -230,6 +230,9 @@ using extensions::ChromeContentBrowserClientExtensionsPart;
 #include "brave/browser/ai_chat/ai_chat_service_factory.h"
 #include "brave/browser/ui/webui/ai_chat/ai_chat_ui.h"
 #include "brave/browser/ui/webui/ai_chat/ai_chat_untrusted_conversation_ui.h"
+#if !BUILDFLAG(IS_ANDROID)
+#include "brave/browser/ui/webui/computer_use/computer_use_ui.h"
+#endif
 #include "brave/components/ai_chat/content/browser/ai_chat_brave_search_throttle.h"
 #include "brave/components/ai_chat/content/browser/ai_chat_throttle.h"
 #include "brave/components/ai_chat/core/browser/utils.h"
@@ -237,6 +240,7 @@ using extensions::ChromeContentBrowserClientExtensionsPart;
 #include "brave/components/ai_chat/core/common/mojom/ai_chat.mojom.h"
 #include "brave/components/ai_chat/core/common/mojom/bookmarks.mojom.h"
 #include "brave/components/ai_chat/core/common/mojom/common.mojom.h"
+#include "brave/components/computer_use/common/computer_use_ui.mojom.h"
 #include "brave/components/ai_chat/core/common/mojom/customization_settings.mojom.h"
 #include "brave/components/ai_chat/core/common/mojom/history.mojom.h"
 #include "brave/components/ai_chat/core/common/mojom/ollama.mojom.h"
@@ -699,6 +703,9 @@ void BraveContentBrowserClient::RegisterTrustedWebUIInterfaceBrokers(
     registry.ForWebUI<AIChatUntrustedConversationUI>()
         .Add<ai_chat::mojom::UntrustedUIHandler>()
         .Add<ai_chat::mojom::UntrustedService>();
+#if !BUILDFLAG(IS_ANDROID)
+    registry.ForWebUI<ComputerUseUI>().Add<computer_use::mojom::PageHandler>();
+#endif
   }
 #endif
 

@@ -64,6 +64,10 @@
 #include "brave/components/ai_chat/core/common/features.h"
 #endif
 
+#if BUILDFLAG(ENABLE_AI_CHAT) && !BUILDFLAG(IS_ANDROID)
+#include "brave/browser/ui/webui/computer_use/computer_use_ui.h"
+#endif
+
 #if BUILDFLAG(ENABLE_BRAVE_ADS)
 #include "brave/browser/brave_ads/ads_service_factory.h"
 #include "brave/browser/ui/webui/ads_internals/ads_internals_ui.h"
@@ -169,6 +173,10 @@ WebUIController* NewWebUI(WebUI* web_ui, const GURL& url) {
   } else if (host == kTorInternalsHost) {
     return new TorInternalsUI(web_ui, url.host());
 #endif
+#if BUILDFLAG(ENABLE_AI_CHAT) && !BUILDFLAG(IS_ANDROID)
+  } else if (host == kComputerUseHost) {
+    return new ComputerUseUI(web_ui, url.host());
+#endif
   }
   return nullptr;
 }
@@ -215,7 +223,11 @@ WebUIFactoryFunction GetWebUIFactoryFunction(WebUI* web_ui,
            brave_rewards::prefs::kDisabledByPolicy)) ||
 #endif  // BUILDFLAG(ENABLE_BRAVE_ADS)
       (url.host() == kSkusInternalsHost &&
-       base::FeatureList::IsEnabled(skus::features::kSkusFeature))) {
+       base::FeatureList::IsEnabled(skus::features::kSkusFeature)) ||
+#if BUILDFLAG(ENABLE_AI_CHAT) && !BUILDFLAG(IS_ANDROID)
+      url.host() == kComputerUseHost ||
+#endif
+      false) {
     return &NewWebUI;
   }
 

@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<grit-part>
+   <include name="IDR_COMPUTER_USE_HTML" file="../computer_use/browser/resources/computer_use.html" type="BINDATA" />
+</grit-part>

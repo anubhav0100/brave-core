@@ -951,6 +951,12 @@
   <message name="IDS_CHAT_UI_TOOL_SEMANTIC_HISTORY_SEARCH_PERMISSION_IMPLICATIONS" desc="Explanation shown in the permission prompt when the assistant wants to search the user's local browsing history. Calls out that the search itself is on-device and only the matched pages flow to Brave AI." formatter_data="webui=AiChat">
     AI Automation Browser AI wants to search your browsing history. The search runs locally on your device, so your full history isn't sent anywhere. Only the matching pages' titles, URLs, and indexed text passages will be sent to AI Automation Browser AI as part of this conversation.
   </message>
+  <message name="IDS_CHAT_UI_TOOL_LABEL_GET_DESKTOP_SCREENSHOT" desc="Label shown while the assistant is capturing a screenshot of the user's whole desktop." formatter_data="webui=AiChat">
+    Taking a screenshot of your desktop
+  </message>
+  <message name="IDS_CHAT_UI_TOOL_GET_DESKTOP_SCREENSHOT_PERMISSION_IMPLICATIONS" desc="Explanation shown in the permission prompt when the assistant wants to capture a screenshot of the user's entire desktop, not just this browser. Calls out that this is a whole-desktop capture and that the image is sent to the model." formatter_data="webui=AiChat">
+    AI Automation Browser AI wants to see a screenshot of your entire desktop - not just this browser, whatever else is on screen too. The captured image is sent to the model as part of this conversation. You'll only be asked once per conversation; deny to keep this off for the rest of it.
+  </message>
   <message name="IDS_CHAT_UI_CODE_EXECUTION_CODE_LABEL" desc="Label for code section in code execution tool" formatter_data="webui=AiChat">
     Code:
   </message>

@@ -1,0 +1,22 @@
+// Copyright (c) 2026 The Brave Authors. All rights reserved.
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this file,
+// You can obtain one at https://mozilla.org/MPL/2.0/.
+
+module computer_use.mojom;
+
+// Browser-side handler for the computer-use WebUI page (chrome://computer-use).
+// Phase 1 is capture-only (no input control yet), so this interface is
+// deliberately small: show the user the current session state, and let them
+// end it.
+interface PageHandler {
+  // Whether an AI computer-use session is active, and the most recently
+  // captured desktop frame (as a data: URL), if any.
+  GetState() => (bool active, string frame_data_url);
+
+  // Ends the current session. Phase 1 has no continuous action to
+  // interrupt yet - this clears the session state so the banner and
+  // captured frame stop being shown. Phase 2 (input control) will make
+  // this the real emergency stop.
+  Stop();
+};

@@ -1,0 +1,27 @@
+# Copyright (c) 2026 The Brave Authors. All rights reserved.
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this file,
+# You can obtain one at https://mozilla.org/MPL/2.0/.
+
+source_set("computer_use") {
+  sources = [
+    "computer_use_session_state.cc",
+    "computer_use_session_state.h",
+    "computer_use_session_state_factory.cc",
+    "computer_use_session_state_factory.h",
+    "desktop_capture_session.cc",
+    "desktop_capture_session.h",
+  ]
+
+  deps = [
+    "//base",
+    "//components/keyed_service/content",
+    "//components/keyed_service/core",
+    "//content/public/browser",
+    "//skia",
+    "//third_party/libyuv",
+    "//third_party/webrtc_overrides:webrtc_component",
+    "//ui/gfx",
+    "//ui/gfx/codec",
+  ]
+}

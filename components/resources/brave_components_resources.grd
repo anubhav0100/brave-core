@@ -98,6 +98,9 @@
       <part file="../playlist/content/browser/resources/playlist_resources.grdp" />
       <part file="../brave_news/browser/resources/news_resources.grdp" />
       <part file="../skus/browser/resources/skus_internals_resources.grdp" />
+      <if expr="enable_ai_chat">
+        <part file="../computer_use/browser/resources/computer_use_resources.grdp" />
+      </if>
       <if expr="not is_android">
         <part file="brave_blank_page_resources.grdp" />
         <part file="brave_new_tab_page_resources.grdp" />

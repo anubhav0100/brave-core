@@ -126,10 +126,12 @@ repack("resources") {
     deps += [
       "//brave/components/ai_chat/resources",
       "//brave/components/ai_chat/resources/custom_site_distiller_scripts:generated_resources",
+      "//brave/components/computer_use/browser/resources:generated_resources",
     ]
     sources += [
       "$root_gen_dir/brave/components/ai_chat/resources/ai_chat_ui_generated.pak",
       "$root_gen_dir/brave/components/ai_chat/resources/custom_site_distiller_scripts/custom_site_distiller_scripts_generated.pak",
+      "$root_gen_dir/brave/components/computer_use/browser/resources/computer_use_generated.pak",
     ]
   }
 

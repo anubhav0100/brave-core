@@ -20,6 +20,10 @@ export function getToolPermissionImplications(toolName: string) {
       return getLocale(
         S.CHAT_UI_TOOL_SEMANTIC_HISTORY_SEARCH_PERMISSION_IMPLICATIONS,
       )
+    case Mojom.GET_DESKTOP_SCREENSHOT_TOOL_NAME:
+      return getLocale(
+        S.CHAT_UI_TOOL_GET_DESKTOP_SCREENSHOT_PERMISSION_IMPLICATIONS,
+      )
     // <if expr="enable_ai_chat_tab_management_tool">
     case Mojom.TAB_MANAGEMENT_TOOL_NAME:
       return formatLocale(

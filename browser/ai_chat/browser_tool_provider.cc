@@ -19,6 +19,7 @@
 #include "brave/browser/ai_chat/tools/create_presentation_tool.h"
 #include "brave/browser/ai_chat/tools/create_spreadsheet_tool.h"
 #include "brave/browser/ai_chat/tools/create_word_document_tool.h"
+#include "brave/browser/ai_chat/tools/computer_use/get_desktop_screenshot_tool.h"
 #include "brave/browser/ai_chat/tools/delegation_tools.h"
 #include "brave/browser/delegation/delegation_process_manager_factory.h"
 #include "brave/browser/ai_chat/tools/history_search_tool.h"
@@ -88,6 +89,9 @@ std::vector<base::WeakPtr<Tool>> BrowserToolProvider::GetTools() {
   }
   if (create_delegation_task_tool_) {
     tool_ptrs.push_back(create_delegation_task_tool_->GetWeakPtr());
+  }
+  if (get_desktop_screenshot_tool_) {
+    tool_ptrs.push_back(get_desktop_screenshot_tool_->GetWeakPtr());
   }
   if (create_word_document_tool_) {
     tool_ptrs.push_back(create_word_document_tool_->GetWeakPtr());
@@ -213,6 +217,8 @@ void BrowserToolProvider::CreateTools(
       std::make_unique<InjectDelegationBriefTool>(delegation_manager);
   create_delegation_task_tool_ =
       std::make_unique<CreateDelegationTaskTool>(delegation_manager);
+  get_desktop_screenshot_tool_ =
+      std::make_unique<GetDesktopScreenshotTool>(browser_context);
   create_word_document_tool_ =
       std::make_unique<CreateWordDocumentTool>(browser_context);
   read_word_document_tool_ =
