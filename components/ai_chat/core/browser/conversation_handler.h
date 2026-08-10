@@ -417,6 +417,30 @@ class ConversationHandler : public mojom::ConversationHandler,
   void OnEngineCompletionComplete(EngineConsumer::GenerationResult result);
   void OnTitleGenerated(EngineConsumer::GenerationResult result);
   void CompleteGeneration(bool success);
+
+  // Rolling summarization (opt-in via kBraveAIChatRollingSummarizationEnabled):
+  // once the conversation grows past a threshold, folds the oldest turns into
+  // a single summary via a one-off model call (EngineConsumer::
+  // GenerateRewriteSuggestion, not the main streaming request path), so later
+  // requests don't keep sending the entire history verbatim. The full,
+  // unsummarized history is always kept in |chat_history_| for display -
+  // only the view built for the *next* generation request is compacted.
+  void MaybeSummarizeOlderHistory();
+  void OnHistorySummarized(size_t covers_count,
+                            EngineConsumer::GenerationResult result);
+  EngineConsumer::ConversationHistory BuildCompactedHistoryForGeneration();
+
+  // Model routing / fallback (opt-in via kBraveAIChatModelFallbackEnabled):
+  // if the configured fallback model is reachable and different from the
+  // model that just failed, retries the same turn once against it rather
+  // than surfacing the error immediately. Returns true if a retry was
+  // started (caller should not also treat this as a final failure).
+  bool MaybeRetryWithFallbackModel();
+  // Swaps |engine_| back from the fallback model to whatever it was before
+  // MaybeRetryWithFallbackModel() swapped it out - the conversation's own
+  // model selection (model_key_) was never changed, only the engine used for
+  // the one retried request, so this just undoes that temporary swap.
+  void RestoreEngineAfterFallbackRetry();
   void OnSuggestedQuestionsResponse(
       EngineConsumer::SuggestedQuestionResult result);
 
@@ -496,6 +520,21 @@ class ConversationHandler : public mojom::ConversationHandler,
   // Whether further assistant responses should be appended to the last or
   // created in a new sibling ConversationEntry.
   bool needs_new_entry_ = false;
+
+  // Rolling summary of the oldest |history_summary_covers_count_| entries of
+  // |chat_history_|, or nullopt if summarization hasn't triggered yet (or is
+  // disabled). See MaybeSummarizeOlderHistory().
+  std::optional<std::string> history_summary_;
+  size_t history_summary_covers_count_ = 0;
+  bool is_summarizing_history_ = false;
+
+  // True for the one retry attempt after MaybeRetryWithFallbackModel()
+  // switches models, so OnEngineCompletionComplete doesn't retry forever if
+  // the fallback model also fails.
+  bool is_fallback_retry_in_progress_ = false;
+  // The primary engine, saved off while |engine_| temporarily points at a
+  // fallback model for a single retry. See RestoreEngineAfterFallbackRetry().
+  std::unique_ptr<EngineConsumer> pre_fallback_engine_;
 
   bool is_print_preview_fallback_requested_ = false;
 

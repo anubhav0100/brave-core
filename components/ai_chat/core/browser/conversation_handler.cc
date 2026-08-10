@@ -51,6 +51,7 @@
 #include "brave/components/ai_chat/core/common/features.h"
 #include "brave/components/ai_chat/core/common/mojom/ai_chat.mojom.h"
 #include "brave/components/ai_chat/core/common/mojom/common.mojom.h"
+#include "brave/components/ai_chat/core/common/pref_names.h"
 #include "brave/components/ai_chat/core/common/prefs.h"
 #include "brave/components/api_request_helper/api_request_helper.h"
 #include "components/grit/brave_components_strings.h"
@@ -73,6 +74,12 @@ using ai_chat::mojom::CharacterType;
 using ai_chat::mojom::ConversationTurn;
 
 constexpr size_t kDefaultSuggestionsCount = 4;
+
+// Rolling summarization only kicks in once the conversation has grown past
+// this many entries, and always leaves the most recent entries untouched so
+// the model still has verbatim recent context.
+constexpr size_t kRollingSummarizationHistoryThreshold = 12;
+constexpr size_t kRollingSummarizationRecentTurnsToKeep = 6;
 
 // Determines whether a streamable event (e.g. completion) should be interrupted
 // by an event of type |event_tag| after which, if a new streamable chunk is
@@ -1347,10 +1354,24 @@ void ConversationHandler::PerformAssistantGeneration() {
   // assistant entries in a row.
   needs_new_entry_ = true;
 
+  // |compacted_history| must outlive the call below, which reads the history
+  // reference synchronously to build the outgoing request (see
+  // EngineConsumerOAIRemote::GenerateAssistantResponse - it doesn't retain
+  // the reference past the call). When no rolling summary has been generated
+  // yet (the common case, and always the case when the feature is disabled),
+  // we pass |chat_history_| directly rather than cloning it.
+  EngineConsumer::ConversationHistory compacted_history;
+  const EngineConsumer::ConversationHistory* history_for_generation =
+      &chat_history_;
+  if (history_summary_.has_value()) {
+    compacted_history = BuildCompactedHistoryForGeneration();
+    history_for_generation = &compacted_history;
+  }
+
   engine_->GenerateAssistantResponse(
-      associated_content_manager_->GetCachedContentsMap(), chat_history_,
-      IsTemporaryChat(), GetTools(), std::nullopt /* preferred_tool_name */,
-      conversation_capabilities_,
+      associated_content_manager_->GetCachedContentsMap(),
+      *history_for_generation, IsTemporaryChat(), GetTools(),
+      std::nullopt /* preferred_tool_name */, conversation_capabilities_,
       base::BindRepeating(&ConversationHandler::OnEngineCompletionDataReceived,
                           weak_ptr_factory_.GetWeakPtr()),
       base::BindOnce(&ConversationHandler::OnEngineCompletionComplete,
@@ -1790,8 +1811,22 @@ void ConversationHandler::OnEngineCompletionComplete(
         SetAPIError(mojom::APIError::None);
       }
     }
+
+    bool was_fallback_retry = is_fallback_retry_in_progress_;
+    is_fallback_retry_in_progress_ = false;
+    if (was_fallback_retry) {
+      RestoreEngineAfterFallbackRetry();
+    } else if (MaybeRetryWithFallbackModel()) {
+      return;
+    }
+
     CompleteGeneration(false);
     return;
+  }
+
+  if (is_fallback_retry_in_progress_) {
+    is_fallback_retry_in_progress_ = false;
+    RestoreEngineAfterFallbackRetry();
   }
 
   // Handle success, which might mean do nothing much since all data was passed
@@ -1845,6 +1880,8 @@ void ConversationHandler::CompleteGeneration(bool success) {
                          weak_ptr_factory_.GetWeakPtr()));
     }
 
+    MaybeSummarizeOlderHistory();
+
     MaybePopPendingRequests();
     if (!MaybeRespondToNextToolUseRequest()) {
       // Inform tool providers that there are no more tool use requests to
@@ -1861,6 +1898,142 @@ void ConversationHandler::CompleteGeneration(bool success) {
     // Failure should stop any tool handling, and relay to ToolProviders because
     // we can't resume. User will have to resubmit.
     StopTask();
+  }
+}
+
+void ConversationHandler::MaybeSummarizeOlderHistory() {
+  if (is_summarizing_history_ || !engine_ ||
+      !prefs_->GetBoolean(
+          ai_chat::prefs::kBraveAIChatRollingSummarizationEnabled)) {
+    return;
+  }
+
+  if (chat_history_.size() < kRollingSummarizationHistoryThreshold) {
+    return;
+  }
+
+  size_t new_covers_count =
+      chat_history_.size() - kRollingSummarizationRecentTurnsToKeep;
+  // Nothing new to fold in since the last summary.
+  if (new_covers_count <= history_summary_covers_count_) {
+    return;
+  }
+
+  std::string transcript;
+  for (size_t i = 0; i < new_covers_count; ++i) {
+    const auto& turn = chat_history_[i];
+    base::StrAppend(&transcript,
+                    {turn->character_type == mojom::CharacterType::HUMAN
+                          ? "User: "
+                          : "Assistant: ",
+                     turn->text, "\n\n"});
+  }
+  if (history_summary_.has_value()) {
+    // Fold the previous summary in as context so it isn't lost.
+    transcript = base::StrCat(
+        {"Summary so far: ", *history_summary_, "\n\n", transcript});
+  }
+
+  is_summarizing_history_ = true;
+  engine_->GenerateRewriteSuggestion(
+      transcript, mojom::ActionType::SUMMARIZE_SELECTED_TEXT,
+      base::DoNothing(),
+      base::BindOnce(&ConversationHandler::OnHistorySummarized,
+                     weak_ptr_factory_.GetWeakPtr(), new_covers_count));
+}
+
+void ConversationHandler::OnHistorySummarized(
+    size_t covers_count,
+    EngineConsumer::GenerationResult result) {
+  is_summarizing_history_ = false;
+
+  // Ignore failures silently, matching OnTitleGenerated - the next
+  // completed generation will simply try again.
+  if (!result.has_value() || !result->event ||
+      !result->event->is_completion_event() ||
+      result->event->get_completion_event()->completion.empty()) {
+    return;
+  }
+
+  history_summary_ = result->event->get_completion_event()->completion;
+  history_summary_covers_count_ = covers_count;
+}
+
+EngineConsumer::ConversationHistory
+ConversationHandler::BuildCompactedHistoryForGeneration() {
+  CHECK(history_summary_.has_value());
+  CHECK_LE(history_summary_covers_count_, chat_history_.size());
+
+  EngineConsumer::ConversationHistory history;
+  // Represented as a HUMAN turn (matching the "history starts with a HUMAN
+  // turn" invariant relied on elsewhere) with a fresh uuid - BuildOAIMessages
+  // DCHECKs every turn has one.
+  history.push_back(mojom::ConversationTurn::New(
+      base::Uuid::GenerateRandomV4().AsLowercaseString(),
+      mojom::CharacterType::HUMAN, mojom::ActionType::RESPONSE,
+      base::StrCat({"[Summary of earlier conversation, provided for "
+                    "context]: ",
+                    *history_summary_}),
+      std::nullopt /* prompt */, std::nullopt /* selected_text */,
+      std::nullopt /* events */, base::Time::Now(), std::nullopt /* edits */,
+      std::nullopt /* uploaded_files */, nullptr /* skill */,
+      false /* from_brave_search_SERP */, std::nullopt /* model_key */,
+      nullptr /* near_verification_status */));
+
+  for (size_t i = history_summary_covers_count_; i < chat_history_.size();
+       ++i) {
+    history.push_back(chat_history_[i]->Clone());
+  }
+
+  return history;
+}
+
+bool ConversationHandler::MaybeRetryWithFallbackModel() {
+  if (!prefs_->GetBoolean(
+          ai_chat::prefs::kBraveAIChatModelFallbackEnabled)) {
+    return false;
+  }
+  // Only retry errors a different model could plausibly fix - not local
+  // config problems like a malformed custom endpoint URL.
+  if (current_error_.api_error == mojom::APIError::None ||
+      current_error_.api_error == mojom::APIError::InvalidEndpointURL) {
+    return false;
+  }
+  // Don't retry mid tool-loop - re-driving tool-call state on a freshly
+  // swapped-in engine instance risks corrupting it. Only plain turns are
+  // retried.
+  if (tool_use_task_state_ != mojom::TaskState::kNone) {
+    return false;
+  }
+
+  std::string fallback_key = prefs_->GetString(
+      ai_chat::prefs::kBraveAIChatModelFallbackModelKey);
+  if (fallback_key.empty() || fallback_key == model_key_ ||
+      !model_service_->GetModel(fallback_key)) {
+    return false;
+  }
+
+  std::unique_ptr<EngineConsumer> fallback_engine =
+      model_service_->GetEngineForModel(fallback_key, url_loader_factory_,
+                                        credential_manager_);
+  if (!fallback_engine) {
+    return false;
+  }
+
+  // Swap in the fallback engine for this one retry only. |model_key_| (and
+  // therefore what the UI shows as the conversation's selected model) is
+  // deliberately left untouched, so a transient failure doesn't silently
+  // change what model future turns use.
+  pre_fallback_engine_ = std::move(engine_);
+  engine_ = std::move(fallback_engine);
+  is_fallback_retry_in_progress_ = true;
+  PerformAssistantGeneration();
+  return true;
+}
+
+void ConversationHandler::RestoreEngineAfterFallbackRetry() {
+  if (pre_fallback_engine_) {
+    engine_ = std::move(pre_fallback_engine_);
   }
 }
 

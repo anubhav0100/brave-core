@@ -307,6 +307,13 @@ const PrefsUtil::TypedPrefMap& BravePrefsUtil::GetAllowlistedKeys() {
       settings_api::PrefType::kBoolean;
   (*s_brave_allowlist)[ai_chat::prefs::kBraveAIChatContentIndexingEnabled] =
       settings_api::PrefType::kBoolean;
+  (*s_brave_allowlist)
+      [ai_chat::prefs::kBraveAIChatRollingSummarizationEnabled] =
+          settings_api::PrefType::kBoolean;
+  (*s_brave_allowlist)[ai_chat::prefs::kBraveAIChatModelFallbackEnabled] =
+      settings_api::PrefType::kBoolean;
+  (*s_brave_allowlist)[ai_chat::prefs::kBraveAIChatModelFallbackModelKey] =
+      settings_api::PrefType::kString;
 
   // Survey Panelist pref
   (*s_brave_allowlist)

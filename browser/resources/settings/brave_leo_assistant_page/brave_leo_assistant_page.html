@@ -69,6 +69,32 @@ You can obtain one at https://mozilla.org/MPL/2.0/. -->
       </cr-button>
     </div>
   </template>
+  <settings-toggle-button class="cr-row hr"
+    id="rollingSummarizationToggle"
+    pref="{{prefs.brave.ai_chat.rolling_summarization_enabled}}"
+    label="$i18n{braveLeoAssistantRollingSummarizationLabel}"
+    sub-label="$i18n{braveLeoAssistantRollingSummarizationDesc}">
+  </settings-toggle-button>
+  <settings-toggle-button class="cr-row hr"
+    id="modelFallbackToggle"
+    pref="{{prefs.brave.ai_chat.model_fallback_enabled}}"
+    label="$i18n{braveLeoAssistantModelFallbackLabel}"
+    sub-label="$i18n{braveLeoAssistantModelFallbackDesc}">
+  </settings-toggle-button>
+  <template is="dom-if" if="[[prefs.brave.ai_chat.model_fallback_enabled.value]]" restamp>
+    <div class="settings-box">
+      <div class="flex cr-padded-text">
+        <div>$i18n{braveLeoAssistantModelFallbackModelLabel}</div>
+      </div>
+      <leo-model-selector
+        class="cr-padded-text"
+        selected-key="[[prefs.brave.ai_chat.model_fallback_model_key.value]]"
+        models="[[modelFallbackModels_]]"
+        is-premium-user="[[isPremiumUser_]]"
+        on-model-changed="onModelFallbackModelChange_">
+      </leo-model-selector>
+    </div>
+  </template>
   <cr-link-row class="hr"
     label="$i18n{braveLeoAssistantAutocompleteLink}"
     on-click="openAutocompleteSetting_">

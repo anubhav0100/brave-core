@@ -16,8 +16,9 @@ import {routes} from '../route.js';
 import {getTemplate} from './brave_leo_assistant_page.html.js'
 import {BraveLeoAssistantBrowserProxy,
   BraveLeoAssistantBrowserProxyImpl, PremiumStatus,
-  PremiumInfo}
+  PremiumInfo, ModelWithSubtitle}
   from './brave_leo_assistant_browser_proxy.js'
+import './model_selector.js'
 
 const BraveLeoAssistantPageBase =
   WebUiListenerMixin(I18nMixin(PrefsMixin(PolymerElement)))
@@ -58,6 +59,7 @@ class BraveLeoAssistantPageElement extends BraveLeoAssistantPageBase {
         },
         contentIndexEntryCount_: { type: Number, value: 0 },
         contentIndexAvailable_: { type: Boolean, value: false },
+        modelFallbackModels_: { type: Array },
       }
     }
 
@@ -68,6 +70,7 @@ class BraveLeoAssistantPageElement extends BraveLeoAssistantPageBase {
     declare leoAssistantShowOnToolbarPref_: boolean
     declare contentIndexEntryCount_: number
     declare contentIndexAvailable_: boolean
+    declare modelFallbackModels_: ModelWithSubtitle[]
     premiumStatus_: PremiumStatus = PremiumStatus.Unknown
     browserProxy_: BraveLeoAssistantBrowserProxy =
       BraveLeoAssistantBrowserProxyImpl.getInstance()
@@ -87,6 +90,7 @@ class BraveLeoAssistantPageElement extends BraveLeoAssistantPageBase {
       this.updateShowLeoAssistantIcon_()
       this.updateCurrentPremiumStatus()
       this.updateContentIndexStatus_()
+      this.fetchModelFallbackModels_()
 
       this.addWebUiListener('settings-brave-leo-assistant-changed',
       (isLeoVisible: boolean) => {
@@ -185,6 +189,18 @@ class BraveLeoAssistantPageElement extends BraveLeoAssistantPageBase {
       this.browserProxy_.clearContentIndex().then(() => {
         this.updateContentIndexStatus_()
       })
+    }
+
+    private fetchModelFallbackModels_() {
+      this.browserProxy_.getSettingsHelper().getModelsWithSubtitles()
+        .then((value: { models: ModelWithSubtitle[]; }) => {
+          this.modelFallbackModels_ = value.models
+        })
+    }
+
+    onModelFallbackModelChange_(e: CustomEvent<{value: string}>) {
+      this.setPrefValue('brave.ai_chat.model_fallback_model_key',
+        e.detail.value)
     }
 }
 

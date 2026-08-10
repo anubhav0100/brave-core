@@ -1698,6 +1698,21 @@
   <message name="IDS_SETTINGS_LEO_ASSISTANT_CONTENT_INDEXING_CLEAR_BUTTON_LABEL" desc="Button label to clear the content index">
     Clear index
   </message>
+  <message name="IDS_SETTINGS_LEO_ASSISTANT_ROLLING_SUMMARIZATION_LABEL" desc="The text for settings option to enable rolling conversation summarization">
+    Summarize older messages automatically
+  </message>
+  <message name="IDS_SETTINGS_LEO_ASSISTANT_ROLLING_SUMMARIZATION_DESC" desc="The description for settings option to enable rolling conversation summarization">
+    Once a conversation grows long, older messages are folded into a short summary instead of being sent in full on every request. Off by default - the model sees the entire conversation history verbatim.
+  </message>
+  <message name="IDS_SETTINGS_LEO_ASSISTANT_MODEL_FALLBACK_LABEL" desc="The text for settings option to enable model fallback on failure">
+    Retry with a fallback model on failure
+  </message>
+  <message name="IDS_SETTINGS_LEO_ASSISTANT_MODEL_FALLBACK_DESC" desc="The description for settings option to enable model fallback on failure">
+    If a response fails (for example, a custom model endpoint is unreachable), automatically retry once with the model chosen below before showing an error.
+  </message>
+  <message name="IDS_SETTINGS_LEO_ASSISTANT_MODEL_FALLBACK_MODEL_LABEL" desc="The label for the fallback model selection dropdown">
+    Fallback model
+  </message>
   <message name="IDS_SETTINGS_LEO_ASSISTANT_TAB_ORGANIZATION_LABEL" desc="The text for settings option to enable tab focus mode">
     Tab Focus Mode
   </message>

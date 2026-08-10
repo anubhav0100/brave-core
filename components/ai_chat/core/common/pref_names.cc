@@ -50,6 +50,10 @@ void RegisterProfilePrefs(PrefRegistrySimple* registry) {
     registry->RegisterBooleanPref(kBraveAIChatOllamaFetchEnabled, false);
     registry->RegisterDictionaryPref(kAIChatObliviousHttpKeyConfigs);
     registry->RegisterTimePref(kRemoteModelsCachedAt, {});
+    registry->RegisterBooleanPref(kBraveAIChatRollingSummarizationEnabled,
+                                  false);
+    registry->RegisterBooleanPref(kBraveAIChatModelFallbackEnabled, false);
+    registry->RegisterStringPref(kBraveAIChatModelFallbackModelKey, "");
   }
   registry->RegisterBooleanPref(kEnabledByPolicy, true);
 }

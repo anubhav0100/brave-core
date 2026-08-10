@@ -148,6 +148,20 @@ inline constexpr char kBraveAIChatContentIndexingEnabled[] =
 // and cached to disk. Used for TTL checks without reading the cache file.
 inline constexpr char kRemoteModelsCachedAt[] =
     "brave.ai_chat.remote_models_cached_at";
+// Whether older conversation turns get periodically folded into a rolling
+// summary once a conversation grows long, via a one-off model call outside
+// the main request path (see ConversationHandler::MaybeSummarizeOlderHistory).
+// Opt-in because it means older turns stop being sent to the model verbatim.
+inline constexpr char kBraveAIChatRollingSummarizationEnabled[] =
+    "brave.ai_chat.rolling_summarization_enabled";
+// Whether a failed generation should be automatically retried once against a
+// fallback model (see ConversationHandler::MaybeRetryWithFallbackModel).
+inline constexpr char kBraveAIChatModelFallbackEnabled[] =
+    "brave.ai_chat.model_fallback_enabled";
+// The model key to use as the fallback target. Empty means "no fallback
+// configured" even if the feature above is enabled.
+inline constexpr char kBraveAIChatModelFallbackModelKey[] =
+    "brave.ai_chat.model_fallback_model_key";
 
 COMPONENT_EXPORT(AI_CHAT_COMMON)
 void RegisterProfilePrefs(PrefRegistrySimple* registry);
