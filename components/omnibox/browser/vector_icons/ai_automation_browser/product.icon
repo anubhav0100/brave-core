@@ -1,0 +1,37 @@
+// Copyright (c) 2026 The Brave Authors. All rights reserved.
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this file,
+// You can obtain one at http://mozilla.org/MPL/2.0/.
+
+// AI Automation Browser mark: a shield (mirroring
+// //brave/app/theme/ai_automation_browser/product_logo.svg) with a small
+// node-graph glyph in place of Brave's lion.
+CANVAS_DIMENSIONS, 32,
+// SHIELD BLUE
+PATH_COLOR_ARGB, 0xFF, 0x1E, 0x6F, 0xF2,
+MOVE_TO, 8, 4,
+LINE_TO, 24, 4,
+LINE_TO, 27, 9,
+LINE_TO, 27, 17,
+LINE_TO, 16, 29,
+LINE_TO, 5, 17,
+LINE_TO, 5, 9,
+CLOSE,
+NEW_PATH,
+// WHITE RING
+PATH_COLOR_ARGB, 0xFF, 0xFF, 0xFF, 0xFF,
+CIRCLE, 16, 16, 5,
+NEW_PATH,
+// SHIELD BLUE (ring hole)
+PATH_COLOR_ARGB, 0xFF, 0x1E, 0x6F, 0xF2,
+CIRCLE, 16, 16, 3,
+NEW_PATH,
+// WHITE NODES
+PATH_COLOR_ARGB, 0xFF, 0xFF, 0xFF, 0xFF,
+CIRCLE, 16, 7, 2.2,
+CIRCLE, 10, 21, 2.2,
+CIRCLE, 22, 21, 2.2,
+NEW_PATH,
+// ORANGE ACCENT
+PATH_COLOR_ARGB, 0xFF, 0xFF, 0x7A, 0x1A,
+CIRCLE, 23, 10, 2

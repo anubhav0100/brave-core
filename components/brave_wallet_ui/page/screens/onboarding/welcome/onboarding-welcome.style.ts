@@ -60,7 +60,7 @@ export const Content = styled(Column)`
 `
 
 export const BraveIcon = styled(Icon).attrs({
-  name: 'brave-icon-release-color',
+  name: 'shield-done-filled',
 })`
   --leo-icon-size: 20px;
 `
