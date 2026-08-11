@@ -60,6 +60,9 @@
 #include "brave/components/ai_chat/core/browser/utils.h"
 #include "brave/components/ai_chat/core/common/features.h"
 #include "brave/components/ai_chat/core/common/pref_names.h"
+#if BUILDFLAG(ENABLE_BRAVE_AI_CHAT_AGENT_PROFILE)
+#include "brave/browser/ai_chat/ai_chat_agent_profile_helper.h"
+#endif
 #endif
 
 #if BUILDFLAG(ENABLE_BRAVE_VPN)
@@ -266,6 +269,7 @@ void BraveBrowserCommandController::InitBraveCommandState() {
   }
   UpdateCommandForWebcompatReporter();
   UpdateCommandForComputerUse();
+  UpdateCommandForAIChatAgentProfile();
 #if BUILDFLAG(ENABLE_TOR)
   UpdateCommandForTor();
 #endif
@@ -418,6 +422,17 @@ void BraveBrowserCommandController::UpdateCommandForWebcompatReporter() {
 
 void BraveBrowserCommandController::UpdateCommandForComputerUse() {
   UpdateCommandEnabled(IDC_SHOW_COMPUTER_USE, true);
+}
+
+void BraveBrowserCommandController::UpdateCommandForAIChatAgentProfile() {
+  bool enabled = false;
+#if BUILDFLAG(ENABLE_AI_CHAT) && BUILDFLAG(ENABLE_BRAVE_AI_CHAT_AGENT_PROFILE)
+  enabled = ai_chat::features::IsAIChatAgentProfileEnabled() &&
+           ai_chat::IsAIChatEnabled(browser_->profile()->GetPrefs()) &&
+           !browser_->profile()->IsAIChatAgent() &&
+           !browser_->profile()->IsOffTheRecord();
+#endif
+  UpdateCommandEnabled(IDC_NEW_AI_CHAT_AGENT_PROFILE, enabled);
 }
 
 #if BUILDFLAG(ENABLE_TOR)
@@ -638,6 +653,11 @@ bool BraveBrowserCommandController::ExecuteBraveCommandWithDisposition(
     case IDC_SHOW_COMPUTER_USE:
       brave::ShowComputerUse(&*browser_);
       break;
+#if BUILDFLAG(ENABLE_AI_CHAT) && BUILDFLAG(ENABLE_BRAVE_AI_CHAT_AGENT_PROFILE)
+    case IDC_NEW_AI_CHAT_AGENT_PROFILE:
+      ai_chat::OpenBrowserWindowForAIChatAgentProfile(*browser_->profile());
+      break;
+#endif
 #if BUILDFLAG(ENABLE_TOR)
     case IDC_NEW_OFFTHERECORD_WINDOW_TOR:
       brave::NewOffTheRecordWindowTor(&*browser_);

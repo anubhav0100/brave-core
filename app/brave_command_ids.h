@@ -175,6 +175,11 @@
 // computer-use feature (screenshot capture, input injection, RDP).
 #define IDC_SHOW_COMPUTER_USE 56471
 
+// Opens a new browser window in the dedicated "AI Chat Agent" profile -
+// the only profile type AI Assistant's DOM-interaction (content agent)
+// tools are enabled in. See ai_chat_agent_profile_helper.h.
+#define IDC_NEW_AI_CHAT_AGENT_PROFILE 56472
+
 #define IDC_BRAVE_COMMANDS_LAST 57000
 
 #endif  // BRAVE_APP_BRAVE_COMMAND_IDS_H_

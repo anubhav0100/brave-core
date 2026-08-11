@@ -288,6 +288,15 @@ void BraveAppMenuModel::BuildMoreToolsSubMenu() {
     need_separator = true;
   }
 
+  // Open AI Chat Agent Profile - the only profile type AI Assistant's
+  // DOM-interaction (content agent) tools are enabled in.
+  if (IsCommandIdEnabled(IDC_NEW_AI_CHAT_AGENT_PROFILE)) {
+    more_tools_menu_model->InsertItemWithStringIdAt(
+        next_target_index++, IDC_NEW_AI_CHAT_AGENT_PROFILE,
+        IDS_NEW_AI_CHAT_AGENT_PROFILE);
+    need_separator = true;
+  }
+
   if (need_separator) {
     more_tools_menu_model->InsertSeparatorAt(next_target_index++,
                                              ui::NORMAL_SEPARATOR);

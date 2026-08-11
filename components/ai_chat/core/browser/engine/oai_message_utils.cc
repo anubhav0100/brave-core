@@ -484,9 +484,38 @@ std::vector<OAIMessage> BuildOAIMessages(
           tool_result_message.content =
               GetStrippedWebSources(tool_event->output.value());
         } else {
+          // Images can't go in a "tool"-role message - OpenAI's Chat
+          // Completions API only accepts string/text content there, not
+          // image_url parts (that's only valid in "user"-role messages).
+          // A tool like get_desktop_screenshot that returns an image would
+          // otherwise have its result silently rejected or dropped by the
+          // API, so the model never actually sees what the tool captured
+          // even though the tool call itself succeeded. Split any image
+          // blocks out into a separate "user"-role message immediately
+          // following the tool result instead.
+          std::vector<mojom::ContentBlockPtr> image_blocks;
           for (const auto& item : tool_event->output.value()) {
-            tool_result_message.content.push_back(item.Clone());
+            if (item->is_image_content_block()) {
+              image_blocks.push_back(item.Clone());
+            } else {
+              tool_result_message.content.push_back(item.Clone());
+            }
           }
+          if (!image_blocks.empty() && tool_result_message.content.empty()) {
+            tool_result_message.content.push_back(
+                mojom::ContentBlock::NewTextContentBlock(
+                    mojom::TextContentBlock::New(
+                        "(image result attached in the following "
+                        "message)")));
+          }
+          oai_messages.emplace_back(std::move(tool_result_message));
+          if (!image_blocks.empty()) {
+            OAIMessage image_message;
+            image_message.role = "user";
+            image_message.content = std::move(image_blocks);
+            oai_messages.emplace_back(std::move(image_message));
+          }
+          continue;
         }
 
         oai_messages.emplace_back(std::move(tool_result_message));

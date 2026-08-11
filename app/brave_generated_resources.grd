@@ -250,6 +250,9 @@
       <message name="IDS_SHOW_COMPUTER_USE" desc="The menu item that opens the AI computer-use monitor/RDP page (More tools submenu)">
         AI Computer Use
       </message>
+      <message name="IDS_NEW_AI_CHAT_AGENT_PROFILE" desc="The menu item that opens a new browser window in the dedicated AI Chat Agent profile, where AI Assistant's DOM-interaction tools are enabled (More tools submenu)">
+        Open AI Agent Profile
+      </message>
       <message name="IDS_OPEN_MORE_OTHER_DEVICES_SESSIONS" desc="The history sub-menu item to show sessions from other devices">
         More…
       </message>

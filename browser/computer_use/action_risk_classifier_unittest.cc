@@ -6,6 +6,7 @@
 #include "brave/browser/computer_use/action_risk_classifier.h"
 
 #include "brave/browser/computer_use/computer_use_session_state.h"
+#include "components/prefs/testing_pref_service.h"
 #include "testing/gmock/include/gmock/gmock.h"
 #include "testing/gtest/include/gtest/gtest.h"
 
@@ -20,7 +21,12 @@ namespace computer_use {
 // since that's where the actual risk logic lives.
 class ActionRiskClassifierTest : public testing::Test {
  protected:
-  ComputerUseSessionState state_;
+  ActionRiskClassifierTest() {
+    ComputerUseSessionState::RegisterProfilePrefs(prefs_.registry());
+  }
+
+  TestingPrefServiceSimple prefs_;
+  ComputerUseSessionState state_{&prefs_};
 };
 
 TEST_F(ActionRiskClassifierTest, SensitiveProcessIsAlwaysRisky) {

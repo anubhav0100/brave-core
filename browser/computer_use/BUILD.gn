@@ -64,6 +64,7 @@ if (is_win) {
     deps = [
       ":computer_use",
       "//base",
+      "//components/prefs:test_support",
       "//testing/gmock",
       "//testing/gtest",
     ]
