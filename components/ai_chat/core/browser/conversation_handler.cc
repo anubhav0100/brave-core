@@ -29,6 +29,7 @@
 #include "base/functional/callback.h"
 #include "base/logging.h"
 #include "base/memory/weak_ptr.h"
+#include "base/no_destructor.h"
 #include "base/numerics/safe_math.h"
 #include "base/rand_util.h"
 #include "base/strings/strcat.h"
@@ -405,6 +406,17 @@ void ConversationHandler::InitEngine() {
                                   features::kAIModelsDefaultKey.Get());
       base::debug::DumpWithoutCrashing();
       const auto& all_models = model_service_->GetModels();
+      if (all_models.empty()) {
+        // There may be no models at all yet (e.g. a BYOM profile before
+        // any custom model has been configured). There's nothing to
+        // initialize an engine with - leave `engine_` unset and let the
+        // UI show its "no model configured" state instead of crashing.
+        // OnModelListUpdated() will retry this once a model becomes
+        // available.
+        engine_.reset();
+        OnModelDataChanged();
+        return;
+      }
       // Use first if given bad default value
       model = all_models.at(0).get();
     }
@@ -450,8 +462,28 @@ const mojom::Model& ConversationHandler::GetCurrentModel() {
     model_key_ = features::kAIModelsDefaultKey.Get();
     model = model_service_->GetModel(model_key_);
   }
-  CHECK(model);
-  return *model;
+  if (model) {
+    return *model;
+  }
+  // There may be no models at all yet (e.g. a BYOM profile before any
+  // custom model has been configured). Return a harmless placeholder
+  // instead of crashing - callers here only use the result for UI and
+  // metadata purposes. Actually sending a message is separately gated on
+  // the conversation having a real engine (see InitEngine()).
+  static const base::NoDestructor<mojom::ModelPtr> kNoModelPlaceholder([] {
+    auto options = mojom::LeoModelOptions::New();
+    options->name = "no-model-configured";
+    options->category = mojom::ModelCategory::CHAT;
+
+    auto placeholder = mojom::Model::New();
+    placeholder->key = "";
+    placeholder->display_name = "";
+    placeholder->vision_support = false;
+    placeholder->options =
+        mojom::ModelOptions::NewLeoModelOptions(std::move(options));
+    return placeholder;
+  }());
+  return *kNoModelPlaceholder->get();
 }
 
 const std::vector<mojom::ConversationTurnPtr>&
@@ -2059,9 +2091,17 @@ void ConversationHandler::OnSuggestedQuestionsResponse(
 void ConversationHandler::OnModelListUpdated() {
   OnModelDataChanged();
 
+  if (!engine_) {
+    // The conversation may not have had any models available to
+    // initialize an engine with when it was created. Retry now that the
+    // model list has changed - a no-op if it's still empty.
+    InitEngine();
+    return;
+  }
+
   const mojom::Model* model = model_service_->GetModel(model_key_);
 
-  if (model && engine_) {
+  if (model) {
     engine_->UpdateModelOptions(*model->options);
   }
 }
