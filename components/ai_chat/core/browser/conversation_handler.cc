@@ -713,6 +713,22 @@ void ConversationHandler::SubmitHumanConversationEntry(
     return;
   }
   DCHECK(latest_turn->character_type == mojom::CharacterType::HUMAN);
+
+  if (!engine_) {
+    // No model may have been available to initialize an engine with when
+    // this conversation was created (e.g. a BYOM profile before any custom
+    // model has been configured). Retry now - a no-op if there's still no
+    // model available.
+    InitEngine();
+  }
+  if (!engine_) {
+    // Still no model available - there's nothing that can generate a
+    // response for this entry. Surface it as an error rather than
+    // dereferencing a null engine below.
+    SetAPIError(mojom::APIError::InternalError);
+    return;
+  }
+
   is_request_in_progress_ = true;
   OnAPIRequestInProgressChanged();
 
@@ -1031,6 +1047,11 @@ void ConversationHandler::GenerateQuestions() {
                 << "opted in to AI Chat";
     return;
   }
+  if (!engine_) {
+    // No model available yet (e.g. a BYOM profile before any custom model
+    // has been configured) - nothing can generate suggestions.
+    return;
+  }
   if (!associated_content_manager_->HasAssociatedContent()) {
     DLOG(ERROR)
         << "Should not be associated with content when not allowed to be";
@@ -1111,7 +1132,11 @@ void ConversationHandler::StopGenerationAndMaybeGetHumanEntry(
   StopTask();
 
   is_request_in_progress_ = false;
-  engine_->ClearAllQueries();
+  if (engine_) {
+    // History can be non-empty with no engine if the model that was used to
+    // create it was since removed (e.g. the user's last custom model).
+    engine_->ClearAllQueries();
+  }
   OnAPIRequestInProgressChanged();
 
   mojom::CharacterType last_type = chat_history_.back()->character_type;
