@@ -14,14 +14,17 @@
 
 namespace ai_chat {
 
-// Holds a running workflow execution's inputs and variables, and resolves
-// "${...}" expressions against them - a deliberately minimal expression
-// language for the V1 runtime (see the design doc's "Variable Model" and
-// "Conditions and Branches" sections for the fuller language a later phase
-// should implement, once call_flow/loops need to reference step outputs
-// too).
-//
-// Supported reference forms: "${input.NAME}" and "${var.NAME}".
+// Holds a running workflow execution's inputs, variables, per-step outputs,
+// and current loop bindings, and resolves "${...}" expressions against
+// them. Supported reference forms: "${input.NAME}", "${var.NAME}",
+// "${step.STEP_ID.FIELD}" (a prior step's recorded output - FIELD may be
+// omitted to get the whole output serialized), and "${loop.item}" /
+// "${loop.index}" (the innermost currently-active for_each/while/until
+// loop's current item/iteration count - see workflow_runtime.cc; nested
+// loops each get their own for_each `item_variable`/`index_variable` bound
+// as ordinary "${var.*}" names too, which is the more precise way to
+// address an *outer* loop's value from inside an inner one, since
+// "${loop.*}" always means the innermost).
 class WorkflowVariableStore {
  public:
   WorkflowVariableStore();
@@ -34,21 +37,41 @@ class WorkflowVariableStore {
   void SetVariable(const std::string& name, std::string value);
   std::optional<std::string> GetVariable(const std::string& name) const;
 
-  // Replaces every "${input.NAME}" and "${var.NAME}" occurrence in `text`
-  // with its current value (missing references become empty strings; a
-  // non-string input is JSON-serialized). Text with no "${...}" markers is
-  // returned unchanged.
+  // Records `value` as the given step's output, addressable afterwards as
+  // "${step.STEP_ID}" (whole value, serialized if not a string) or
+  // "${step.STEP_ID.FIELD}" (if `value` is a dict, that field's value).
+  void SetStepOutput(const std::string& step_id, base::Value value);
+
+  // Sets/clears the innermost active loop's current item/index, addressable
+  // as "${loop.item}"/"${loop.index}" - called by WorkflowRuntime as it
+  // enters, advances, and exits loops.
+  void SetLoopItem(base::Value item);
+  void SetLoopIndex(int index);
+  void ClearLoopBindings();
+
+  // Replaces every "${...}" occurrence in `text` with its current value
+  // (missing references become empty strings; a non-string value is
+  // JSON-serialized). Text with no "${...}" markers is returned unchanged.
   std::string Resolve(const std::string& text) const;
 
-  // Evaluates a condition after resolving "${...}" references:
-  // "<left> == <right>" or "<left> != <right>" (both sides trimmed), or -
-  // with no recognized operator - whether the resolved text is non-empty
-  // and not "false" or "0".
+  // Evaluates a condition after resolving "${...}" references. Supports
+  // (checked in this order): "==", "!=", ">=", "<=", ">", "<" (numeric
+  // compare if both sides parse as numbers, else lexicographic),
+  // "contains", "not_contains", "starts_with", "ends_with", "in", "not_in"
+  // (right side is a JSON array or comma-separated list), "is_empty",
+  // "is_not_empty" (also used for "exists"/"not_exists" - this simplified
+  // resolve-then-parse model can't distinguish "reference didn't exist"
+  // from "reference resolved to an empty string", so they're treated as
+  // the same check). With no recognized operator: whether the resolved
+  // text is non-empty and not "false" or "0".
   bool EvaluateCondition(const std::string& expression) const;
 
  private:
   std::map<std::string, base::Value> inputs_;
   std::map<std::string, std::string> variables_;
+  std::map<std::string, base::Value> step_outputs_;
+  std::optional<base::Value> loop_item_;
+  std::optional<int> loop_index_;
 };
 
 }  // namespace ai_chat

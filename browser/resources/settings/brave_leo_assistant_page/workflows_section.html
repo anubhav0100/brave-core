@@ -311,6 +311,61 @@ You can obtain one at https://mozilla.org/MPL/2.0/. -->
               <div class="field-label">Outputs, one "name=expression" per line</div>
               <textarea class="step-input" value="[[step.outputsText]]" on-input="onStepOutputsInput_"></textarea>
             </template>
+
+            <template is="dom-if" if="[[isCallFlow_(step.type)]]">
+              <div class="field-label">Workflow id to call</div>
+              <input class="step-input" value="[[step.flowId]]" on-input="onStepFlowIdInput_">
+              <div class="field-label">Inputs to pass, one "child_input=parent expression" per line</div>
+              <textarea class="step-input" value="[[step.callInputsText]]" on-input="onStepCallInputsInput_"></textarea>
+              <div class="field-label">Outputs to read back, one "child_output=parent_variable" per line</div>
+              <textarea class="step-input" value="[[step.callOutputsText]]" on-input="onStepCallOutputsInput_"></textarea>
+              <div class="field-label">On child failure: "fail_parent" or "continue"</div>
+              <input class="step-input" value="[[step.onChildFailure]]" on-input="onStepOnChildFailureInput_">
+            </template>
+
+            <template is="dom-if" if="[[isForEach_(step.type)]]">
+              <div class="field-label">Items (supports \${var.x} / \${step.x.y}, must resolve to a JSON array)</div>
+              <input class="step-input" value="[[step.itemsExpression]]" on-input="onStepItemsExpressionInput_">
+              <div class="field-label">Variable name for the current item</div>
+              <input class="step-input" value="[[step.itemVariable]]" on-input="onStepItemVariableInput_">
+              <div class="field-label">Variable name for the current index (optional)</div>
+              <input class="step-input" value="[[step.indexVariable]]" on-input="onStepIndexVariableInput_">
+              <div class="field-label">First step id of the loop body</div>
+              <input class="step-input" value="[[step.bodyStart]]" on-input="onStepBodyStartInput_">
+              <div class="field-label">Max iterations</div>
+              <input class="step-input" type="number" min="1" value="[[step.maxIterations]]" on-input="onStepMaxIterationsInput_">
+            </template>
+
+            <template is="dom-if" if="[[isWhileOrUntil_(step.type)]]">
+              <div class="field-label">Condition, e.g. \${var.x} == some value (while: checked before each loop; until: checked after)</div>
+              <input class="step-input" value="[[step.loopCondition]]" on-input="onStepLoopConditionInput_">
+              <div class="field-label">First step id of the loop body</div>
+              <input class="step-input" value="[[step.bodyStart]]" on-input="onStepBodyStartInput_">
+              <div class="field-label">Max iterations</div>
+              <input class="step-input" type="number" min="1" value="[[step.maxIterations]]" on-input="onStepMaxIterationsInput_">
+            </template>
+
+            <template is="dom-if" if="[[isBreakOrContinue_(step.type)]]">
+              <div class="steps-hint">Acts on the innermost active for_each/while/until loop - no fields needed.</div>
+            </template>
+
+            <template is="dom-if" if="[[isAiExtract_(step.type)]]">
+              <div class="field-label">Instruction (supports \${var.x} / \${step.x.y})</div>
+              <textarea class="step-input" value="[[step.aiInstruction]]" on-input="onStepAiInstructionInput_"></textarea>
+              <div class="field-label">JSON schema describing what to extract</div>
+              <textarea class="step-input" value="[[step.aiSchemaJson]]" on-input="onStepAiSchemaJsonInput_"></textarea>
+              <div class="field-label">Variable name for the extracted result</div>
+              <input class="step-input" value="[[step.aiOutputVariable]]" on-input="onStepAiOutputVariableInput_">
+            </template>
+
+            <template is="dom-if" if="[[isAiDecide_(step.type)]]">
+              <div class="field-label">Instruction (supports \${var.x} / \${step.x.y})</div>
+              <textarea class="step-input" value="[[step.aiInstruction]]" on-input="onStepAiInstructionInput_"></textarea>
+              <div class="field-label">Allowed outcomes, comma- or newline-separated</div>
+              <textarea class="step-input" value="[[step.allowedOutcomesText]]" on-input="onStepAllowedOutcomesInput_"></textarea>
+              <div class="field-label">Variable name for the chosen outcome</div>
+              <input class="step-input" value="[[step.aiOutputVariable]]" on-input="onStepAiOutputVariableInput_">
+            </template>
           </div>
         </div>
       </template>

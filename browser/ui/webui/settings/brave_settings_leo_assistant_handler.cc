@@ -701,7 +701,7 @@ void BraveLeoAssistantHandler::HandleRunWorkflow(const base::ListValue& args) {
   }
 
   ai_chat::WorkflowRuntime::Start(
-      std::move(*definition), base::DictValue(), web_contents,
+      std::move(*definition), base::DictValue(), web_contents, repository,
       base::BindOnce(&BraveLeoAssistantHandler::OnRunWorkflowComplete,
                      weak_ptr_factory_.GetWeakPtr(), args[0].Clone()));
 }

@@ -40,12 +40,16 @@ std::string_view RunWorkflowTool::Name() const {
 
 std::string_view RunWorkflowTool::Description() const {
   return "Runs a workflow the user has saved in the \"Workflows\" section of "
-         "AI Assistant settings, against the current active tab. Only a "
-         "subset of the full workflow engine is implemented: linear steps "
-         "(navigate, click, type, wait, set a variable, branch on a "
-         "condition, complete, fail) - no nested/reusable flows, loops, AI "
-         "decision steps, tool/webhook calls, or approval pauses yet, and "
-         "the workflow will fail clearly if it uses any of those. Pass "
+         "AI Assistant settings, against the current active tab. Supports "
+         "linear steps (navigate, click, type, wait, set a variable, branch "
+         "on a condition, complete, fail), nested/reusable flows "
+         "(call_flow, with cycle and call-depth protection), loops "
+         "(for_each/while/until with break/continue and an iteration cap), "
+         "and two bounded AI steps (ai.extract for structured data "
+         "extraction against a fixed schema, ai.decide for a choice among a "
+         "fixed set of named outcomes). Tool/webhook calls, approval "
+         "pauses, and the open-ended ai.action node aren't implemented yet, "
+         "and the workflow will fail clearly if it uses any of those. Pass "
          "'inputs' as an object matching the workflow's declared inputs.";
 }
 
@@ -125,7 +129,7 @@ void RunWorkflowTool::UseTool(const std::string& input_json,
   }
 
   WorkflowRuntime::Start(
-      std::move(*definition), std::move(inputs), web_contents,
+      std::move(*definition), std::move(inputs), web_contents, repository,
       base::BindOnce(&RunWorkflowTool::OnRunComplete,
                      weak_ptr_factory_.GetWeakPtr(), std::move(callback)));
 }

@@ -21,13 +21,17 @@
 // a saved, versioned, machine-readable definition that a runtime (see
 // workflow_runtime.h) can execute deterministically.
 //
-// V1 scope covers exactly the node types the document's Phase 3 ("Basic
-// Runtime") calls for - start, set_variable, condition, browser.navigate,
-// browser.click, browser.type, browser.wait, complete, fail - for one flat
-// workflow with no nested flows, loops, AI nodes, tools, webhooks, or
-// approvals yet (those are later phases in the document's own plan; see
-// workflow_runtime.h's file comment for what's intentionally not
-// implemented).
+// V1 scope (Phase 3, "Basic Runtime") covered start, set_variable,
+// condition, browser.navigate, browser.click, browser.type, browser.wait,
+// complete, fail, for one flat workflow with no nested flows, loops, or AI
+// nodes. Phases 4-6 add: call_flow (nested/reusable workflows, with a call
+// stack and cycle/depth protection), for_each/while/until/break/continue
+// (loops, with an iteration cap), and ai.extract/ai.decide (bounded AI
+// steps - a fixed-schema extraction and a fixed-outcome-list decision;
+// ai.action, the open-ended bounded-autonomy node, remains deliberately
+// unimplemented - see workflow_runtime.h). tool.call/webhook.call/approval
+// nodes remain out of scope too (see workflow_runtime.h's file comment for
+// the full list of what's intentionally not implemented).
 namespace ai_chat {
 
 enum class WorkflowStepType {
@@ -40,12 +44,20 @@ enum class WorkflowStepType {
   kBrowserClick,
   kBrowserType,
   kBrowserWait,
+  kCallFlow,
+  kForEach,
+  kWhile,
+  kUntil,
+  kBreak,
+  kContinue,
+  kAiExtract,
+  kAiDecide,
 };
 
-// Returns nullopt for a type string this V1 runtime doesn't implement yet
-// (e.g. "call_flow", "for_each", "ai.action", "tool.call", "webhook.call",
-// "approval") - callers should surface that as a clear validation error
-// rather than silently skipping the step.
+// Returns nullopt for a type string this runtime doesn't implement yet
+// (e.g. "ai.action", "tool.call", "webhook.call", "approval") - callers
+// should surface that as a clear validation error rather than silently
+// skipping the step.
 std::optional<WorkflowStepType> WorkflowStepTypeFromString(
     const std::string& type);
 std::string WorkflowStepTypeToString(WorkflowStepType type);
@@ -97,6 +109,63 @@ struct WorkflowStep {
 
   // complete: map of output name -> expression (supports "${...}").
   std::map<std::string, std::string> outputs;
+
+  // call_flow: runs another workflow (by id) as a sub-step, waits for it to
+  // finish, then continues at `next`.
+  std::string flow_id;
+  // Child input name -> expression to resolve in the parent's scope
+  // (supports "${...}") and pass as that input to the child.
+  std::map<std::string, std::string> call_inputs;
+  // Child output name -> parent variable name to store it into once the
+  // child completes.
+  std::map<std::string, std::string> call_outputs;
+  // "fail_parent" (default - a failed/erroring child fails this workflow
+  // too) or "continue" (log it and proceed to `next` anyway).
+  std::string on_child_failure = "fail_parent";
+
+  // for_each/while/until (loop step types) and break/continue (which act on
+  // the innermost currently-active loop, whichever step started it).
+  //
+  // for_each: resolves+parses `items_expression` (supports "${...}") to a
+  // JSON array, then for each element binds it to the `item_variable`
+  // (and, if set, the 0-based index to `index_variable`) as "${var.*}"
+  // values before running the body.
+  std::string items_expression;
+  std::string item_variable;
+  std::string index_variable;
+  // while: `loop_condition` (supports "${...}", same syntax as `condition`
+  // steps) is checked *before* each iteration - runs zero or more times.
+  // until: checked *after* each iteration - runs at least once, stops once
+  // it becomes true.
+  std::string loop_condition;
+  // Step id of the loop body's first step. The body must eventually reach
+  // a step whose `next` (or on_true/on_false, etc.) points back at *this*
+  // loop step's own id to continue iterating - the runtime tells a fresh
+  // entry from a looping-back re-entry by tracking its own active-loop
+  // stack, so this needs no special "loop end" step type.
+  std::string body_start;
+  // Safety cap shared by all three loop types - required, not optional,
+  // so a loop can never accidentally run unbounded.
+  int max_iterations = 1000;
+
+  // ai.extract, ai.decide - see workflow_runtime.h for how these call the
+  // model. Both support "${...}" in `ai_instruction`.
+  std::string ai_instruction;
+  // ai.extract only: a JSON schema (object with named fields) describing
+  // what to extract; the model's response is parsed against it and stored
+  // as a JSON object.
+  std::string ai_schema_json;
+  // ai.decide only: the fixed list of outcomes the model must choose
+  // between - it cannot invent a new one (a response outside this list is
+  // treated as a model/parse error, not silently accepted).
+  std::vector<std::string> allowed_outcomes;
+  // ai.extract: var.* name to store the extracted JSON object (serialized)
+  // into. ai.decide: var.* name to store the chosen outcome string into.
+  // Both are also stored as this step's own output (see
+  // WorkflowVariableStore::SetStepOutput), so later steps can reference
+  // "${step.<this id>.<field>}" (ai.extract) or
+  // "${step.<this id>.outcome}" (ai.decide) directly.
+  std::string ai_output_variable;
 };
 
 struct WorkflowInputSpec {

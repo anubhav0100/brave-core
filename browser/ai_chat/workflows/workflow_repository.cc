@@ -6,8 +6,11 @@
 #include "brave/browser/ai_chat/workflows/workflow_repository.h"
 
 #include <algorithm>
+#include <functional>
+#include <set>
 #include <utility>
 
+#include "base/strings/strcat.h"
 #include "components/prefs/pref_registry_simple.h"
 #include "components/prefs/pref_service.h"
 #include "components/prefs/scoped_user_pref_update.h"
@@ -17,6 +20,17 @@ namespace ai_chat {
 namespace {
 constexpr char kWorkflowsPref[] = "brave.ai_chat.workflows";
 constexpr char kIdKey[] = "id";
+
+std::vector<std::string> GetCallFlowTargets(const WorkflowDefinition& def) {
+  std::vector<std::string> targets;
+  for (const auto& step : def.steps) {
+    if (step.type == WorkflowStepType::kCallFlow && !step.flow_id.empty()) {
+      targets.push_back(step.flow_id);
+    }
+  }
+  return targets;
+}
+
 }  // namespace
 
 WorkflowRepository::SaveResult::SaveResult() = default;
@@ -43,6 +57,13 @@ WorkflowRepository::SaveResult WorkflowRepository::SaveWorkflow(
     return result;
   }
   const WorkflowDefinition& definition = *parse_result.definition;
+
+  if (std::optional<std::string> cycle = FindCallFlowCycle(definition)) {
+    result.errors.push_back(
+        {"", "Saving this workflow would create a call_flow cycle: " +
+                 *cycle});
+    return result;
+  }
 
   ScopedListPrefUpdate update(prefs_, kWorkflowsPref);
   bool replaced = false;
@@ -122,6 +143,73 @@ bool WorkflowRepository::DeleteWorkflow(const std::string& id) {
   }
   update->erase(it);
   return true;
+}
+
+std::vector<std::string> WorkflowRepository::GetDependencies(
+    const std::string& id) const {
+  std::optional<WorkflowDefinition> definition = GetWorkflow(id);
+  if (!definition) {
+    return {};
+  }
+  return GetCallFlowTargets(*definition);
+}
+
+std::vector<std::string> WorkflowRepository::GetDependents(
+    const std::string& id) const {
+  std::vector<std::string> dependents;
+  for (const auto& other : ListWorkflows()) {
+    if (other.id == id) {
+      continue;
+    }
+    for (const auto& target : GetCallFlowTargets(other)) {
+      if (target == id) {
+        dependents.push_back(other.id);
+        break;
+      }
+    }
+  }
+  return dependents;
+}
+
+std::optional<std::string> WorkflowRepository::FindCallFlowCycle(
+    const WorkflowDefinition& new_definition) const {
+  std::vector<std::string> path{new_definition.id};
+  std::set<std::string> on_path{new_definition.id};
+
+  std::function<std::optional<std::string>(const std::string&)> visit =
+      [&](const std::string& id) -> std::optional<std::string> {
+    std::vector<std::string> targets;
+    if (id == new_definition.id) {
+      targets = GetCallFlowTargets(new_definition);
+    } else {
+      std::optional<WorkflowDefinition> def = GetWorkflow(id);
+      if (!def) {
+        return std::nullopt;
+      }
+      targets = GetCallFlowTargets(*def);
+    }
+
+    for (const auto& target : targets) {
+      if (on_path.contains(target)) {
+        std::string description;
+        for (const auto& step_id : path) {
+          base::StrAppend(&description, {step_id, " -> "});
+        }
+        base::StrAppend(&description, {target});
+        return description;
+      }
+      on_path.insert(target);
+      path.push_back(target);
+      if (std::optional<std::string> found = visit(target)) {
+        return found;
+      }
+      path.pop_back();
+      on_path.erase(target);
+    }
+    return std::nullopt;
+  };
+
+  return visit(new_definition.id);
 }
 
 }  // namespace ai_chat

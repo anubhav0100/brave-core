@@ -24,11 +24,31 @@ constexpr char kTypeBrowserNavigate[] = "browser.navigate";
 constexpr char kTypeBrowserClick[] = "browser.click";
 constexpr char kTypeBrowserType[] = "browser.type";
 constexpr char kTypeBrowserWait[] = "browser.wait";
+constexpr char kTypeCallFlow[] = "call_flow";
+constexpr char kTypeForEach[] = "for_each";
+constexpr char kTypeWhile[] = "while";
+constexpr char kTypeUntil[] = "until";
+constexpr char kTypeBreak[] = "break";
+constexpr char kTypeContinue[] = "continue";
+constexpr char kTypeAiExtract[] = "ai.extract";
+constexpr char kTypeAiDecide[] = "ai.decide";
 
 // Terminal step types don't need a `next` - execution stops there.
 bool IsTerminalType(WorkflowStepType type) {
   return type == WorkflowStepType::kComplete ||
          type == WorkflowStepType::kFail;
+}
+
+// break/continue act on the innermost active loop's own stored
+// continuation, not on a `next` field of their own - see workflow_runtime.cc.
+bool StepUsesLoopContextInsteadOfNext(WorkflowStepType type) {
+  return type == WorkflowStepType::kBreak ||
+         type == WorkflowStepType::kContinue;
+}
+
+bool IsLoopType(WorkflowStepType type) {
+  return type == WorkflowStepType::kForEach ||
+         type == WorkflowStepType::kWhile || type == WorkflowStepType::kUntil;
 }
 
 }  // namespace
@@ -62,6 +82,30 @@ std::optional<WorkflowStepType> WorkflowStepTypeFromString(
   if (type == kTypeBrowserWait) {
     return WorkflowStepType::kBrowserWait;
   }
+  if (type == kTypeCallFlow) {
+    return WorkflowStepType::kCallFlow;
+  }
+  if (type == kTypeForEach) {
+    return WorkflowStepType::kForEach;
+  }
+  if (type == kTypeWhile) {
+    return WorkflowStepType::kWhile;
+  }
+  if (type == kTypeUntil) {
+    return WorkflowStepType::kUntil;
+  }
+  if (type == kTypeBreak) {
+    return WorkflowStepType::kBreak;
+  }
+  if (type == kTypeContinue) {
+    return WorkflowStepType::kContinue;
+  }
+  if (type == kTypeAiExtract) {
+    return WorkflowStepType::kAiExtract;
+  }
+  if (type == kTypeAiDecide) {
+    return WorkflowStepType::kAiDecide;
+  }
   return std::nullopt;
 }
 
@@ -85,6 +129,22 @@ std::string WorkflowStepTypeToString(WorkflowStepType type) {
       return kTypeBrowserType;
     case WorkflowStepType::kBrowserWait:
       return kTypeBrowserWait;
+    case WorkflowStepType::kCallFlow:
+      return kTypeCallFlow;
+    case WorkflowStepType::kForEach:
+      return kTypeForEach;
+    case WorkflowStepType::kWhile:
+      return kTypeWhile;
+    case WorkflowStepType::kUntil:
+      return kTypeUntil;
+    case WorkflowStepType::kBreak:
+      return kTypeBreak;
+    case WorkflowStepType::kContinue:
+      return kTypeContinue;
+    case WorkflowStepType::kAiExtract:
+      return kTypeAiExtract;
+    case WorkflowStepType::kAiDecide:
+      return kTypeAiDecide;
   }
   return "";
 }
@@ -215,6 +275,54 @@ base::DictValue WorkflowDefinition::ToValue() const {
         step_value.Set("outputs", std::move(outputs_dict));
         break;
       }
+      case WorkflowStepType::kCallFlow: {
+        step_value.Set("flow_id", step.flow_id);
+        step_value.Set("on_child_failure", step.on_child_failure);
+        base::DictValue inputs_dict;
+        for (const auto& [input_name, expr] : step.call_inputs) {
+          inputs_dict.Set(input_name, expr);
+        }
+        step_value.Set("inputs", std::move(inputs_dict));
+        base::DictValue outputs_dict;
+        for (const auto& [child_output, parent_var] : step.call_outputs) {
+          outputs_dict.Set(child_output, parent_var);
+        }
+        step_value.Set("outputs", std::move(outputs_dict));
+        break;
+      }
+      case WorkflowStepType::kForEach:
+        step_value.Set("items", step.items_expression);
+        step_value.Set("item_variable", step.item_variable);
+        if (!step.index_variable.empty()) {
+          step_value.Set("index_variable", step.index_variable);
+        }
+        step_value.Set("body_start", step.body_start);
+        step_value.Set("max_iterations", step.max_iterations);
+        break;
+      case WorkflowStepType::kWhile:
+      case WorkflowStepType::kUntil:
+        step_value.Set("condition", step.loop_condition);
+        step_value.Set("body_start", step.body_start);
+        step_value.Set("max_iterations", step.max_iterations);
+        break;
+      case WorkflowStepType::kBreak:
+      case WorkflowStepType::kContinue:
+        break;
+      case WorkflowStepType::kAiExtract:
+        step_value.Set("instruction", step.ai_instruction);
+        step_value.Set("schema", step.ai_schema_json);
+        step_value.Set("output_variable", step.ai_output_variable);
+        break;
+      case WorkflowStepType::kAiDecide: {
+        step_value.Set("instruction", step.ai_instruction);
+        step_value.Set("output_variable", step.ai_output_variable);
+        base::ListValue outcomes;
+        for (const auto& outcome : step.allowed_outcomes) {
+          outcomes.Append(outcome);
+        }
+        step_value.Set("allowed_outcomes", std::move(outcomes));
+        break;
+      }
       case WorkflowStepType::kStart:
         break;
     }
@@ -325,9 +433,10 @@ WorkflowParseResult ParseWorkflowDefinition(const base::DictValue& value) {
         result.errors.push_back(
             {step_id,
              "Unknown or not-yet-supported step type: '" + type_str +
-                 "' (this V1 runtime only supports start, complete, fail, "
+                 "' (this runtime supports start, complete, fail, "
                  "set_variable, condition, browser.navigate, browser.click, "
-                 "browser.type, browser.wait)"});
+                 "browser.type, browser.wait, call_flow, for_each, while, "
+                 "until, break, continue, ai.extract, ai.decide)"});
         continue;
       }
 
@@ -396,16 +505,133 @@ WorkflowParseResult ParseWorkflowDefinition(const base::DictValue& value) {
             }
           }
           break;
+        case WorkflowStepType::kCallFlow:
+          step.flow_id = ExpectString(*step_dict, "flow_id");
+          step.on_child_failure =
+              ExpectString(*step_dict, "on_child_failure", "fail_parent");
+          if (step.flow_id.empty()) {
+            result.errors.push_back(
+                {step_id, "call_flow step is missing 'flow_id'"});
+          }
+          if (step.on_child_failure != "fail_parent" &&
+              step.on_child_failure != "continue") {
+            result.errors.push_back(
+                {step_id, "call_flow step's 'on_child_failure' must be "
+                          "'fail_parent' or 'continue', got '" +
+                              step.on_child_failure + "'"});
+          }
+          if (const base::DictValue* inputs_dict =
+                  step_dict->FindDict("inputs")) {
+            for (const auto [name, expr_value] : *inputs_dict) {
+              if (const std::string* expr = expr_value.GetIfString()) {
+                step.call_inputs[name] = *expr;
+              }
+            }
+          }
+          if (const base::DictValue* outputs_dict =
+                  step_dict->FindDict("outputs")) {
+            for (const auto [child_output, var_value] : *outputs_dict) {
+              if (const std::string* parent_var = var_value.GetIfString()) {
+                step.call_outputs[child_output] = *parent_var;
+              }
+            }
+          }
+          break;
+        case WorkflowStepType::kForEach:
+          step.items_expression = ExpectString(*step_dict, "items");
+          step.item_variable = ExpectString(*step_dict, "item_variable");
+          step.index_variable = ExpectString(*step_dict, "index_variable");
+          step.body_start = ExpectString(*step_dict, "body_start");
+          step.max_iterations =
+              step_dict->FindInt("max_iterations").value_or(1000);
+          if (step.items_expression.empty()) {
+            result.errors.push_back(
+                {step_id, "for_each step is missing 'items'"});
+          }
+          if (step.item_variable.empty()) {
+            result.errors.push_back(
+                {step_id, "for_each step is missing 'item_variable'"});
+          }
+          if (step.body_start.empty()) {
+            result.errors.push_back(
+                {step_id, "for_each step is missing 'body_start'"});
+          }
+          break;
+        case WorkflowStepType::kWhile:
+        case WorkflowStepType::kUntil:
+          step.loop_condition = ExpectString(*step_dict, "condition");
+          step.body_start = ExpectString(*step_dict, "body_start");
+          step.max_iterations =
+              step_dict->FindInt("max_iterations").value_or(1000);
+          if (step.loop_condition.empty()) {
+            result.errors.push_back(
+                {step_id, WorkflowStepTypeToString(*type) +
+                              " step is missing 'condition'"});
+          }
+          if (step.body_start.empty()) {
+            result.errors.push_back(
+                {step_id, WorkflowStepTypeToString(*type) +
+                              " step is missing 'body_start'"});
+          }
+          break;
+        case WorkflowStepType::kBreak:
+        case WorkflowStepType::kContinue:
+          break;
+        case WorkflowStepType::kAiExtract:
+          step.ai_instruction = ExpectString(*step_dict, "instruction");
+          step.ai_schema_json = ExpectString(*step_dict, "schema");
+          step.ai_output_variable =
+              ExpectString(*step_dict, "output_variable");
+          if (step.ai_instruction.empty()) {
+            result.errors.push_back(
+                {step_id, "ai.extract step is missing 'instruction'"});
+          }
+          if (step.ai_schema_json.empty()) {
+            result.errors.push_back(
+                {step_id, "ai.extract step is missing 'schema'"});
+          }
+          if (step.ai_output_variable.empty()) {
+            result.errors.push_back(
+                {step_id, "ai.extract step is missing 'output_variable'"});
+          }
+          break;
+        case WorkflowStepType::kAiDecide:
+          step.ai_instruction = ExpectString(*step_dict, "instruction");
+          step.ai_output_variable =
+              ExpectString(*step_dict, "output_variable");
+          if (const base::ListValue* outcomes =
+                  step_dict->FindList("allowed_outcomes")) {
+            for (const auto& outcome_value : *outcomes) {
+              if (const std::string* outcome = outcome_value.GetIfString()) {
+                step.allowed_outcomes.push_back(*outcome);
+              }
+            }
+          }
+          if (step.ai_instruction.empty()) {
+            result.errors.push_back(
+                {step_id, "ai.decide step is missing 'instruction'"});
+          }
+          if (step.allowed_outcomes.size() < 2) {
+            result.errors.push_back(
+                {step_id, "ai.decide step needs at least 2 "
+                          "'allowed_outcomes'"});
+          }
+          if (step.ai_output_variable.empty()) {
+            result.errors.push_back(
+                {step_id, "ai.decide step is missing 'output_variable'"});
+          }
+          break;
         case WorkflowStepType::kStart:
           break;
       }
 
       if (!IsTerminalType(step.type) && step.next.empty() &&
-          step.type != WorkflowStepType::kCondition) {
+          step.type != WorkflowStepType::kCondition &&
+          !StepUsesLoopContextInsteadOfNext(step.type)) {
         result.errors.push_back(
             {step_id, "Step has no 'next' and isn't a terminal (complete/"
-                      "fail) or condition step - execution would have "
-                      "nowhere to go"});
+                      "fail), condition, break, or continue step - "
+                      "execution would have nowhere to go"});
       }
 
       definition.steps.push_back(std::move(step));
@@ -444,6 +670,9 @@ WorkflowParseResult ParseWorkflowDefinition(const base::DictValue& value) {
     if (step.type == WorkflowStepType::kCondition) {
       check_reference(step.id, "on_true", step.on_true);
       check_reference(step.id, "on_false", step.on_false);
+    }
+    if (IsLoopType(step.type)) {
+      check_reference(step.id, "body_start", step.body_start);
     }
   }
 

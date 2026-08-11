@@ -402,6 +402,9 @@ source_set("unit_tests") {
     "tools/create_spreadsheet_tool_unittest.cc",
     "tools/create_word_document_tool_unittest.cc",
     "tools/history_search_tool_unittest.cc",
+    "workflows/workflow_definition_unittest.cc",
+    "workflows/workflow_repository_unittest.cc",
+    "workflows/workflow_variable_store_unittest.cc",
   ]
 
   deps = [
@@ -421,6 +424,7 @@ source_set("unit_tests") {
     "//components/paint_preview/common:test_utils",
     "//components/paint_preview/common/mojom",
     "//components/passage_embeddings/core",
+    "//components/prefs:test_support",
     "//components/services/paint_preview_compositor/public/mojom",
     "//content/public/browser",
     "//content/test:test_support",

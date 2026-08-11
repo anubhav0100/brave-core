@@ -22,11 +22,16 @@ import {
 } from './brave_leo_assistant_browser_proxy.js'
 import { getTemplate } from './workflows_section.html.js'
 
-// The step "type" values the V1 runtime understands - kept in sync with
-// WorkflowStepTypeFromString in workflow_definition.cc.
+// The step "type" values the runtime understands - kept in sync with
+// WorkflowStepTypeFromString in workflow_definition.cc. call_flow/for_each/
+// while/until/break/continue are Phase 4-5 (nested workflows, loops);
+// ai.extract/ai.decide are Phase 6's two bounded AI steps (ai.action, the
+// open-ended one, isn't implemented - see workflow_runtime.h).
 const kStepTypes = [
   'start', 'set_variable', 'condition', 'browser.navigate', 'browser.click',
-  'browser.type', 'browser.wait', 'complete', 'fail'
+  'browser.type', 'browser.wait', 'complete', 'fail', 'call_flow',
+  'for_each', 'while', 'until', 'break', 'continue', 'ai.extract',
+  'ai.decide'
 ]
 
 // One step, in a shape convenient for two-way-bound form fields - every
@@ -49,20 +54,64 @@ interface WorkflowStepForm {
   seconds: string
   failReason: string
   outputsText: string  // "name=expression" lines, one per output.
+  // call_flow
+  flowId: string
+  callInputsText: string  // "child_input_name=parent expression" lines.
+  callOutputsText: string  // "child_output_name=parent_variable_name" lines.
+  onChildFailure: string  // "fail_parent" or "continue".
+  // for_each (items/itemVariable/indexVariable) and while/until
+  // (loopCondition) - bodyStart/maxIterations are shared by all three.
+  itemsExpression: string
+  itemVariable: string
+  indexVariable: string
+  loopCondition: string
+  bodyStart: string
+  maxIterations: string
+  // ai.extract (instruction/schema/outputVariable) and ai.decide
+  // (instruction/outputVariable shared, plus allowedOutcomesText).
+  aiInstruction: string
+  aiSchemaJson: string
+  aiOutputVariable: string
+  allowedOutcomesText: string  // comma- or newline-separated.
 }
 
 function newStep(type: string): WorkflowStepForm {
   return {
     id: '', type, next: '', variableName: '', variableValue: '',
     conditionExpression: '', onTrue: '', onFalse: '', url: '', selector: '',
-    text: '', seconds: '2', failReason: '', outputsText: ''
+    text: '', seconds: '2', failReason: '', outputsText: '',
+    flowId: '', callInputsText: '', callOutputsText: '',
+    onChildFailure: 'fail_parent', itemsExpression: '', itemVariable: '',
+    indexVariable: '', loopCondition: '', bodyStart: '',
+    maxIterations: '1000', aiInstruction: '', aiSchemaJson: '',
+    aiOutputVariable: '', allowedOutcomesText: ''
   }
 }
 
 function stepNeedsNext(type: string): boolean {
   return type === 'start' || type === 'set_variable' ||
     type === 'browser.navigate' || type === 'browser.click' ||
-    type === 'browser.type' || type === 'browser.wait'
+    type === 'browser.type' || type === 'browser.wait' ||
+    type === 'call_flow' || type === 'for_each' || type === 'while' ||
+    type === 'until' || type === 'ai.extract' || type === 'ai.decide'
+}
+
+// Parses "key=value" lines (one per line) into an object - shared by
+// complete's outputs and call_flow's inputs/outputs.
+function parseKeyValueLines(text: string): Record<string, string> {
+  const result: Record<string, string> = {}
+  for (const line of text.split('\n')) {
+    const eq = line.indexOf('=')
+    if (eq <= 0) {
+      continue
+    }
+    result[line.slice(0, eq).trim()] = line.slice(eq + 1).trim()
+  }
+  return result
+}
+
+function formatKeyValueLines(obj: Record<string, unknown>): string {
+  return Object.entries(obj).map(([k, v]) => `${k}=${v}`).join('\n')
 }
 
 // Builds the JSON schema workflow_definition.cc's parser reads (see its
@@ -98,18 +147,43 @@ function stepFormToJson(step: WorkflowStepForm): Record<string, unknown> {
     case 'fail':
       json['reason'] = step.failReason
       break
-    case 'complete': {
-      const outputs: Record<string, string> = {}
-      for (const line of step.outputsText.split('\n')) {
-        const eq = line.indexOf('=')
-        if (eq <= 0) {
-          continue
-        }
-        outputs[line.slice(0, eq).trim()] = line.slice(eq + 1).trim()
-      }
-      json['outputs'] = outputs
+    case 'complete':
+      json['outputs'] = parseKeyValueLines(step.outputsText)
       break
-    }
+    case 'call_flow':
+      json['flow_id'] = step.flowId
+      json['on_child_failure'] = step.onChildFailure || 'fail_parent'
+      json['inputs'] = parseKeyValueLines(step.callInputsText)
+      json['outputs'] = parseKeyValueLines(step.callOutputsText)
+      break
+    case 'for_each':
+      json['items'] = step.itemsExpression
+      json['item_variable'] = step.itemVariable
+      if (step.indexVariable) {
+        json['index_variable'] = step.indexVariable
+      }
+      json['body_start'] = step.bodyStart
+      json['max_iterations'] = parseInt(step.maxIterations, 10) || 1000
+      break
+    case 'while':
+    case 'until':
+      json['condition'] = step.loopCondition
+      json['body_start'] = step.bodyStart
+      json['max_iterations'] = parseInt(step.maxIterations, 10) || 1000
+      break
+    case 'ai.extract':
+      json['instruction'] = step.aiInstruction
+      json['schema'] = step.aiSchemaJson
+      json['output_variable'] = step.aiOutputVariable
+      break
+    case 'ai.decide':
+      json['instruction'] = step.aiInstruction
+      json['output_variable'] = step.aiOutputVariable
+      json['allowed_outcomes'] = step.allowedOutcomesText
+        .split(/[\n,]/)
+        .map((s) => s.trim())
+        .filter((s) => s.length > 0)
+      break
   }
   return json
 }
@@ -117,7 +191,8 @@ function stepFormToJson(step: WorkflowStepForm): Record<string, unknown> {
 function stepFromJson(json: Record<string, unknown>): WorkflowStepForm {
   const str = (key: string) =>
     typeof json[key] === 'string' ? json[key] : ''
-  const step = newStep(str('type') || 'browser.navigate')
+  const type = str('type') || 'browser.navigate'
+  const step = newStep(type)
   step.id = str('id')
   step.next = str('next')
   step.variableName = str('name')
@@ -131,12 +206,42 @@ function stepFromJson(json: Record<string, unknown>): WorkflowStepForm {
   step.seconds =
     typeof json['seconds'] === 'number' ? String(json['seconds']) : '2'
   step.failReason = str('reason')
+
   const outputs = json['outputs']
-  if (outputs && typeof outputs === 'object') {
-    step.outputsText = Object.entries(outputs as Record<string, unknown>)
-      .map(([k, v]) => `${k}=${v}`)
-      .join('\n')
+  if (type === 'call_flow') {
+    step.flowId = str('flow_id')
+    step.onChildFailure = str('on_child_failure') || 'fail_parent'
+    const inputs = json['inputs']
+    if (inputs && typeof inputs === 'object') {
+      step.callInputsText =
+        formatKeyValueLines(inputs as Record<string, unknown>)
+    }
+    if (outputs && typeof outputs === 'object') {
+      step.callOutputsText =
+        formatKeyValueLines(outputs as Record<string, unknown>)
+    }
+  } else if (outputs && typeof outputs === 'object') {
+    step.outputsText = formatKeyValueLines(outputs as Record<string, unknown>)
   }
+
+  step.itemsExpression = str('items')
+  step.itemVariable = str('item_variable')
+  step.indexVariable = str('index_variable')
+  step.bodyStart = str('body_start')
+  step.maxIterations =
+    typeof json['max_iterations'] === 'number'
+      ? String(json['max_iterations'])
+      : '1000'
+  step.loopCondition = str('condition')
+
+  step.aiInstruction = str('instruction')
+  step.aiSchemaJson = str('schema')
+  step.aiOutputVariable = str('output_variable')
+  const outcomes = json['allowed_outcomes']
+  if (Array.isArray(outcomes)) {
+    step.allowedOutcomesText = outcomes.join(', ')
+  }
+
   return step
 }
 
@@ -248,6 +353,16 @@ class WorkflowsSection extends WorkflowsSectionBase {
   isBrowserWait_(type: string): boolean { return type === 'browser.wait' }
   isFail_(type: string): boolean { return type === 'fail' }
   isComplete_(type: string): boolean { return type === 'complete' }
+  isCallFlow_(type: string): boolean { return type === 'call_flow' }
+  isForEach_(type: string): boolean { return type === 'for_each' }
+  isWhileOrUntil_(type: string): boolean {
+    return type === 'while' || type === 'until'
+  }
+  isBreakOrContinue_(type: string): boolean {
+    return type === 'break' || type === 'continue'
+  }
+  isAiExtract_(type: string): boolean { return type === 'ai.extract' }
+  isAiDecide_(type: string): boolean { return type === 'ai.decide' }
   needsNext_(type: string): boolean { return stepNeedsNext(type) }
 
   handleAddNewClick_() {
@@ -379,6 +494,74 @@ class WorkflowsSection extends WorkflowsSectionBase {
   onStepOutputsInput_(
       e: { model: { index: number }, target: HTMLTextAreaElement }) {
     this.updateStep_(e.model.index, (s) => { s.outputsText = e.target.value })
+  }
+  onStepFlowIdInput_(
+      e: { model: { index: number }, target: HTMLInputElement }) {
+    this.updateStep_(e.model.index, (s) => { s.flowId = e.target.value })
+  }
+  onStepCallInputsInput_(
+      e: { model: { index: number }, target: HTMLTextAreaElement }) {
+    this.updateStep_(
+        e.model.index, (s) => { s.callInputsText = e.target.value })
+  }
+  onStepCallOutputsInput_(
+      e: { model: { index: number }, target: HTMLTextAreaElement }) {
+    this.updateStep_(
+        e.model.index, (s) => { s.callOutputsText = e.target.value })
+  }
+  onStepOnChildFailureInput_(
+      e: { model: { index: number }, target: HTMLInputElement }) {
+    this.updateStep_(
+        e.model.index, (s) => { s.onChildFailure = e.target.value })
+  }
+  onStepItemsExpressionInput_(
+      e: { model: { index: number }, target: HTMLInputElement }) {
+    this.updateStep_(
+        e.model.index, (s) => { s.itemsExpression = e.target.value })
+  }
+  onStepItemVariableInput_(
+      e: { model: { index: number }, target: HTMLInputElement }) {
+    this.updateStep_(
+        e.model.index, (s) => { s.itemVariable = e.target.value })
+  }
+  onStepIndexVariableInput_(
+      e: { model: { index: number }, target: HTMLInputElement }) {
+    this.updateStep_(
+        e.model.index, (s) => { s.indexVariable = e.target.value })
+  }
+  onStepBodyStartInput_(
+      e: { model: { index: number }, target: HTMLInputElement }) {
+    this.updateStep_(e.model.index, (s) => { s.bodyStart = e.target.value })
+  }
+  onStepMaxIterationsInput_(
+      e: { model: { index: number }, target: HTMLInputElement }) {
+    this.updateStep_(
+        e.model.index, (s) => { s.maxIterations = e.target.value })
+  }
+  onStepLoopConditionInput_(
+      e: { model: { index: number }, target: HTMLInputElement }) {
+    this.updateStep_(
+        e.model.index, (s) => { s.loopCondition = e.target.value })
+  }
+  onStepAiInstructionInput_(
+      e: { model: { index: number }, target: HTMLTextAreaElement }) {
+    this.updateStep_(
+        e.model.index, (s) => { s.aiInstruction = e.target.value })
+  }
+  onStepAiSchemaJsonInput_(
+      e: { model: { index: number }, target: HTMLTextAreaElement }) {
+    this.updateStep_(
+        e.model.index, (s) => { s.aiSchemaJson = e.target.value })
+  }
+  onStepAiOutputVariableInput_(
+      e: { model: { index: number }, target: HTMLInputElement }) {
+    this.updateStep_(
+        e.model.index, (s) => { s.aiOutputVariable = e.target.value })
+  }
+  onStepAllowedOutcomesInput_(
+      e: { model: { index: number }, target: HTMLTextAreaElement }) {
+    this.updateStep_(
+        e.model.index, (s) => { s.allowedOutcomesText = e.target.value })
   }
 
   onDialogCancel_() {

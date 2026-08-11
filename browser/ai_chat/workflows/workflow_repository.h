@@ -47,6 +47,11 @@ class WorkflowRepository : public KeyedService {
 
   // Validates `definition_json` (see workflow_definition.h) and, if valid,
   // creates a new workflow or overwrites the existing one with the same id.
+  // Also rejects it (with a validation error, not stored) if any of its
+  // call_flow steps would create a reference cycle (directly or through
+  // one or more other saved workflows) - Phase 4's "reject A->A, A->B->A"
+  // requirement (see brave-ai-assistant-workflow-orchestration-engine.md
+  // section 22, "Recursion Protection").
   SaveResult SaveWorkflow(const base::DictValue& definition_json);
 
   std::optional<WorkflowDefinition> GetWorkflow(const std::string& id) const;
@@ -56,7 +61,22 @@ class WorkflowRepository : public KeyedService {
   bool PublishWorkflow(const std::string& id);
   bool DeleteWorkflow(const std::string& id);
 
+  // The ids of workflows `id`'s call_flow steps reference, and the ids of
+  // other saved workflows whose call_flow steps reference `id` -
+  // section 23's dependency graph, in its simplest useful form (no version
+  // pinning, since GetWorkflow() itself doesn't support multiple stored
+  // versions per id yet).
+  std::vector<std::string> GetDependencies(const std::string& id) const;
+  std::vector<std::string> GetDependents(const std::string& id) const;
+
  private:
+  // Returns a human-readable "A -> B -> A" description of the first cycle
+  // found reachable from `new_definition`'s own call_flow steps (treating
+  // `new_definition` itself, not whatever's currently stored under its id,
+  // as the starting point - it may not be saved yet), or nullopt if none.
+  std::optional<std::string> FindCallFlowCycle(
+      const WorkflowDefinition& new_definition) const;
+
   raw_ptr<PrefService> prefs_ = nullptr;
 };
 
