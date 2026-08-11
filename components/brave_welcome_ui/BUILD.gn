@@ -8,12 +8,17 @@ import("//brave/components/common/typescript.gni")
 
 if (is_brave_origin_branded) {
   _welcome_logo_source = "assets/brave_origin_logo@2x.webp"
+  _welcome_logo_output = "welcome_logo@2x.webp"
   _background_source = "assets/background@2x_origin.webp"
   _hill_source = "assets/hill_origin.webp"
   _pyramid_source = "assets/pyramid_origin.webp"
   _sky_source = "assets/sky_origin.webp"
 } else {
-  _welcome_logo_source = "assets/brave_logo_3d@2x.webp"
+  # The AI Automation Browser shield/node mark (see
+  # //brave/app/theme/ai_automation_browser/product_logo.svg), used as a
+  # vector image so no raster re-export is needed for this larger hero size.
+  _welcome_logo_source = "assets/ai_automation_logo.svg"
+  _welcome_logo_output = "welcome_logo.svg"
   _background_source = "assets/background@2x.webp"
   _hill_source = "assets/hill.webp"
   _pyramid_source = "assets/pyramid.webp"
@@ -23,7 +28,7 @@ if (is_brave_origin_branded) {
 copy("welcome_logo") {
   sources = [ _welcome_logo_source ]
   outputs =
-      [ "$root_gen_dir/brave/components/brave_welcome_ui/welcome_logo@2x.webp" ]
+      [ "$root_gen_dir/brave/components/brave_welcome_ui/$_welcome_logo_output" ]
 }
 
 copy("welcome_background") {
