@@ -330,6 +330,14 @@ void BraveAppMenuModel::BuildMoreToolsSubMenu() {
     more_tools_menu_model->InsertItemWithStringIdAt(*index, IDC_DEV_TOOLS,
                                                     IDS_DEV_TOOLS);
   }
+
+  if (IsCommandIdEnabled(IDC_SHOW_COMPUTER_USE)) {
+    if (auto index =
+            more_tools_menu_model->GetIndexOfCommandId(IDC_DEV_TOOLS)) {
+      more_tools_menu_model->InsertItemWithStringIdAt(
+          *index + 1, IDC_SHOW_COMPUTER_USE, IDS_SHOW_COMPUTER_USE);
+    }
+  }
 }
 
 void BraveAppMenuModel::BuildHelpSubMenu() {

@@ -10,6 +10,7 @@
 #include "base/feature_list.h"
 #include "brave/browser/brave_browser_features.h"
 #include "brave/browser/brave_shields/brave_shields_web_contents_observer.h"
+#include "brave/browser/computer_use/computer_use_session_state.h"
 #include "brave/browser/new_tab/new_tab_shows_options.h"
 #include "brave/browser/search_engines/search_engine_tracker.h"
 #include "brave/browser/translate/brave_translate_prefs_migration.h"
@@ -417,6 +418,8 @@ void RegisterProfilePrefsForMigration(
 void RegisterProfilePrefs(user_prefs::PrefRegistrySyncable* registry) {
   brave_shields::BraveShieldsWebContentsObserver::RegisterProfilePrefs(
       registry);
+
+  computer_use::ComputerUseSessionState::RegisterProfilePrefs(registry);
 
   brave_perf_predictor::PerfPredictorTabHelper::RegisterProfilePrefs(registry);
   brave_perf_predictor::P3ABandwidthSavingsTracker::RegisterProfilePrefs(

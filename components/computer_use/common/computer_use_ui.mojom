@@ -5,18 +5,30 @@
 
 module computer_use.mojom;
 
+// One completed or still-open RDP session in the user-facing history log.
+// `disconnected_at` is null while the session is still open.
+struct RdpHistoryEntry {
+  string host;
+  int32 port;
+  // Milliseconds since the Unix epoch (JS Date-compatible).
+  double connected_at;
+  double? disconnected_at;
+};
+
 // Browser-side handler for the computer-use WebUI page (chrome://computer-use).
 interface PageHandler {
   // Whether an AI computer-use session is active, whether the emergency
   // stop has been triggered (and not yet resumed), the most recently
   // captured desktop frame (as a data: URL) if any, and whether an RDP
-  // session is active plus which host it's connected to (empty if none).
+  // session is active plus which host:port it's connected to (host empty,
+  // port 0 if none).
   GetState() => (
       bool active,
       bool emergency_stopped,
       string frame_data_url,
       bool rdp_active,
-      string rdp_target_host);
+      string rdp_target_host,
+      int32 rdp_target_port);
 
   // Triggers the emergency stop - same effect as the global hotkey
   // (Ctrl+Alt+Shift+Esc): immediately blocks all further desktop_* input
@@ -28,4 +40,18 @@ interface PageHandler {
   // again. Deliberately requires this explicit user action - the AI can't
   // resume itself.
   Resume();
+
+  // Manually opens an RDP session to `host`:`port`, initiated directly by
+  // the user from this page (as opposed to the AI-invoked open_rdp_session
+  // tool, which always re-challenges for consent). `success` is false and
+  // `error` non-empty if the connection attempt failed. Windows-only -
+  // fails immediately with an error on other platforms.
+  ConnectRdp(string host, int32 port) => (bool success, string error);
+
+  // Disconnects the current RDP session, if any. No-op if none is active.
+  DisconnectRdp();
+
+  // The persisted (survives restart) log of RDP sessions on this profile,
+  // most recent first.
+  GetRdpHistory() => (array<RdpHistoryEntry> history);
 };

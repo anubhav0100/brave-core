@@ -265,6 +265,7 @@ void BraveBrowserCommandController::InitBraveCommandState() {
     }
   }
   UpdateCommandForWebcompatReporter();
+  UpdateCommandForComputerUse();
 #if BUILDFLAG(ENABLE_TOR)
   UpdateCommandForTor();
 #endif
@@ -413,6 +414,10 @@ void BraveBrowserCommandController::UpdateCommandForBraveRewards() {
 
 void BraveBrowserCommandController::UpdateCommandForWebcompatReporter() {
   UpdateCommandEnabled(IDC_SHOW_BRAVE_WEBCOMPAT_REPORTER, true);
+}
+
+void BraveBrowserCommandController::UpdateCommandForComputerUse() {
+  UpdateCommandEnabled(IDC_SHOW_COMPUTER_USE, true);
 }
 
 #if BUILDFLAG(ENABLE_TOR)
@@ -629,6 +634,9 @@ bool BraveBrowserCommandController::ExecuteBraveCommandWithDisposition(
       break;
     case IDC_SHOW_BRAVE_WEBCOMPAT_REPORTER:
       brave::ShowWebcompatReporter(&*browser_);
+      break;
+    case IDC_SHOW_COMPUTER_USE:
+      brave::ShowComputerUse(&*browser_);
       break;
 #if BUILDFLAG(ENABLE_TOR)
     case IDC_NEW_OFFTHERECORD_WINDOW_TOR:

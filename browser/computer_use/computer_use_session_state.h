@@ -7,12 +7,19 @@
 #define BRAVE_BROWSER_COMPUTER_USE_COMPUTER_USE_SESSION_STATE_H_
 
 #include <memory>
+#include <optional>
 #include <string>
+#include <vector>
 
 #include "base/containers/flat_set.h"
 #include "base/functional/callback.h"
+#include "base/memory/raw_ptr.h"
+#include "base/time/time.h"
 #include "build/build_config.h"
 #include "components/keyed_service/core/keyed_service.h"
+
+class PrefRegistrySimple;
+class PrefService;
 
 namespace computer_use {
 
@@ -30,10 +37,32 @@ class RdpSession;
 // each other.
 class ComputerUseSessionState : public KeyedService {
  public:
-  ComputerUseSessionState();
+  // One completed or still-open RDP session, for the user-facing history
+  // log on the computer-use page - which host:port was connected to, and
+  // when it was connected/disconnected. `disconnected_at` is unset while
+  // the session is still open.
+  struct RdpHistoryEntry {
+    RdpHistoryEntry();
+    RdpHistoryEntry(std::string host,
+                    int port,
+                    base::Time connected_at,
+                    std::optional<base::Time> disconnected_at);
+    RdpHistoryEntry(const RdpHistoryEntry&);
+    RdpHistoryEntry& operator=(const RdpHistoryEntry&);
+    ~RdpHistoryEntry();
+
+    std::string host;
+    int port = 0;
+    base::Time connected_at;
+    std::optional<base::Time> disconnected_at;
+  };
+
+  explicit ComputerUseSessionState(PrefService* prefs);
   ~ComputerUseSessionState() override;
   ComputerUseSessionState(const ComputerUseSessionState&) = delete;
   ComputerUseSessionState& operator=(const ComputerUseSessionState&) = delete;
+
+  static void RegisterProfilePrefs(PrefRegistrySimple* registry);
 
   void SetLatestFrame(std::string frame_data_url);
 
@@ -76,15 +105,25 @@ class ComputerUseSessionState : public KeyedService {
   void DisconnectRdp();
   bool IsRdpActive() const;
   const std::string& GetRdpTargetHost() const;
+  int GetRdpTargetPort() const;
+
+  // Persisted (survives restart) log of RDP sessions on this profile, most
+  // recent first - see RdpHistoryEntry.
+  std::vector<RdpHistoryEntry> GetRdpHistory() const;
 #endif
 
  private:
 #if BUILDFLAG(IS_WIN)
   void OnRdpConnectResult(
       base::OnceCallback<void(bool, std::string)> callback,
+      const std::string& host,
+      int port,
       bool success,
       std::string error_message);
   void OnRdpDisconnected(std::string reason);
+
+  void AppendRdpHistoryEntry(const std::string& host, int port);
+  void CloseLatestOpenRdpHistoryEntry();
 #endif
 
   bool active_ = false;
@@ -94,10 +133,12 @@ class ComputerUseSessionState : public KeyedService {
   base::flat_set<std::string> interacted_apps_;
 
 #if BUILDFLAG(IS_WIN)
+  raw_ptr<PrefService> prefs_;
   std::unique_ptr<GlobalStopHotkey> global_stop_hotkey_;
   std::unique_ptr<RdpSession> rdp_session_;
   bool rdp_active_ = false;
   std::string rdp_target_host_;
+  int rdp_target_port_ = 0;
 #endif
 };
 

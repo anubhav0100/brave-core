@@ -171,6 +171,10 @@
 // acceleratable so users can assign it a custom keyboard shortcut.
 #define IDC_BLOCK_ELEMENTS 56470
 
+// Opens chrome://computer-use, the monitor/manual-control page for the AI
+// computer-use feature (screenshot capture, input injection, RDP).
+#define IDC_SHOW_COMPUTER_USE 56471
+
 #define IDC_BRAVE_COMMANDS_LAST 57000
 
 #endif  // BRAVE_APP_BRAVE_COMMAND_IDS_H_

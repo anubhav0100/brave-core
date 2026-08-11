@@ -8,6 +8,7 @@
 #include "base/no_destructor.h"
 #include "brave/browser/computer_use/computer_use_session_state.h"
 #include "components/keyed_service/content/browser_context_dependency_manager.h"
+#include "components/user_prefs/user_prefs.h"
 #include "content/public/browser/browser_context.h"
 
 namespace computer_use {
@@ -36,7 +37,8 @@ ComputerUseSessionStateFactory::~ComputerUseSessionStateFactory() = default;
 std::unique_ptr<KeyedService>
 ComputerUseSessionStateFactory::BuildServiceInstanceForBrowserContext(
     content::BrowserContext* context) const {
-  return std::make_unique<ComputerUseSessionState>();
+  return std::make_unique<ComputerUseSessionState>(
+      user_prefs::UserPrefs::Get(context));
 }
 
 }  // namespace computer_use

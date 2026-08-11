@@ -17,6 +17,8 @@ source_set("computer_use") {
     "//base",
     "//components/keyed_service/content",
     "//components/keyed_service/core",
+    "//components/prefs",
+    "//components/user_prefs",
     "//content/public/browser",
     "//skia",
     "//third_party/libyuv",

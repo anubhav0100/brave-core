@@ -55,6 +55,10 @@ void ShowShortcutsPage(BrowserWindowInterface* browser) {
   ShowSingletonTabOverwritingNTP(browser, GURL(kShortcutsURL));
 }
 
+void ShowComputerUse(BrowserWindowInterface* browser) {
+  ShowSingletonTabOverwritingNTP(browser, GURL(kComputerUseURL));
+}
+
 #if BUILDFLAG(ENABLE_BRAVE_TALK)
 void ShowBraveTalk(BrowserWindowInterface* browser) {
   ShowSingletonTabOverwritingNTP(browser, GURL(sidebar::kBraveTalkURL));

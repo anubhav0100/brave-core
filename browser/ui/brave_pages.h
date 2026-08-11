@@ -41,6 +41,7 @@ void ShowFullpageChat(BrowserWindowInterface* browser);
 #endif
 
 void ShowAppsPage(BrowserWindowInterface* browser);
+void ShowComputerUse(BrowserWindowInterface* browser);
 
 }  // namespace brave
 

@@ -6,6 +6,8 @@
 #ifndef BRAVE_BROWSER_UI_WEBUI_COMPUTER_USE_COMPUTER_USE_UI_H_
 #define BRAVE_BROWSER_UI_WEBUI_COMPUTER_USE_COMPUTER_USE_UI_H_
 
+#include <cstdint>
+#include <string>
 #include <string_view>
 
 #include "brave/components/computer_use/common/computer_use_ui.mojom.h"
@@ -37,6 +39,11 @@ class ComputerUseUI : public content::WebUIController,
   void GetState(GetStateCallback callback) override;
   void Stop() override;
   void Resume() override;
+  void ConnectRdp(const std::string& host,
+                  int32_t port,
+                  ConnectRdpCallback callback) override;
+  void DisconnectRdp() override;
+  void GetRdpHistory(GetRdpHistoryCallback callback) override;
 
   mojo::Receiver<computer_use::mojom::PageHandler> receiver_{this};
 
