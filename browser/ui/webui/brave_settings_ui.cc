@@ -70,8 +70,10 @@
 
 #if BUILDFLAG(ENABLE_AI_CHAT)
 #include "brave/browser/ai_chat/ai_chat_settings_helper.h"
+#include "brave/browser/ai_chat/colibri/colibri_service_factory.h"
 #include "brave/browser/ai_chat/ollama/ollama_service_factory.h"
 #include "brave/browser/ui/webui/settings/brave_settings_leo_assistant_handler.h"
+#include "brave/components/ai_chat/core/browser/colibri/colibri_service.h"
 #include "brave/components/ai_chat/core/browser/customization_settings_handler.h"
 #include "brave/components/ai_chat/core/browser/ollama/ollama_service.h"
 #include "brave/components/ai_chat/core/browser/utils.h"
@@ -386,6 +388,16 @@ void BraveSettingsUI::BindInterface(
   auto* ollama_service = ai_chat::OllamaServiceFactory::GetForProfile(profile);
   if (ollama_service) {
     ollama_service->BindReceiver(std::move(pending_receiver));
+  }
+}
+
+void BraveSettingsUI::BindInterface(
+    mojo::PendingReceiver<ai_chat::mojom::ColibriService> pending_receiver) {
+  auto* profile = Profile::FromWebUI(web_ui());
+  auto* colibri_service =
+      ai_chat::ColibriServiceFactory::GetForProfile(profile);
+  if (colibri_service) {
+    colibri_service->BindReceiver(std::move(pending_receiver));
   }
 }
 #endif

@@ -24,6 +24,7 @@
 #include "ui/webui/resources/cr_components/color_change_listener/color_change_listener.mojom.h"
 
 #if BUILDFLAG(ENABLE_AI_CHAT)
+#include "brave/components/ai_chat/core/common/mojom/colibri.mojom.h"
 #include "brave/components/ai_chat/core/common/mojom/customization_settings.mojom.h"
 #include "brave/components/ai_chat/core/common/mojom/ollama.mojom.h"
 #include "brave/components/ai_chat/core/common/mojom/settings_helper.mojom.h"
@@ -74,6 +75,8 @@ class BraveSettingsUI : public settings::SettingsUI {
           pending_receiver);
   void BindInterface(
       mojo::PendingReceiver<ai_chat::mojom::OllamaService> pending_receiver);
+  void BindInterface(
+      mojo::PendingReceiver<ai_chat::mojom::ColibriService> pending_receiver);
 #endif
   void BindInterface(mojo::PendingReceiver<brave_account::mojom::Authentication>
                          pending_receiver);

@@ -5,9 +5,11 @@
 
 import 'chrome://resources/cr_elements/cr_button/cr_button.js'
 import 'chrome://resources/cr_elements/cr_icon/cr_icon.js'
+import 'chrome://resources/cr_elements/cr_input/cr_input.js'
 import 'chrome://resources/cr_elements/icons.html.js'
 import 'chrome://resources/brave/leo.bundle.js'
 
+import { addWebUiListener } from 'chrome://resources/js/cr.js'
 import { PrefsMixin } from '/shared/settings/prefs/prefs_mixin.js'
 import { I18nMixin } from 'chrome://resources/cr_elements/i18n_mixin.js'
 import { PolymerElement } from 'chrome://resources/polymer/v3_0/polymer/polymer_bundled.min.js'
@@ -47,6 +49,26 @@ class ModelListSection extends ModelListSectionBase {
       isOllamaConnected_: {
         type: Boolean,
         value: false
+      },
+      colibriExecutablePath_: {
+        type: String,
+        value: ''
+      },
+      colibriModelPath_: {
+        type: String,
+        value: ''
+      },
+      colibriRunning_: {
+        type: Boolean,
+        value: false
+      },
+      colibriStarting_: {
+        type: Boolean,
+        value: false
+      },
+      isColibriConnected_: {
+        type: Boolean,
+        value: false
       }
     }
   }
@@ -55,6 +77,11 @@ class ModelListSection extends ModelListSectionBase {
     BraveLeoAssistantBrowserProxyImpl.getInstance()
   declare customModelsList_: Model[]
   declare isOllamaConnected_: boolean
+  declare colibriExecutablePath_: string
+  declare colibriModelPath_: string
+  declare colibriRunning_: boolean
+  declare colibriStarting_: boolean
+  declare isColibriConnected_: boolean
 
   override ready() {
     super.ready()
@@ -73,6 +100,21 @@ class ModelListSection extends ModelListSectionBase {
 
     // Check Ollama connection on page load
     this.checkOllamaConnection_()
+
+    addWebUiListener(
+      'colibri-running-state-changed', (running: boolean) => {
+        this.colibriRunning_ = running
+        if (running) {
+          this.checkColibriConnection_()
+        }
+      })
+
+    this.browserProxy_.getColibriStatus().then((status) => {
+      this.colibriRunning_ = status.running
+      this.colibriExecutablePath_ = status.executablePath
+      this.colibriModelPath_ = status.modelPath
+    })
+    this.checkColibriConnection_()
   }
 
   override getAssociatedControlFor(childViewId: string): HTMLElement {
@@ -130,6 +172,58 @@ class ModelListSection extends ModelListSectionBase {
     const isOllamaEndpoint =
         model.options.customModelOptions?.endpoint === OLLAMA_ENDPOINT
     return isOllamaEndpoint && ollamaSyncEnabled && isOllamaConnected
+  }
+
+  private async checkColibriConnection_() {
+    try {
+      const result = await this.browserProxy_.checkColibriConnection()
+      this.isColibriConnected_ = result.connected
+    } catch (error) {
+      console.error('Failed to check Colibri connection:', error)
+      this.isColibriConnected_ = false
+    }
+  }
+
+  onColibriExecutablePathInput_(e: { value: string }) {
+    this.colibriExecutablePath_ = e.value
+  }
+
+  onColibriModelPathInput_(e: { value: string }) {
+    this.colibriModelPath_ = e.value
+  }
+
+  handleColibriStartClick_() {
+    this.colibriStarting_ = true
+    this.browserProxy_
+      .startColibri(this.colibriExecutablePath_, this.colibriModelPath_)
+      .then((success) => {
+        this.colibriStarting_ = false
+        this.colibriRunning_ = success
+        if (success) {
+          this.checkColibriConnection_()
+        }
+      })
+  }
+
+  private getColibriStatusLabel_(running: boolean): string {
+    return running
+      ? this.i18n('braveLeoAssistantColibriStatusRunning')
+      : this.i18n('braveLeoAssistantColibriStatusStopped')
+  }
+
+  private getColibriStatusDotClass_(running: boolean): string {
+    return running ? 'running' : ''
+  }
+
+  private computeColibriStartDisabled_(
+      running: boolean, starting: boolean): boolean {
+    return running || starting
+  }
+
+  private getColibriStartLabel_(starting: boolean): string {
+    return starting
+      ? this.i18n('braveLeoAssistantColibriStartingLabel')
+      : this.i18n('braveLeoAssistantColibriStartLabel')
   }
 }
 

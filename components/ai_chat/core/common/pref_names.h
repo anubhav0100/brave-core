@@ -139,6 +139,16 @@ inline constexpr char kBraveAIChatUserMemories[] =
 inline constexpr char kBraveAIChatSkills[] = "brave.ai_chat.smart_modes";
 inline constexpr char kBraveAIChatOllamaFetchEnabled[] =
     "brave.ai_chat.ollama_fetch_enabled";
+inline constexpr char kBraveAIChatColibriFetchEnabled[] =
+    "brave.ai_chat.colibri_fetch_enabled";
+// Path to the folder containing the user's downloaded Colibri release (the
+// `coli` launcher and `colibri.exe`) and the folder containing their
+// downloaded model - both set via the Settings "Your models" page, and
+// both required to start Colibri (see ColibriProcessManager).
+inline constexpr char kBraveAIChatColibriExecutablePath[] =
+    "brave.ai_chat.colibri_executable_path";
+inline constexpr char kBraveAIChatColibriModelPath[] =
+    "brave.ai_chat.colibri_model_path";
 // Whether captured pages/saved responses get embedded into the on-device
 // RAG content index (see AiChatContentIndex) - a hard kill switch also
 // used to gate the search_indexed_content tool itself.

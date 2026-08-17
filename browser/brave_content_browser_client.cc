@@ -239,6 +239,7 @@ using extensions::ChromeContentBrowserClientExtensionsPart;
 #include "brave/components/ai_chat/core/common/features.h"
 #include "brave/components/ai_chat/core/common/mojom/ai_chat.mojom.h"
 #include "brave/components/ai_chat/core/common/mojom/bookmarks.mojom.h"
+#include "brave/components/ai_chat/core/common/mojom/colibri.mojom.h"
 #include "brave/components/ai_chat/core/common/mojom/common.mojom.h"
 #include "brave/components/computer_use/common/computer_use_ui.mojom.h"
 #include "brave/components/ai_chat/core/common/mojom/customization_settings.mojom.h"
@@ -664,7 +665,8 @@ void BraveContentBrowserClient::RegisterTrustedWebUIInterfaceBrokers(
   registry.ForWebUI<BraveSettingsUI>()
       .Add<ai_chat::mojom::AIChatSettingsHelper>()
       .Add<ai_chat::mojom::CustomizationSettingsHandler>()
-      .Add<ai_chat::mojom::OllamaService>();
+      .Add<ai_chat::mojom::OllamaService>()
+      .Add<ai_chat::mojom::ColibriService>();
 #endif  // BUILDFLAG(ENABLE_AI_CHAT)
   if (base::FeatureList::IsEnabled(commands::features::kBraveCommands)) {
     registry.ForWebUI<BraveSettingsUI>()

@@ -70,6 +70,51 @@
   cr-icon-button.size-20 {
     --iron-icon-width: 20px;
   }
+
+  .colibri-box {
+    padding: var(--leo-spacing-xl);
+    margin-bottom: var(--leo-spacing-xl);
+    border-top: none !important;
+    border-bottom: 1px solid var(--leo-color-divider-subtle);
+  }
+
+  .colibri-fields {
+    display: flex;
+    flex-direction: column;
+    gap: var(--leo-spacing-m);
+  }
+
+  .field-label {
+    font: var(--leo-font-small-semibold);
+    margin-bottom: var(--leo-spacing-s);
+  }
+
+  .colibri-status-row {
+    display: flex;
+    align-items: center;
+    gap: var(--leo-spacing-m);
+    margin-top: var(--leo-spacing-s);
+  }
+
+  .status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--leo-color-text-tertiary);
+    flex-shrink: 0;
+  }
+
+  .status-dot.running {
+    background: var(--leo-color-systemfeedback-success-icon, #31a06e);
+  }
+
+  .status-label {
+    font: var(--leo-font-small-semibold);
+  }
+
+  .spacer {
+    flex: 1;
+  }
 </style>
 
 <settings-section
@@ -98,6 +143,48 @@
     pref="{{prefs.brave.ai_chat.ollama_fetch_enabled}}">
   </settings-toggle-button>
 </template>
+
+<!-- Colibri Section -->
+<div class="settings-box colibri-box">
+  <div class="flex colibri-fields">
+    <div class="main-header">$i18n{braveLeoAssistantColibriTitle}</div>
+    <div class="label secondary">$i18n{braveLeoAssistantColibriDesc}</div>
+
+    <div class="field-label">$i18n{braveLeoAssistantColibriExecutablePathLabel}</div>
+    <cr-input
+      value="[[colibriExecutablePath_]]"
+      on-input="onColibriExecutablePathInput_"
+      placeholder="$i18n{braveLeoAssistantColibriExecutablePathPlaceholder}">
+    </cr-input>
+
+    <div class="field-label">$i18n{braveLeoAssistantColibriModelPathLabel}</div>
+    <cr-input
+      value="[[colibriModelPath_]]"
+      on-input="onColibriModelPathInput_"
+      placeholder="$i18n{braveLeoAssistantColibriModelPathPlaceholder}">
+    </cr-input>
+
+    <div class="colibri-status-row">
+      <div class$="status-dot [[getColibriStatusDotClass_(colibriRunning_)]]"></div>
+      <div class="status-label">[[getColibriStatusLabel_(colibriRunning_)]]</div>
+      <div class="spacer"></div>
+      <cr-button
+        class="action-button"
+        on-click="handleColibriStartClick_"
+        disabled="[[computeColibriStartDisabled_(colibriRunning_, colibriStarting_)]]">
+        [[getColibriStartLabel_(colibriStarting_)]]
+      </cr-button>
+    </div>
+
+    <template is="dom-if" if="[[isColibriConnected_]]">
+      <settings-toggle-button
+        class="cr-row ollama-toggle"
+        label="$i18n{braveLeoAssistantColibriSyncLabel}"
+        pref="{{prefs.brave.ai_chat.colibri_fetch_enabled}}">
+      </settings-toggle-button>
+    </template>
+  </div>
+</div>
 
 <div class="list-container">
   <template

@@ -240,12 +240,15 @@ source_set("ui") {
       ]
       deps += [
         "//brave/browser/ai_chat",
+        "//brave/browser/ai_chat/colibri",
         "//brave/browser/ai_chat/ollama",
+        "//brave/browser/colibri",
         "//brave/browser/computer_use",
         "//brave/browser/delegation",
         "//brave/browser/n8n",
         "//brave/components/ai_chat/content/browser",
         "//brave/components/ai_chat/core/browser",
+        "//brave/components/ai_chat/core/browser/colibri",
         "//brave/components/ai_chat/core/browser/ollama",
         "//brave/components/api_request_helper",
         "//brave/components/computer_use/browser/resources:generated_resources",

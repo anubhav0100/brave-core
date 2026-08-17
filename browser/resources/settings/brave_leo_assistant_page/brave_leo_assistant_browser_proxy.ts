@@ -8,11 +8,13 @@
  import * as mojomCustomizationSettings from
    '../customization_settings.mojom-webui.js'
  import {OllamaService, OLLAMA_ENDPOINT} from '../ollama.mojom-webui.js'
+ import {ColibriService, COLIBRI_ENDPOINT} from '../colibri.mojom-webui.js'
  export * from '../ai_chat.mojom-webui.js'
  export * from '../common.mojom-webui.js'
  export * from '../settings_helper.mojom-webui.js'
  export * from '../customization_settings.mojom-webui.js'
  export {OLLAMA_ENDPOINT} from '../ollama.mojom-webui.js'
+ export {COLIBRI_ENDPOINT} from '../colibri.mojom-webui.js'
 
  export interface WebhookToolParameter {
   name: string
@@ -89,6 +91,7 @@
   getCustomizationSettingsCallbackRouter():
     mojomCustomizationSettings.CustomizationSettingsUICallbackRouter
   checkOllamaConnection(): Promise<{connected: boolean}>
+  checkColibriConnection(): Promise<{connected: boolean}>
   fetchAvailableModels(endpoint: string, apiKey: string): Promise<string[]>
   getPageCaptureData(): Promise<{
     entries: {heading: string, preview: string}[],
@@ -117,6 +120,14 @@
   getDelegationStatus(): Promise<{running: boolean, baseUrl: string}>
   getDelegationBufferedOutput(): Promise<string>
   startDelegation(): Promise<boolean>
+  getColibriStatus(): Promise<{
+    running: boolean,
+    baseUrl: string,
+    executablePath: string,
+    modelPath: string
+  }>
+  getColibriBufferedOutput(): Promise<string>
+  startColibri(executablePath: string, modelPath: string): Promise<boolean>
  }
 
  export class BraveLeoAssistantBrowserProxyImpl
@@ -128,6 +139,7 @@
    customizationSettingsCallbackRouter:
      mojomCustomizationSettings.CustomizationSettingsUICallbackRouter
    ollamaService: ReturnType<typeof OllamaService.getRemote>
+   colibriService: ReturnType<typeof ColibriService.getRemote>
 
    private constructor() {
       this.settingsHelper = mojom.AIChatSettingsHelper.getRemote()
@@ -143,6 +155,7 @@
         this.customizationSettingsCallbackRouter.$.bindNewPipeAndPassRemote())
 
       this.ollamaService = OllamaService.getRemote()
+      this.colibriService = ColibriService.getRemote()
    }
 
    static getInstance(): BraveLeoAssistantBrowserProxyImpl {
@@ -179,6 +192,13 @@
 
    async checkOllamaConnection() {
      const result = await this.ollamaService.isConnected()
+     return {
+       connected: result.connected
+     }
+   }
+
+   async checkColibriConnection() {
+     const result = await this.colibriService.isConnected()
      return {
        connected: result.connected
      }
@@ -283,6 +303,24 @@
 
    startDelegation() {
      return sendWithPromise<boolean>('startDelegation')
+   }
+
+   getColibriStatus() {
+     return sendWithPromise<{
+       running: boolean,
+       baseUrl: string,
+       executablePath: string,
+       modelPath: string
+     }>('getColibriStatus')
+   }
+
+   getColibriBufferedOutput() {
+     return sendWithPromise<string>('getColibriBufferedOutput')
+   }
+
+   startColibri(executablePath: string, modelPath: string) {
+     return sendWithPromise<boolean>(
+       'startColibri', executablePath, modelPath)
    }
  }
 

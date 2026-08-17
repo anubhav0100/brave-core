@@ -13,6 +13,7 @@
 #include "base/memory/weak_ptr.h"
 #include "base/scoped_observation.h"
 #include "brave/browser/ai_chat/workflows/workflow_runtime.h"
+#include "brave/browser/colibri/colibri_process_manager.h"
 #include "brave/browser/delegation/delegation_process_manager.h"
 #include "brave/browser/n8n/n8n_process_manager.h"
 #include "brave/components/ai_chat/core/common/mojom/ai_chat.mojom-forward.h"
@@ -28,7 +29,8 @@ class BraveLeoAssistantHandler
     : public settings::SettingsPageUIHandler,
       public sidebar::SidebarService::Observer,
       public ai_chat::N8nProcessManager::Observer,
-      public ai_chat::DelegationProcessManager::Observer {
+      public ai_chat::DelegationProcessManager::Observer,
+      public ai_chat::ColibriProcessManager::Observer {
  public:
   BraveLeoAssistantHandler();
   ~BraveLeoAssistantHandler() override;
@@ -53,6 +55,10 @@ class BraveLeoAssistantHandler
   // ai_chat::DelegationProcessManager::Observer overrides
   void OnDelegationOutputAppended(const std::string& text) override;
   void OnDelegationRunningStateChanged(bool running) override;
+
+  // ai_chat::ColibriProcessManager::Observer overrides
+  void OnColibriOutputAppended(const std::string& text) override;
+  void OnColibriRunningStateChanged(bool running) override;
 
   void NotifyChatUiChanged(const bool& isLeoVisible);
 
@@ -91,6 +97,10 @@ class BraveLeoAssistantHandler
   void HandleGetDelegationBufferedOutput(const base::ListValue& args);
   void HandleStartDelegation(const base::ListValue& args);
   void OnDelegationStarted(base::Value callback_id, bool success);
+  void HandleGetColibriStatus(const base::ListValue& args);
+  void HandleGetColibriBufferedOutput(const base::ListValue& args);
+  void HandleStartColibri(const base::ListValue& args);
+  void OnColibriStarted(base::Value callback_id, bool success);
   void HandleGetMcpWorkflows(const base::ListValue& args);
   void OnMcpWorkflowsListedForSettings(
       base::Value callback_id,
@@ -109,6 +119,9 @@ class BraveLeoAssistantHandler
   base::ScopedObservation<ai_chat::DelegationProcessManager,
                           ai_chat::DelegationProcessManager::Observer>
       delegation_process_manager_observer_{this};
+  base::ScopedObservation<ai_chat::ColibriProcessManager,
+                          ai_chat::ColibriProcessManager::Observer>
+      colibri_process_manager_observer_{this};
   std::unique_ptr<api_request_helper::APIRequestHelper> api_request_helper_;
   base::WeakPtrFactory<BraveLeoAssistantHandler> weak_ptr_factory_{this};
 };

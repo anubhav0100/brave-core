@@ -48,6 +48,9 @@ void RegisterProfilePrefs(PrefRegistrySimple* registry) {
     registry->RegisterListPref(kBraveAIChatUserMemories);
     registry->RegisterDictionaryPref(kBraveAIChatSkills);
     registry->RegisterBooleanPref(kBraveAIChatOllamaFetchEnabled, false);
+    registry->RegisterBooleanPref(kBraveAIChatColibriFetchEnabled, false);
+    registry->RegisterStringPref(kBraveAIChatColibriExecutablePath, "");
+    registry->RegisterStringPref(kBraveAIChatColibriModelPath, "");
     registry->RegisterDictionaryPref(kAIChatObliviousHttpKeyConfigs);
     registry->RegisterTimePref(kRemoteModelsCachedAt, {});
     registry->RegisterBooleanPref(kBraveAIChatRollingSummarizationEnabled,

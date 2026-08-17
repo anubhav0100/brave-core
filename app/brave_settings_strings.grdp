@@ -2178,6 +2178,39 @@
   <message name="IDS_SETTINGS_LEO_ASSISTANT_OLLAMA_SYNC_LABEL" desc="The label for the Ollama sync toggle button">
     Sync your Ollama local models
   </message>
+  <message name="IDS_SETTINGS_LEO_ASSISTANT_COLIBRI_TITLE" desc="The title for the Colibri section">
+    Colibri
+  </message>
+  <message name="IDS_SETTINGS_LEO_ASSISTANT_COLIBRI_DESC" desc="The description for the Colibri section">
+    Run a local model with Colibri, a local OpenAI-compatible inference server. Point it at your downloaded Colibri release and model folder, then start it - once it's running, its model becomes available to use above.
+  </message>
+  <message name="IDS_SETTINGS_LEO_ASSISTANT_COLIBRI_EXECUTABLE_PATH_LABEL" desc="The label for the Colibri folder path input">
+    Colibri folder
+  </message>
+  <message name="IDS_SETTINGS_LEO_ASSISTANT_COLIBRI_EXECUTABLE_PATH_PLACEHOLDER" desc="The placeholder for the Colibri folder path input">
+    Folder containing the coli launcher, e.g. C:/colibri
+  </message>
+  <message name="IDS_SETTINGS_LEO_ASSISTANT_COLIBRI_MODEL_PATH_LABEL" desc="The label for the Colibri model folder path input">
+    Model folder
+  </message>
+  <message name="IDS_SETTINGS_LEO_ASSISTANT_COLIBRI_MODEL_PATH_PLACEHOLDER" desc="The placeholder for the Colibri model folder path input">
+    Folder containing your downloaded model
+  </message>
+  <message name="IDS_SETTINGS_LEO_ASSISTANT_COLIBRI_STATUS_RUNNING" desc="The status label shown when Colibri is running">
+    Running
+  </message>
+  <message name="IDS_SETTINGS_LEO_ASSISTANT_COLIBRI_STATUS_STOPPED" desc="The status label shown when Colibri is stopped">
+    Stopped
+  </message>
+  <message name="IDS_SETTINGS_LEO_ASSISTANT_COLIBRI_START_LABEL" desc="The label for the button that starts Colibri">
+    Start Colibri
+  </message>
+  <message name="IDS_SETTINGS_LEO_ASSISTANT_COLIBRI_STARTING_LABEL" desc="The label for the button while Colibri is starting">
+    Starting...
+  </message>
+  <message name="IDS_SETTINGS_LEO_ASSISTANT_COLIBRI_SYNC_LABEL" desc="The label for the Colibri sync toggle button">
+    Sync your Colibri local model
+  </message>
 
   <!-- Settings / Survey Panelist -->
   <message name="IDS_SETTINGS_SURVEY_PANELIST" desc="Title for an item in the 'Survey Panelist' section of Brave Settings">

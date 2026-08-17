@@ -8,6 +8,7 @@
 #include <algorithm>
 #include <vector>
 
+#include "base/files/file_path.h"
 #include "base/functional/bind.h"
 #include "base/json/json_reader.h"
 #include "base/json/json_writer.h"
@@ -21,8 +22,11 @@
 #include "brave/browser/ai_chat/content_index/ai_chat_content_index_factory.h"
 #include "brave/browser/ai_chat/workflows/workflow_repository.h"
 #include "brave/browser/ai_chat/workflows/workflow_repository_factory.h"
+#include "brave/browser/ai_chat/colibri/colibri_service_factory.h"
+#include "brave/browser/colibri/colibri_process_manager_factory.h"
 #include "brave/browser/delegation/delegation_process_manager_factory.h"
 #include "brave/browser/n8n/n8n_process_manager_factory.h"
+#include "brave/components/ai_chat/core/browser/colibri/colibri_service.h"
 #include "brave/browser/ui/sidebar/sidebar_service_factory.h"
 #include "brave/browser/ui/views/side_panel/page_capture/page_capture_side_panel_coordinator.h"
 #include "chrome/browser/ui/browser_window/public/browser_window_features.h"
@@ -36,10 +40,12 @@
 #include "brave/components/ai_chat/core/common/ai_chat_urls.h"
 #include "brave/components/ai_chat/core/common/features.h"
 #include "brave/components/ai_chat/core/common/mojom/ai_chat.mojom.h"
+#include "brave/components/ai_chat/core/common/pref_names.h"
 #include "brave/components/ai_chat/core/common/prefs.h"
 #include "brave/components/sidebar/browser/sidebar_item.h"
 #include "brave/components/sidebar/browser/sidebar_service.h"
 #include "chrome/browser/profiles/profile.h"
+#include "components/prefs/pref_service.h"
 #include "components/tabs/public/tab_interface.h"
 #include "content/public/browser/browser_context.h"
 #include "content/public/browser/storage_partition.h"
@@ -260,6 +266,19 @@ void BraveLeoAssistantHandler::RegisterMessages() {
       base::BindRepeating(&BraveLeoAssistantHandler::HandleStartDelegation,
                           base::Unretained(this)));
   web_ui()->RegisterMessageCallback(
+      "getColibriStatus",
+      base::BindRepeating(&BraveLeoAssistantHandler::HandleGetColibriStatus,
+                          base::Unretained(this)));
+  web_ui()->RegisterMessageCallback(
+      "getColibriBufferedOutput",
+      base::BindRepeating(
+          &BraveLeoAssistantHandler::HandleGetColibriBufferedOutput,
+          base::Unretained(this)));
+  web_ui()->RegisterMessageCallback(
+      "startColibri",
+      base::BindRepeating(&BraveLeoAssistantHandler::HandleStartColibri,
+                          base::Unretained(this)));
+  web_ui()->RegisterMessageCallback(
       "getMcpWorkflows",
       base::BindRepeating(&BraveLeoAssistantHandler::HandleGetMcpWorkflows,
                           base::Unretained(this)));
@@ -287,12 +306,20 @@ void BraveLeoAssistantHandler::OnJavascriptAllowed() {
               profile_)) {
     delegation_process_manager_observer_.Observe(delegation_manager);
   }
+
+  colibri_process_manager_observer_.Reset();
+  if (auto* colibri_manager =
+          ai_chat::ColibriProcessManagerFactory::GetForBrowserContext(
+              profile_)) {
+    colibri_process_manager_observer_.Observe(colibri_manager);
+  }
 }
 
 void BraveLeoAssistantHandler::OnJavascriptDisallowed() {
   sidebar_service_observer_.Reset();
   n8n_process_manager_observer_.Reset();
   delegation_process_manager_observer_.Reset();
+  colibri_process_manager_observer_.Reset();
 }
 
 void BraveLeoAssistantHandler::OnN8nOutputAppended(const std::string& text) {
@@ -323,6 +350,21 @@ void BraveLeoAssistantHandler::OnDelegationRunningStateChanged(bool running) {
   }
   FireWebUIListener("delegation-running-state-changed",
                     base::Value(running));
+}
+
+void BraveLeoAssistantHandler::OnColibriOutputAppended(
+    const std::string& text) {
+  if (!IsJavascriptAllowed()) {
+    return;
+  }
+  FireWebUIListener("colibri-output-appended", base::Value(text));
+}
+
+void BraveLeoAssistantHandler::OnColibriRunningStateChanged(bool running) {
+  if (!IsJavascriptAllowed()) {
+    return;
+  }
+  FireWebUIListener("colibri-running-state-changed", base::Value(running));
 }
 
 void BraveLeoAssistantHandler::OnItemAdded(const sidebar::SidebarItem& item,
@@ -833,6 +875,86 @@ void BraveLeoAssistantHandler::HandleStartDelegation(
 
 void BraveLeoAssistantHandler::OnDelegationStarted(base::Value callback_id,
                                                     bool success) {
+  ResolveJavascriptCallback(callback_id, base::Value(success));
+}
+
+void BraveLeoAssistantHandler::HandleGetColibriStatus(
+    const base::ListValue& args) {
+  AllowJavascript();
+  base::DictValue result;
+  auto* colibri_manager =
+      ai_chat::ColibriProcessManagerFactory::GetForBrowserContext(profile_);
+  result.Set("running", colibri_manager && colibri_manager->IsReady());
+  result.Set("baseUrl", colibri_manager ? colibri_manager->base_url() : "");
+  if (profile_) {
+    result.Set("executablePath",
+              profile_->GetPrefs()->GetString(
+                  ai_chat::prefs::kBraveAIChatColibriExecutablePath));
+    result.Set("modelPath",
+              profile_->GetPrefs()->GetString(
+                  ai_chat::prefs::kBraveAIChatColibriModelPath));
+  }
+  ResolveJavascriptCallback(args[0], result);
+}
+
+void BraveLeoAssistantHandler::HandleGetColibriBufferedOutput(
+    const base::ListValue& args) {
+  AllowJavascript();
+  auto* colibri_manager =
+      ai_chat::ColibriProcessManagerFactory::GetForBrowserContext(profile_);
+  ResolveJavascriptCallback(
+      args[0], base::Value(colibri_manager
+                                ? colibri_manager->GetBufferedOutput()
+                                : std::string()));
+}
+
+void BraveLeoAssistantHandler::HandleStartColibri(
+    const base::ListValue& args) {
+  AllowJavascript();
+  base::Value callback_id = args[0].Clone();
+
+  const std::string* executable_path = args[1].GetIfString();
+  const std::string* model_path = args[2].GetIfString();
+  if (!executable_path || !model_path || executable_path->empty() ||
+      model_path->empty() || !profile_) {
+    ResolveJavascriptCallback(callback_id, base::Value(false));
+    return;
+  }
+
+  // Remember the paths for next time, same as any other pref-bound
+  // Settings field - the terminal section pre-fills them from here.
+  profile_->GetPrefs()->SetString(ai_chat::prefs::kBraveAIChatColibriExecutablePath,
+                                  *executable_path);
+  profile_->GetPrefs()->SetString(ai_chat::prefs::kBraveAIChatColibriModelPath,
+                                  *model_path);
+
+  auto* colibri_manager =
+      ai_chat::ColibriProcessManagerFactory::GetForBrowserContext(profile_);
+  if (!colibri_manager) {
+    ResolveJavascriptCallback(callback_id, base::Value(false));
+    return;
+  }
+  colibri_manager->EnsureStarted(
+      base::FilePath::FromUTF8Unsafe(*executable_path),
+      base::FilePath::FromUTF8Unsafe(*model_path),
+      base::BindOnce(&BraveLeoAssistantHandler::OnColibriStarted,
+                     weak_ptr_factory_.GetWeakPtr(), std::move(callback_id)));
+}
+
+void BraveLeoAssistantHandler::OnColibriStarted(base::Value callback_id,
+                                                bool success) {
+  if (success && profile_) {
+    // Starting Colibri implies wanting to use whatever it's serving - turn
+    // on model sync (harmless if already on) and fetch immediately rather
+    // than waiting for the pref-change listener, which only fires on an
+    // actual value flip (see ColibriModelFetcher::SyncNow).
+    profile_->GetPrefs()->SetBoolean(
+        ai_chat::prefs::kBraveAIChatColibriFetchEnabled, true);
+    if (auto* colibri_service =
+            ai_chat::ColibriServiceFactory::GetForProfile(profile_)) {
+      colibri_service->SyncModelsNow();
+    }
+  }
   ResolveJavascriptCallback(callback_id, base::Value(success));
 }
 

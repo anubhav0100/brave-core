@@ -1,0 +1,22 @@
+// Copyright (c) 2026 The Brave Authors. All rights reserved.
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this file,
+// You can obtain one at https://mozilla.org/MPL/2.0/.
+
+module ai_chat.mojom;
+
+// Colibri (github.com/anubhav0100/colibri) local endpoints - a local
+// OpenAI-compatible inference server the browser can launch (see
+// ColibriProcessManager, browser/colibri) against a model the user has
+// already downloaded themselves.
+const string kColibriBaseUrl = "http://127.0.0.1:8000";
+const string kColibriListModelsAPIEndpoint = "http://127.0.0.1:8000/v1/models";
+const string kColibriEndpoint = "http://127.0.0.1:8000/v1/chat/completions";
+
+// Interface for communicating with a local Colibri instance.
+// This interface is implemented directly by ColibriService and allows
+// the UI to check connection status.
+interface ColibriService {
+  // Check if Colibri is running at 127.0.0.1:8000
+  IsConnected() => (bool connected);
+};
