@@ -26,8 +26,14 @@ import {
 } from './brave_leo_assistant_browser_proxy.js'
 import type {
   BraveLeoAssistantBrowserProxy,
+  ColibriDownloadState,
   Model
 } from './brave_leo_assistant_browser_proxy.js'
+
+// How often to re-poll download progress while a Colibri model download is
+// in progress - matches the terminal sections' health-check cadence order
+// of magnitude, fast enough to feel live without hammering the endpoint.
+const COLIBRI_DOWNLOAD_POLL_INTERVAL_MS = 2000
 
 const ModelListSectionBase =
   PrefsMixin(I18nMixin(BaseMixin(SettingsViewMixin(PolymerElement))))
@@ -69,6 +75,34 @@ class ModelListSection extends ModelListSectionBase {
       isColibriConnected_: {
         type: Boolean,
         value: false
+      },
+      colibriDownloadRepo_: {
+        type: String,
+        value: ''
+      },
+      colibriDownloadOutdir_: {
+        type: String,
+        value: ''
+      },
+      colibriDownloadStatus_: {
+        type: String,
+        value: ''
+      },
+      colibriDownloadProgress_: {
+        type: Number,
+        value: 0
+      },
+      colibriDownloadStatusText_: {
+        type: String,
+        value: ''
+      },
+      colibriDownloadLastLog_: {
+        type: String,
+        value: ''
+      },
+      colibriDownloadSucceeded_: {
+        type: Boolean,
+        value: false
       }
     }
   }
@@ -82,6 +116,14 @@ class ModelListSection extends ModelListSectionBase {
   declare colibriRunning_: boolean
   declare colibriStarting_: boolean
   declare isColibriConnected_: boolean
+  declare colibriDownloadRepo_: string
+  declare colibriDownloadOutdir_: string
+  declare colibriDownloadStatus_: string
+  declare colibriDownloadProgress_: number
+  declare colibriDownloadStatusText_: string
+  declare colibriDownloadLastLog_: string
+  declare colibriDownloadSucceeded_: boolean
+  private colibriDownloadPollTimer_: number|null = null
 
   override ready() {
     super.ready()
@@ -106,6 +148,7 @@ class ModelListSection extends ModelListSectionBase {
         this.colibriRunning_ = running
         if (running) {
           this.checkColibriConnection_()
+          this.pollColibriDownloadState_()
         }
       })
 
@@ -113,6 +156,11 @@ class ModelListSection extends ModelListSectionBase {
       this.colibriRunning_ = status.running
       this.colibriExecutablePath_ = status.executablePath
       this.colibriModelPath_ = status.modelPath
+      if (status.running) {
+        // Restore an in-progress (or just-finished) download's state after
+        // a Settings page reload, rather than starting blank.
+        this.pollColibriDownloadState_()
+      }
     })
     this.checkColibriConnection_()
   }
@@ -224,6 +272,104 @@ class ModelListSection extends ModelListSectionBase {
     return starting
       ? this.i18n('braveLeoAssistantColibriStartingLabel')
       : this.i18n('braveLeoAssistantColibriStartLabel')
+  }
+
+  private isColibriDownloadActive_(status: string): boolean {
+    return status === 'running'
+  }
+
+  onColibriDownloadRepoInput_(e: { value: string }) {
+    this.colibriDownloadRepo_ = e.value
+  }
+
+  onColibriDownloadOutdirInput_(e: { value: string }) {
+    this.colibriDownloadOutdir_ = e.value
+  }
+
+  handleColibriDownloadClick_() {
+    if (!this.colibriDownloadRepo_ || !this.colibriDownloadOutdir_) {
+      return
+    }
+    this.browserProxy_
+      .startColibriDownload(
+        this.colibriDownloadRepo_, this.colibriDownloadOutdir_)
+      .then((response) => {
+        this.applyColibriDownloadState_(response.state)
+        this.pollColibriDownloadState_()
+      })
+  }
+
+  handleColibriDownloadStopClick_() {
+    this.stopColibriDownloadPolling_()
+    this.browserProxy_.stopColibriDownload().then((response) => {
+      this.applyColibriDownloadState_(response.state)
+    })
+  }
+
+  handleLoadDownloadedModelClick_() {
+    if (!this.colibriDownloadOutdir_) {
+      return
+    }
+    this.colibriStarting_ = true
+    this.browserProxy_.restartColibriWithModel(this.colibriDownloadOutdir_)
+      .then((success) => {
+        this.colibriStarting_ = false
+        this.colibriRunning_ = success
+        this.colibriModelPath_ = this.colibriDownloadOutdir_
+        if (success) {
+          this.colibriDownloadSucceeded_ = false
+          this.checkColibriConnection_()
+        }
+      })
+  }
+
+  private pollColibriDownloadState_() {
+    this.stopColibriDownloadPolling_()
+    this.browserProxy_.getColibriDownloadState().then((state) => {
+      this.applyColibriDownloadState_(state)
+      if (state.status === 'running') {
+        this.colibriDownloadPollTimer_ = setTimeout(
+          () => this.pollColibriDownloadState_(),
+          COLIBRI_DOWNLOAD_POLL_INTERVAL_MS) as unknown as number
+      }
+    })
+  }
+
+  private stopColibriDownloadPolling_() {
+    if (this.colibriDownloadPollTimer_ !== null) {
+      clearTimeout(this.colibriDownloadPollTimer_)
+      this.colibriDownloadPollTimer_ = null
+    }
+  }
+
+  private applyColibriDownloadState_(state: ColibriDownloadState) {
+    if (!state || !state.status) {
+      return
+    }
+    this.colibriDownloadStatus_ = state.status
+    this.colibriDownloadProgress_ = state.progress ?? 0
+    this.colibriDownloadSucceeded_ = state.status === 'success'
+    const logs = state.logs ?? []
+    this.colibriDownloadLastLog_ = logs.length ? logs[logs.length - 1] : ''
+    if (state.status === 'running') {
+      this.colibriDownloadStatusText_ = this.i18n(
+        'braveLeoAssistantColibriDownloadInProgressLabel',
+        String(state.progress ?? 0))
+    } else if (state.status === 'success') {
+      this.colibriDownloadStatusText_ =
+        this.i18n('braveLeoAssistantColibriDownloadDoneLabel')
+    } else if (state.status === 'error') {
+      this.colibriDownloadStatusText_ =
+        this.i18n('braveLeoAssistantColibriDownloadErrorLabel')
+    } else {
+      this.colibriDownloadStatusText_ = ''
+    }
+    if (!this.colibriDownloadOutdir_ && state.outdir) {
+      this.colibriDownloadOutdir_ = state.outdir
+    }
+    if (!this.colibriDownloadRepo_ && state.repo) {
+      this.colibriDownloadRepo_ = state.repo
+    }
   }
 }
 

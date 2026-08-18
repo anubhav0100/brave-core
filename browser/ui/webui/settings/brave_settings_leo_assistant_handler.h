@@ -101,6 +101,17 @@ class BraveLeoAssistantHandler
   void HandleGetColibriBufferedOutput(const base::ListValue& args);
   void HandleStartColibri(const base::ListValue& args);
   void OnColibriStarted(base::Value callback_id, bool success);
+  void HandleStartColibriDownload(const base::ListValue& args);
+  void HandleStopColibriDownload(const base::ListValue& args);
+  void OnColibriDownloadPipelineResponse(base::Value callback_id,
+                                        bool success,
+                                        std::string message,
+                                        base::DictValue state);
+  void HandleGetColibriDownloadState(const base::ListValue& args);
+  void OnColibriDownloadStateResponse(base::Value callback_id,
+                                      bool success,
+                                      base::DictValue state);
+  void HandleRestartColibriWithModel(const base::ListValue& args);
   void HandleGetMcpWorkflows(const base::ListValue& args);
   void OnMcpWorkflowsListedForSettings(
       base::Value callback_id,

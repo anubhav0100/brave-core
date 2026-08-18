@@ -11,8 +11,11 @@
 
 #include "base/command_line.h"
 #include "base/functional/bind.h"
+#include "base/json/json_reader.h"
+#include "base/json/json_writer.h"
 #include "base/process/launch.h"
 #include "base/strings/strcat.h"
+#include "base/strings/string_number_conversions.h"
 #include "base/task/bind_post_task.h"
 #include "base/task/sequenced_task_runner.h"
 #include "base/task/thread_pool.h"
@@ -94,6 +97,41 @@ net::NetworkTrafficAnnotationTag GetHealthCheckTrafficAnnotationTag() {
       })");
 }
 
+net::NetworkTrafficAnnotationTag GetSetupPipelineTrafficAnnotationTag() {
+  return net::DefineNetworkTrafficAnnotation(
+      "colibri_setup_pipeline", R"(
+      semantics {
+        sender: "Colibri Process Manager"
+        description:
+          "Starts, stops, or polls the progress of a model download the "
+          "local Colibri instance the browser itself launched is running "
+          "on the user's behalf, against a HuggingFace repo the user "
+          "specified."
+        trigger: "The user starts or checks a model download from Leo "
+                 "Assistant settings."
+        data: "The HuggingFace repo id and destination folder the user "
+              "entered. Contacts localhost only - Colibri itself is what "
+              "talks to HuggingFace, not the browser."
+        destination: LOCAL
+        internal {
+          contacts {
+            email: "ai-chat@brave.com"
+          }
+        }
+        user_data {
+          type: NONE
+        }
+        last_reviewed: "2026-08-18"
+      }
+      policy {
+        cookies_allowed: NO
+        setting: "This feature cannot be disabled independently of AI Chat."
+        policy_exception_justification:
+          "Only ever talks to the localhost Colibri instance the browser "
+          "itself started."
+      })");
+}
+
 }  // namespace
 
 ColibriProcessManager::ColibriProcessManager(
@@ -124,16 +162,30 @@ void ColibriProcessManager::EnsureStarted(const base::FilePath& colibri_dir,
   LaunchProcessAndReport(colibri_dir, model_dir);
 }
 
+void ColibriProcessManager::RestartWithModel(const base::FilePath& model_dir,
+                                             StartedCallback callback) {
+  if (process_.IsValid()) {
+    process_.Terminate(/*exit_code=*/0, /*wait=*/false);
+    process_ = base::Process();
+  }
+  is_ready_ = false;
+  base_url_.clear();
+  health_check_helper_.reset();
+  AppendOutput("[colibri] Restarting with the downloaded model...\r\n");
+  pending_started_callbacks_.push_back(std::move(callback));
+  LaunchProcessAndReport(colibri_dir_, model_dir);
+}
+
 void ColibriProcessManager::LaunchProcessAndReport(
     const base::FilePath& colibri_dir,
     const base::FilePath& model_dir) {
-  if (colibri_dir.empty() || model_dir.empty()) {
+  if (colibri_dir.empty()) {
     AppendOutput(
-        "[colibri] Set both the Colibri folder and model folder paths "
-        "before starting.\r\n");
+        "[colibri] Set the Colibri folder path before starting.\r\n");
     ResolvePendingStartedCallbacks(false);
     return;
   }
+  colibri_dir_ = colibri_dir;
 
   base::CommandLine cmd(base::FilePath(FILE_PATH_LITERAL("python.exe")));
   cmd.AppendArgPath(colibri_dir.Append(FILE_PATH_LITERAL("coli")));
@@ -142,8 +194,10 @@ void ColibriProcessManager::LaunchProcessAndReport(
   cmd.AppendArg(kColibriHost);
   cmd.AppendArg("--port");
   cmd.AppendArg(kColibriPort);
-  cmd.AppendArg("--model");
-  cmd.AppendArgPath(model_dir);
+  if (!model_dir.empty()) {
+    cmd.AppendArg("--model");
+    cmd.AppendArgPath(model_dir);
+  }
 
   // Hidden-console, pipe-captured output - identical pattern to
   // n8n_process_manager.cc/delegation_process_manager.cc's
@@ -276,6 +330,101 @@ void ColibriProcessManager::ResolvePendingStartedCallbacks(bool success) {
   }
 }
 
+void ColibriProcessManager::EnsureApiHelper() {
+  if (api_helper_) {
+    return;
+  }
+  auto url_loader_factory = browser_context_->GetDefaultStoragePartition()
+                                ->GetURLLoaderFactoryForBrowserProcess();
+  api_helper_ = std::make_unique<api_request_helper::APIRequestHelper>(
+      GetSetupPipelineTrafficAnnotationTag(), std::move(url_loader_factory));
+}
+
+void ColibriProcessManager::DownloadModel(const std::string& repo,
+                                          const std::string& outdir,
+                                          bool force,
+                                          DownloadModelCallback callback) {
+  if (!IsReady()) {
+    std::move(callback).Run(false, "Colibri isn't running - start it first.",
+                            base::DictValue());
+    return;
+  }
+  EnsureApiHelper();
+  base::DictValue body;
+  body.Set("action", "start");
+  body.Set("repo", repo);
+  body.Set("outdir", outdir);
+  body.Set("force", force);
+  std::string body_json;
+  base::JSONWriter::Write(body, &body_json);
+  api_helper_->Request(
+      "POST", GURL(base::StrCat({base_url_, "/v1/setup/pipeline"})),
+      body_json, "application/json",
+      base::BindOnce(&ColibriProcessManager::OnDownloadPipelineResponse,
+                     weak_ptr_factory_.GetWeakPtr(), std::move(callback)));
+}
+
+void ColibriProcessManager::StopDownload(DownloadModelCallback callback) {
+  if (!IsReady()) {
+    std::move(callback).Run(false, "Colibri isn't running.",
+                            base::DictValue());
+    return;
+  }
+  EnsureApiHelper();
+  base::DictValue body;
+  body.Set("action", "stop");
+  std::string body_json;
+  base::JSONWriter::Write(body, &body_json);
+  api_helper_->Request(
+      "POST", GURL(base::StrCat({base_url_, "/v1/setup/pipeline"})),
+      body_json, "application/json",
+      base::BindOnce(&ColibriProcessManager::OnDownloadPipelineResponse,
+                     weak_ptr_factory_.GetWeakPtr(), std::move(callback)));
+}
+
+void ColibriProcessManager::OnDownloadPipelineResponse(
+    DownloadModelCallback callback,
+    api_request_helper::APIRequestResult result) {
+  if (!result.Is2XXResponseCode() || !result.value_body().is_dict()) {
+    std::move(callback).Run(
+        false,
+        base::StrCat({"Colibri returned ",
+                      base::NumberToString(result.response_code()),
+                      " for the download request."}),
+        base::DictValue());
+    return;
+  }
+  const base::DictValue& response = result.value_body().GetDict();
+  bool success = response.FindBool("success").value_or(false);
+  const std::string* message = response.FindString("message");
+  const base::DictValue* state = response.FindDict("state");
+  std::move(callback).Run(success, message ? *message : "",
+                          state ? state->Clone() : base::DictValue());
+}
+
+void ColibriProcessManager::GetDownloadState(
+    GetDownloadStateCallback callback) {
+  if (!IsReady()) {
+    std::move(callback).Run(false, base::DictValue());
+    return;
+  }
+  EnsureApiHelper();
+  api_helper_->Request(
+      "GET", GURL(base::StrCat({base_url_, "/v1/setup/pipeline"})), "", "",
+      base::BindOnce(&ColibriProcessManager::OnDownloadStateResponse,
+                     weak_ptr_factory_.GetWeakPtr(), std::move(callback)));
+}
+
+void ColibriProcessManager::OnDownloadStateResponse(
+    GetDownloadStateCallback callback,
+    api_request_helper::APIRequestResult result) {
+  if (!result.Is2XXResponseCode() || !result.value_body().is_dict()) {
+    std::move(callback).Run(false, base::DictValue());
+    return;
+  }
+  std::move(callback).Run(true, result.value_body().GetDict().Clone());
+}
+
 void ColibriProcessManager::AddObserver(Observer* observer) {
   observers_.AddObserver(observer);
 }
@@ -300,6 +449,7 @@ void ColibriProcessManager::AppendOutput(std::string chunk) {
 
 void ColibriProcessManager::Shutdown() {
   health_check_helper_.reset();
+  api_helper_.reset();
   if (process_.IsValid()) {
     process_.Terminate(/*exit_code=*/0, /*wait=*/false);
   }

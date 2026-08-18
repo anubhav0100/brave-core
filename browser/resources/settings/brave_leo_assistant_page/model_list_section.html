@@ -115,6 +115,36 @@
   .spacer {
     flex: 1;
   }
+
+  .colibri-download-box {
+    display: flex;
+    flex-direction: column;
+    gap: var(--leo-spacing-m);
+    margin-top: var(--leo-spacing-m);
+    padding-top: var(--leo-spacing-l);
+    border-top: 1px solid var(--leo-color-divider-subtle);
+  }
+
+  .colibri-download-progress-track {
+    height: 6px;
+    border-radius: 3px;
+    background: var(--leo-color-divider-subtle);
+    overflow: hidden;
+  }
+
+  .colibri-download-progress-fill {
+    height: 100%;
+    background: var(--leo-color-systemfeedback-success-icon, #31a06e);
+    transition: width 0.3s ease;
+  }
+
+  .colibri-download-log {
+    font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+    font-size: 12px;
+    color: var(--leo-color-text-tertiary);
+    white-space: pre-wrap;
+    word-break: break-all;
+  }
 </style>
 
 <settings-section
@@ -182,6 +212,64 @@
         label="$i18n{braveLeoAssistantColibriSyncLabel}"
         pref="{{prefs.brave.ai_chat.colibri_fetch_enabled}}">
       </settings-toggle-button>
+    </template>
+
+    <template is="dom-if" if="[[colibriRunning_]]">
+      <div class="colibri-download-box">
+        <div class="field-label">$i18n{braveLeoAssistantColibriDownloadTitle}</div>
+        <div class="label-secondary">$i18n{braveLeoAssistantColibriDownloadDesc}</div>
+
+        <cr-input
+          value="[[colibriDownloadRepo_]]"
+          on-input="onColibriDownloadRepoInput_"
+          disabled="[[isColibriDownloadActive_(colibriDownloadStatus_)]]"
+          placeholder="$i18n{braveLeoAssistantColibriDownloadRepoPlaceholder}">
+        </cr-input>
+        <cr-input
+          value="[[colibriDownloadOutdir_]]"
+          on-input="onColibriDownloadOutdirInput_"
+          disabled="[[isColibriDownloadActive_(colibriDownloadStatus_)]]"
+          placeholder="$i18n{braveLeoAssistantColibriDownloadOutdirPlaceholder}">
+        </cr-input>
+
+        <div class="colibri-status-row">
+          <cr-button
+            class="action-button"
+            on-click="handleColibriDownloadClick_"
+            disabled="[[isColibriDownloadActive_(colibriDownloadStatus_)]]">
+            $i18n{braveLeoAssistantColibriDownloadButtonLabel}
+          </cr-button>
+          <template is="dom-if" if="[[isColibriDownloadActive_(colibriDownloadStatus_)]]">
+            <cr-button on-click="handleColibriDownloadStopClick_">
+              $i18n{braveLeoAssistantColibriDownloadStopLabel}
+            </cr-button>
+          </template>
+          <div class="spacer"></div>
+          <template is="dom-if" if="[[colibriDownloadStatusText_]]">
+            <div class="label-secondary">[[colibriDownloadStatusText_]]</div>
+          </template>
+        </div>
+
+        <template is="dom-if" if="[[isColibriDownloadActive_(colibriDownloadStatus_)]]">
+          <div class="colibri-download-progress-track">
+            <div class="colibri-download-progress-fill"
+                style$="width: [[colibriDownloadProgress_]]%">
+            </div>
+          </div>
+        </template>
+
+        <template is="dom-if" if="[[colibriDownloadLastLog_]]">
+          <div class="colibri-download-log">[[colibriDownloadLastLog_]]</div>
+        </template>
+
+        <template is="dom-if" if="[[colibriDownloadSucceeded_]]">
+          <cr-button
+            class="action-button"
+            on-click="handleLoadDownloadedModelClick_">
+            $i18n{braveLeoAssistantColibriLoadModelButtonLabel}
+          </cr-button>
+        </template>
+      </div>
     </template>
   </div>
 </div>

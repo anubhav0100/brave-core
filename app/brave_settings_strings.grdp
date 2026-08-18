@@ -2211,6 +2211,36 @@
   <message name="IDS_SETTINGS_LEO_ASSISTANT_COLIBRI_SYNC_LABEL" desc="The label for the Colibri sync toggle button">
     Sync your Colibri local model
   </message>
+  <message name="IDS_SETTINGS_LEO_ASSISTANT_COLIBRI_DOWNLOAD_TITLE" desc="The title for the Colibri model download section">
+    Download a model
+  </message>
+  <message name="IDS_SETTINGS_LEO_ASSISTANT_COLIBRI_DOWNLOAD_DESC" desc="The description for the Colibri model download section">
+    Have Colibri download and prepare a model from Hugging Face directly, instead of downloading one yourself.
+  </message>
+  <message name="IDS_SETTINGS_LEO_ASSISTANT_COLIBRI_DOWNLOAD_REPO_PLACEHOLDER" desc="The placeholder for the Hugging Face repo id input">
+    Hugging Face repo id, e.g. allenai/OLMoE-1B-7B-0924
+  </message>
+  <message name="IDS_SETTINGS_LEO_ASSISTANT_COLIBRI_DOWNLOAD_OUTDIR_PLACEHOLDER" desc="The placeholder for the download destination folder input">
+    Destination folder, e.g. ./models/olmoe-fp8
+  </message>
+  <message name="IDS_SETTINGS_LEO_ASSISTANT_COLIBRI_DOWNLOAD_BUTTON_LABEL" desc="The label for the button that starts a model download">
+    Download
+  </message>
+  <message name="IDS_SETTINGS_LEO_ASSISTANT_COLIBRI_DOWNLOAD_STOP_LABEL" desc="The label for the button that stops a model download in progress">
+    Stop
+  </message>
+  <message name="IDS_SETTINGS_LEO_ASSISTANT_COLIBRI_LOAD_MODEL_BUTTON_LABEL" desc="The label for the button that restarts Colibri with the just-downloaded model">
+    Load this model
+  </message>
+  <message name="IDS_SETTINGS_LEO_ASSISTANT_COLIBRI_DOWNLOAD_IN_PROGRESS_LABEL" desc="The status text shown while a model download is in progress, with the percent complete">
+    Downloading… <ph name="PROGRESS">$1<ex>42</ex></ph>%
+  </message>
+  <message name="IDS_SETTINGS_LEO_ASSISTANT_COLIBRI_DOWNLOAD_DONE_LABEL" desc="The status text shown once a model download has completed">
+    Download complete
+  </message>
+  <message name="IDS_SETTINGS_LEO_ASSISTANT_COLIBRI_DOWNLOAD_ERROR_LABEL" desc="The status text shown if a model download failed">
+    Download failed
+  </message>
 
   <!-- Settings / Survey Panelist -->
   <message name="IDS_SETTINGS_SURVEY_PANELIST" desc="Title for an item in the 'Survey Panelist' section of Brave Settings">

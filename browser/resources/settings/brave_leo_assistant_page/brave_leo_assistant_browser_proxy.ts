@@ -128,6 +128,26 @@
   }>
   getColibriBufferedOutput(): Promise<string>
   startColibri(executablePath: string, modelPath: string): Promise<boolean>
+  startColibriDownload(repo: string, outdir: string, force?: boolean):
+    Promise<ColibriDownloadResponse>
+  stopColibriDownload(): Promise<ColibriDownloadResponse>
+  getColibriDownloadState(): Promise<ColibriDownloadState>
+  restartColibriWithModel(modelPath: string): Promise<boolean>
+ }
+
+ export interface ColibriDownloadState {
+  status?: 'idle'|'running'|'success'|'error'
+  step?: number
+  progress?: number
+  repo?: string
+  outdir?: string
+  logs?: string[]
+ }
+
+ export interface ColibriDownloadResponse {
+  success: boolean
+  message: string
+  state: ColibriDownloadState
  }
 
  export class BraveLeoAssistantBrowserProxyImpl
@@ -321,6 +341,23 @@
    startColibri(executablePath: string, modelPath: string) {
      return sendWithPromise<boolean>(
        'startColibri', executablePath, modelPath)
+   }
+
+   startColibriDownload(repo: string, outdir: string, force?: boolean) {
+     return sendWithPromise<ColibriDownloadResponse>(
+       'startColibriDownload', repo, outdir, !!force)
+   }
+
+   stopColibriDownload() {
+     return sendWithPromise<ColibriDownloadResponse>('stopColibriDownload')
+   }
+
+   getColibriDownloadState() {
+     return sendWithPromise<ColibriDownloadState>('getColibriDownloadState')
+   }
+
+   restartColibriWithModel(modelPath: string) {
+     return sendWithPromise<boolean>('restartColibriWithModel', modelPath)
    }
  }
 

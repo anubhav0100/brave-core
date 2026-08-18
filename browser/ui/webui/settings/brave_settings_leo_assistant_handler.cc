@@ -279,6 +279,25 @@ void BraveLeoAssistantHandler::RegisterMessages() {
       base::BindRepeating(&BraveLeoAssistantHandler::HandleStartColibri,
                           base::Unretained(this)));
   web_ui()->RegisterMessageCallback(
+      "startColibriDownload",
+      base::BindRepeating(
+          &BraveLeoAssistantHandler::HandleStartColibriDownload,
+          base::Unretained(this)));
+  web_ui()->RegisterMessageCallback(
+      "stopColibriDownload",
+      base::BindRepeating(&BraveLeoAssistantHandler::HandleStopColibriDownload,
+                          base::Unretained(this)));
+  web_ui()->RegisterMessageCallback(
+      "getColibriDownloadState",
+      base::BindRepeating(
+          &BraveLeoAssistantHandler::HandleGetColibriDownloadState,
+          base::Unretained(this)));
+  web_ui()->RegisterMessageCallback(
+      "restartColibriWithModel",
+      base::BindRepeating(
+          &BraveLeoAssistantHandler::HandleRestartColibriWithModel,
+          base::Unretained(this)));
+  web_ui()->RegisterMessageCallback(
       "getMcpWorkflows",
       base::BindRepeating(&BraveLeoAssistantHandler::HandleGetMcpWorkflows,
                           base::Unretained(this)));
@@ -916,13 +935,16 @@ void BraveLeoAssistantHandler::HandleStartColibri(
   const std::string* executable_path = args[1].GetIfString();
   const std::string* model_path = args[2].GetIfString();
   if (!executable_path || !model_path || executable_path->empty() ||
-      model_path->empty() || !profile_) {
+      !profile_) {
     ResolveJavascriptCallback(callback_id, base::Value(false));
     return;
   }
 
   // Remember the paths for next time, same as any other pref-bound
-  // Settings field - the terminal section pre-fills them from here.
+  // Settings field - the terminal section pre-fills them from here. A
+  // model path is optional now - newer Colibri releases start with no
+  // engine loaded and expect DownloadModel()/RestartWithModel() to supply
+  // one afterwards.
   profile_->GetPrefs()->SetString(ai_chat::prefs::kBraveAIChatColibriExecutablePath,
                                   *executable_path);
   profile_->GetPrefs()->SetString(ai_chat::prefs::kBraveAIChatColibriModelPath,
@@ -956,6 +978,98 @@ void BraveLeoAssistantHandler::OnColibriStarted(base::Value callback_id,
     }
   }
   ResolveJavascriptCallback(callback_id, base::Value(success));
+}
+
+void BraveLeoAssistantHandler::HandleStartColibriDownload(
+    const base::ListValue& args) {
+  AllowJavascript();
+  base::Value callback_id = args[0].Clone();
+  const std::string* repo = args[1].GetIfString();
+  const std::string* outdir = args[2].GetIfString();
+  bool force =
+      args.size() > 3 ? args[3].GetIfBool().value_or(false) : false;
+  auto* colibri_manager =
+      ai_chat::ColibriProcessManagerFactory::GetForBrowserContext(profile_);
+  if (!colibri_manager || !repo || !outdir) {
+    OnColibriDownloadPipelineResponse(std::move(callback_id), false,
+                                      "Missing repo or output folder.",
+                                      base::DictValue());
+    return;
+  }
+  colibri_manager->DownloadModel(
+      *repo, *outdir, force,
+      base::BindOnce(&BraveLeoAssistantHandler::OnColibriDownloadPipelineResponse,
+                     weak_ptr_factory_.GetWeakPtr(), std::move(callback_id)));
+}
+
+void BraveLeoAssistantHandler::HandleStopColibriDownload(
+    const base::ListValue& args) {
+  AllowJavascript();
+  base::Value callback_id = args[0].Clone();
+  auto* colibri_manager =
+      ai_chat::ColibriProcessManagerFactory::GetForBrowserContext(profile_);
+  if (!colibri_manager) {
+    OnColibriDownloadPipelineResponse(std::move(callback_id), false,
+                                      "Colibri isn't running.",
+                                      base::DictValue());
+    return;
+  }
+  colibri_manager->StopDownload(
+      base::BindOnce(&BraveLeoAssistantHandler::OnColibriDownloadPipelineResponse,
+                     weak_ptr_factory_.GetWeakPtr(), std::move(callback_id)));
+}
+
+void BraveLeoAssistantHandler::OnColibriDownloadPipelineResponse(
+    base::Value callback_id,
+    bool success,
+    std::string message,
+    base::DictValue state) {
+  base::DictValue result;
+  result.Set("success", success);
+  result.Set("message", message);
+  result.Set("state", std::move(state));
+  ResolveJavascriptCallback(callback_id, result);
+}
+
+void BraveLeoAssistantHandler::HandleGetColibriDownloadState(
+    const base::ListValue& args) {
+  AllowJavascript();
+  base::Value callback_id = args[0].Clone();
+  auto* colibri_manager =
+      ai_chat::ColibriProcessManagerFactory::GetForBrowserContext(profile_);
+  if (!colibri_manager) {
+    ResolveJavascriptCallback(callback_id, base::DictValue());
+    return;
+  }
+  colibri_manager->GetDownloadState(
+      base::BindOnce(&BraveLeoAssistantHandler::OnColibriDownloadStateResponse,
+                     weak_ptr_factory_.GetWeakPtr(), std::move(callback_id)));
+}
+
+void BraveLeoAssistantHandler::OnColibriDownloadStateResponse(
+    base::Value callback_id,
+    bool success,
+    base::DictValue state) {
+  ResolveJavascriptCallback(callback_id, state);
+}
+
+void BraveLeoAssistantHandler::HandleRestartColibriWithModel(
+    const base::ListValue& args) {
+  AllowJavascript();
+  base::Value callback_id = args[0].Clone();
+  const std::string* model_path = args[1].GetIfString();
+  auto* colibri_manager =
+      ai_chat::ColibriProcessManagerFactory::GetForBrowserContext(profile_);
+  if (!colibri_manager || !model_path || model_path->empty() || !profile_) {
+    ResolveJavascriptCallback(callback_id, base::Value(false));
+    return;
+  }
+  profile_->GetPrefs()->SetString(
+      ai_chat::prefs::kBraveAIChatColibriModelPath, *model_path);
+  colibri_manager->RestartWithModel(
+      base::FilePath::FromUTF8Unsafe(*model_path),
+      base::BindOnce(&BraveLeoAssistantHandler::OnColibriStarted,
+                     weak_ptr_factory_.GetWeakPtr(), std::move(callback_id)));
 }
 
 void BraveLeoAssistantHandler::HandleGetMcpWorkflows(
