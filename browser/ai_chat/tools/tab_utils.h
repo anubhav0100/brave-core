@@ -9,6 +9,11 @@
 class GURL;
 class Profile;
 
+namespace content {
+class BrowserContext;
+class WebContents;
+}  // namespace content
+
 namespace ai_chat {
 
 // Looks across all of `profile`'s browser windows for a tab already showing
@@ -17,6 +22,14 @@ namespace ai_chat {
 // that case. Used by tools like open_n8n/open_delegation so repeated calls
 // switch to the existing tab instead of piling up duplicates.
 bool FindAndActivateExistingTab(Profile* profile, const GURL& url);
+
+// The WebContents for the active tab of `browser_context`'s frontmost
+// tabbed browser window, or nullptr if there isn't one (no window open,
+// context isn't a real profile, etc.). Used by tools that operate on
+// "whatever the user is currently looking at" rather than a URL/tab id the
+// model passed in.
+content::WebContents* GetActiveWebContentsFor(
+    content::BrowserContext* browser_context);
 
 }  // namespace ai_chat
 

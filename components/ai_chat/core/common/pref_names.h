@@ -149,6 +149,13 @@ inline constexpr char kBraveAIChatColibriExecutablePath[] =
     "brave.ai_chat.colibri_executable_path";
 inline constexpr char kBraveAIChatColibriModelPath[] =
     "brave.ai_chat.colibri_model_path";
+// YouTube Data API v3 key (https://console.cloud.google.com, free tier) the
+// user provides via the set_youtube_api_key tool - lets
+// analyze_youtube_video_seo fetch exact view/like/comment counts, the full
+// tag list, and caption availability instead of only what's visible on the
+// currently-open page.
+inline constexpr char kBraveAIChatYouTubeDataApiKey[] =
+    "brave.ai_chat.youtube_data_api_key";
 // Whether captured pages/saved responses get embedded into the on-device
 // RAG content index (see AiChatContentIndex) - a hard kill switch also
 // used to gate the search_indexed_content tool itself.

@@ -78,6 +78,8 @@ class SaveResponseMemoryAsWordDocumentTool;
 class SaveResponseToMemoryTool;
 class SearchIndexedContentTool;
 class TabManagementTool;
+class AnalyzeYouTubeVideoSeoTool;
+class SetYouTubeApiKeyTool;
 
 // Implementation of ToolProvider that provides browser-specific
 // tools for conversations.
@@ -158,6 +160,8 @@ class BrowserToolProvider : public ToolProvider {
 #if BUILDFLAG(ENABLE_AI_CHAT_TAB_MANAGEMENT_TOOL)
   std::unique_ptr<TabManagementTool> tab_management_tool_;
 #endif
+  std::unique_ptr<SetYouTubeApiKeyTool> set_youtube_api_key_tool_;
+  std::unique_ptr<AnalyzeYouTubeVideoSeoTool> analyze_youtube_video_seo_tool_;
   raw_ptr<Profile> profile_ = nullptr;
 };
 

@@ -51,6 +51,7 @@ void RegisterProfilePrefs(PrefRegistrySimple* registry) {
     registry->RegisterBooleanPref(kBraveAIChatColibriFetchEnabled, false);
     registry->RegisterStringPref(kBraveAIChatColibriExecutablePath, "");
     registry->RegisterStringPref(kBraveAIChatColibriModelPath, "");
+    registry->RegisterStringPref(kBraveAIChatYouTubeDataApiKey, "");
     registry->RegisterDictionaryPref(kAIChatObliviousHttpKeyConfigs);
     registry->RegisterTimePref(kRemoteModelsCachedAt, {});
     registry->RegisterBooleanPref(kBraveAIChatRollingSummarizationEnabled,

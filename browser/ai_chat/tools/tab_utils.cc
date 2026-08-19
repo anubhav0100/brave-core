@@ -8,8 +8,10 @@
 #include "chrome/browser/profiles/profile.h"
 #include "chrome/browser/ui/browser_window/public/browser_window_interface.h"
 #include "chrome/browser/ui/browser_window/public/browser_window_interface_iterator.h"
+#include "chrome/browser/ui/browser_window/public/profile_browser_collection.h"
 #include "chrome/browser/ui/tabs/tab_strip_model.h"
 #include "components/tabs/public/tab_interface.h"
+#include "content/public/browser/browser_context.h"
 #include "content/public/browser/web_contents.h"
 #include "ui/base/base_window.h"
 #include "url/gurl.h"
@@ -38,6 +40,21 @@ bool FindAndActivateExistingTab(Profile* profile, const GURL& url) {
     }
   }
   return false;
+}
+
+content::WebContents* GetActiveWebContentsFor(
+    content::BrowserContext* browser_context) {
+  Profile* profile = Profile::FromBrowserContext(browser_context);
+  if (!profile) {
+    return nullptr;
+  }
+  BrowserWindowInterface* browser =
+      ProfileBrowserCollection::GetForProfile(profile)->FindTabbedBrowser();
+  if (!browser) {
+    return nullptr;
+  }
+  tabs::TabInterface* tab = browser->GetActiveTabInterface();
+  return tab ? tab->GetContents() : nullptr;
 }
 
 }  // namespace ai_chat

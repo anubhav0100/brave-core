@@ -41,6 +41,7 @@
 #include "brave/browser/ai_chat/tools/response_memory_tools.h"
 #include "brave/browser/ai_chat/tools/run_workflow_tool.h"
 #include "brave/browser/ai_chat/tools/subagent_tool.h"
+#include "brave/browser/ai_chat/tools/youtube_seo_tool.h"
 #include "brave/components/ai_chat/core/browser/tools/tool.h"
 #include "brave/components/ai_chat/core/common/buildflags/buildflags.h"
 #include "brave/components/ai_chat/core/common/features.h"
@@ -215,6 +216,12 @@ std::vector<base::WeakPtr<Tool>> BrowserToolProvider::GetTools() {
     tool_ptrs.push_back(tab_management_tool_->GetWeakPtr());
   }
 #endif
+  if (set_youtube_api_key_tool_) {
+    tool_ptrs.push_back(set_youtube_api_key_tool_->GetWeakPtr());
+  }
+  if (analyze_youtube_video_seo_tool_) {
+    tool_ptrs.push_back(analyze_youtube_video_seo_tool_->GetWeakPtr());
+  }
 
   return tool_ptrs;
 }
@@ -336,6 +343,10 @@ void BrowserToolProvider::CreateTools(
     tab_management_tool_ = std::make_unique<TabManagementTool>(profile_);
   }
 #endif
+  set_youtube_api_key_tool_ =
+      std::make_unique<SetYouTubeApiKeyTool>(browser_context);
+  analyze_youtube_video_seo_tool_ =
+      std::make_unique<AnalyzeYouTubeVideoSeoTool>(browser_context);
 }
 
 }  // namespace ai_chat

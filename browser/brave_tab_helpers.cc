@@ -50,6 +50,7 @@
 #if BUILDFLAG(ENABLE_AI_CHAT)
 #include "brave/browser/ai_chat/ai_chat_service_factory.h"
 #include "brave/browser/ai_chat/ai_chat_utils.h"
+#include "brave/browser/ai_chat/youtube_seo_overlay_tab_helper.h"
 #include "brave/components/ai_chat/content/browser/ai_chat_tab_helper.h"
 #endif
 
@@ -172,6 +173,7 @@ void AttachTabHelpers(content::WebContents* web_contents) {
         nullptr
 #endif
     );
+    ai_chat::YouTubeSeoOverlayTabHelper::CreateForWebContents(web_contents);
   }
 #endif
 
