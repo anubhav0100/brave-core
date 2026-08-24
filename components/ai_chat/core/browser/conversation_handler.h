@@ -94,6 +94,13 @@ class ConversationHandler : public mojom::ConversationHandler,
                                       size_t event_order,
                                       mojom::ToolUseEventPtr tool_use) {}
 
+    // Called whenever the tool-use loop's task state changes, including the
+    // transition back to kNone that marks the end of a tool-use loop (see
+    // ScheduledTaskService, which composes this with IsRequestInProgress() to
+    // detect when an unattended run has actually finished).
+    virtual void OnToolUseTaskStateChanged(ConversationHandler* handler,
+                                           mojom::TaskState state) {}
+
     // Called when a mojo client connects or disconnects
     virtual void OnClientConnectionChanged(ConversationHandler* handler) {}
     virtual void OnConversationTitleChanged(
@@ -166,6 +173,24 @@ class ConversationHandler : public mojom::ConversationHandler,
   bool IsAnyClientConnected();
   bool HasAnyHistory();
   bool IsRequestInProgress();
+  mojom::TaskState GetToolUseTaskState() const { return tool_use_task_state_; }
+
+  // Scopes this conversation to unattended/scheduled execution: tool calls
+  // whose Tool::Name() is in `allowlist` run without ever creating a
+  // permission challenge (see MaybeRespondToNextToolUseRequest); any other
+  // tool call is refused immediately with an explanatory result instead of
+  // blocking on a challenge nobody will ever answer. Pass std::nullopt to
+  // return to normal (human-attended) behavior - the default.
+  void SetUnattendedToolAllowlist(
+      std::optional<std::set<std::string>> allowlist);
+
+  // While true, AIChatService::CanUnloadConversation() will not destroy this
+  // handler even with no connected UI client - used by ScheduledTaskService
+  // to keep an unattended run's ConversationHandler alive for however long
+  // its tool calls take, since the normal 5-second idle-unload timer would
+  // otherwise race an in-flight scheduled run.
+  void SetUnattendedTaskActive(bool active) { unattended_task_active_ = active; }
+  bool HasUnattendedTaskActive() const { return unattended_task_active_; }
 
   const mojom::Model& GetCurrentModel();
   const std::vector<mojom::ConversationTurnPtr>& GetConversationHistory() const;
@@ -501,6 +526,25 @@ class ConversationHandler : public mojom::ConversationHandler,
   // Are we currently performing a loop of tool uses?
   bool is_tool_use_in_progress_ = false;
   mojom::TaskState tool_use_task_state_ = mojom::TaskState::kNone;
+
+  // Tool use ids the user just approved via ProcessPermissionChallenge,
+  // consumed (erased) the next time MaybeRespondToNextToolUseRequest looks
+  // at that same id. Needed because some tools (e.g. OpenRdpSessionTool)
+  // deliberately never remember consent and always return a fresh
+  // PermissionChallengePtr from RequiresUserInteractionBeforeHandling - so
+  // without this, resuming after approval would call that method again,
+  // which would just produce a brand new challenge for the very call the
+  // user just approved, looping forever instead of ever reaching UseTool().
+  // Tools that DO remember consent (GetDesktopScreenshotTool,
+  // HistorySearchTool) already return false on the second call regardless,
+  // so this is a no-op for them either way.
+  std::set<std::string> user_approved_tool_use_ids_;
+
+  // See SetUnattendedToolAllowlist()/SetUnattendedTaskActive(). nullopt
+  // means this is a normal, human-attended conversation - the usual
+  // permission-challenge flow applies unchanged.
+  std::optional<std::set<std::string>> unattended_tool_allowlist_;
+  bool unattended_task_active_ = false;
 
   // Keep track of whether we've generated suggested questions for the current
   // context. We cannot rely on counting the questions in |suggested_questions_|

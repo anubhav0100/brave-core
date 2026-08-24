@@ -1321,6 +1321,12 @@ void ConversationHandler::ProcessPermissionChallenge(
 
   // User approved - clear the permission challenge
   tool_use->permission_challenge = nullptr;
+  // See user_approved_tool_use_ids_'s header comment: without this,
+  // resuming below would re-call RequiresUserInteractionBeforeHandling for
+  // tools that always return a fresh challenge (e.g. OpenRdpSessionTool),
+  // which would just show the user the same prompt again instead of ever
+  // executing the tool.
+  user_approved_tool_use_ids_.insert(tool_use_id);
 
   // Notify UI of the state change
   OnToolUseEventOutput(chat_history_.back().get(), tool_use);
@@ -2468,6 +2474,14 @@ void ConversationHandler::OnToolUseTaskStateChanged() {
   for (auto& client : conversation_ui_handlers_) {
     client->OnTaskStateChanged(tool_use_task_state_);
   }
+  for (auto& observer : observers_) {
+    observer.OnToolUseTaskStateChanged(this, tool_use_task_state_);
+  }
+}
+
+void ConversationHandler::SetUnattendedToolAllowlist(
+    std::optional<std::set<std::string>> allowlist) {
+  unattended_tool_allowlist_ = std::move(allowlist);
 }
 
 void ConversationHandler::OnStateForConversationEntriesChanged() {
@@ -2614,31 +2628,68 @@ bool ConversationHandler::MaybeRespondToNextToolUseRequest() {
         break;
       }
 
-      // Check if tool requires user interaction.
-      // Only check if there isn't already a pending permission_challenge.
-      if (!tool_use_event->permission_challenge) {
-        auto interaction_result =
-            tool_ptr->RequiresUserInteractionBeforeHandling(*tool_use_event);
+      // Unattended (scheduled) conversations never present a permission
+      // challenge - see SetUnattendedToolAllowlist(). A tool outside the
+      // allowlist is refused immediately with an explanatory result instead
+      // of blocking on a challenge nobody will ever answer; a tool inside
+      // the allowlist skips the interaction check entirely and falls
+      // through to UseTool() below.
+      if (unattended_tool_allowlist_.has_value()) {
+        if (!unattended_tool_allowlist_->contains(
+                std::string(tool_ptr->Name()))) {
+          DVLOG(1) << __func__
+                   << " tool not pre-authorized for unattended execution: "
+                   << tool_use_event->tool_name;
 
-        if (std::holds_alternative<mojom::PermissionChallengePtr>(
-                interaction_result)) {
-          // Tool needs permission challenge acceptance before proceeding
-          mojom::PermissionChallengePtr permission_challenge = std::move(
-              std::get<mojom::PermissionChallengePtr>(interaction_result));
-          CHECK(permission_challenge);
-          DVLOG(1) << __func__ << " tool requires permission: "
-                   << tool_use_event->tool_name;
-          tool_use_event->permission_challenge =
-              std::move(permission_challenge);
-          OnToolUseEventOutput(last_entry.get(), tool_use_event.get());
-          break;
-        } else if (std::get<bool>(interaction_result)) {
-          // Tool needs user to provide output via UI (e.g. UserChoiceTool)
-          DVLOG(1) << __func__ << " tool requires user output: "
-                   << tool_use_event->tool_name;
+          is_tool_use_in_progress_ = true;
+          OnAPIRequestInProgressChanged();
+
+          std::vector<mojom::ContentBlockPtr> result;
+          result.push_back(mojom::ContentBlock::NewTextContentBlock(
+              mojom::TextContentBlock::New(base::StrCat(
+                  {"Error: the '", tool_use_event->tool_name,
+                   "' tool wasn't pre-authorized for this scheduled task "
+                   "and cannot be used without a person present to approve "
+                   "it."}))));
+
+          RespondToToolUseRequest(tool_use_event->id, std::move(result), {});
           break;
         }
-        // interaction_result is false - user interaction can be automatic
+      } else {
+        // Check if tool requires user interaction.
+        // Only check if there isn't already a pending permission_challenge,
+        // and the user hasn't just approved this exact tool use already (see
+        // user_approved_tool_use_ids_'s header comment - some tools always
+        // return a fresh challenge here, which would otherwise re-trigger
+        // forever instead of ever executing).
+        bool already_approved_by_user =
+            user_approved_tool_use_ids_.erase(tool_use_event->id) > 0;
+        if (!tool_use_event->permission_challenge &&
+            !already_approved_by_user) {
+          auto interaction_result =
+              tool_ptr->RequiresUserInteractionBeforeHandling(
+                  *tool_use_event);
+
+          if (std::holds_alternative<mojom::PermissionChallengePtr>(
+                  interaction_result)) {
+            // Tool needs permission challenge acceptance before proceeding
+            mojom::PermissionChallengePtr permission_challenge = std::move(
+                std::get<mojom::PermissionChallengePtr>(interaction_result));
+            CHECK(permission_challenge);
+            DVLOG(1) << __func__ << " tool requires permission: "
+                     << tool_use_event->tool_name;
+            tool_use_event->permission_challenge =
+                std::move(permission_challenge);
+            OnToolUseEventOutput(last_entry.get(), tool_use_event.get());
+            break;
+          } else if (std::get<bool>(interaction_result)) {
+            // Tool needs user to provide output via UI (e.g. UserChoiceTool)
+            DVLOG(1) << __func__ << " tool requires user output: "
+                     << tool_use_event->tool_name;
+            break;
+          }
+          // interaction_result is false - user interaction can be automatic
+        }
       }
 
       // No user interaction needed - execute tool

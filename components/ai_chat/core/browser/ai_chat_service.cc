@@ -43,6 +43,7 @@
 #include "brave/components/ai_chat/core/browser/conversation_share_manager.h"
 #include "brave/components/ai_chat/core/browser/conversation_tools.h"
 #include "brave/components/ai_chat/core/browser/model_service.h"
+#include "brave/components/ai_chat/core/browser/scheduled_tasks/scheduled_task_service.h"
 #include "brave/components/ai_chat/core/browser/sync/ai_chat_sync_backend.h"
 #include "brave/components/ai_chat/core/browser/sync/ai_chat_sync_bridge.h"
 #include "brave/components/ai_chat/core/browser/tab_tracker_service.h"
@@ -60,6 +61,7 @@
 #include "components/sync/model/client_tag_based_data_type_processor.h"
 #include "components/sync/model/data_type_controller_delegate.h"
 #include "components/sync/model/proxy_data_type_controller_delegate.h"
+#include "mojo/public/cpp/bindings/clone_traits.h"
 #include "mojo/public/cpp/bindings/pending_receiver.h"
 #include "mojo/public/cpp/bindings/struct_ptr.h"
 #include "services/network/public/cpp/shared_url_loader_factory.h"
@@ -73,6 +75,56 @@ namespace {
 
 constexpr base::FilePath::StringViewType kDBFileName =
     FILE_PATH_LITERAL("AIChat");
+
+mojom::ScheduledTaskPtr ScheduledTaskToMojom(const ScheduledTask& task) {
+  auto mojo_task = mojom::ScheduledTask::New();
+  mojo_task->id = task.id;
+  mojo_task->name = task.name;
+  mojo_task->prompt = task.prompt;
+  mojo_task->recurrence =
+      static_cast<mojom::ScheduledTaskRecurrence>(task.recurrence);
+  mojo_task->hour = static_cast<uint8_t>(task.hour);
+  mojo_task->minute = static_cast<uint8_t>(task.minute);
+  for (int weekday : task.weekdays) {
+    mojo_task->weekdays.push_back(static_cast<uint8_t>(weekday));
+  }
+  mojo_task->one_time_date = task.one_time_date;
+  mojo_task->tool_allowlist.assign(task.tool_allowlist.begin(),
+                                   task.tool_allowlist.end());
+  mojo_task->enabled = task.enabled;
+  mojo_task->last_run_time = task.last_run_time;
+  mojo_task->last_run_status =
+      static_cast<mojom::ScheduledTaskRunStatus>(task.last_run_status);
+  mojo_task->last_run_summary = task.last_run_summary;
+  mojo_task->last_conversation_uuid =
+      task.last_conversation_uuid.empty()
+          ? std::nullopt
+          : std::make_optional(task.last_conversation_uuid);
+  mojo_task->next_run_time = task.next_run_time;
+  return mojo_task;
+}
+
+ScheduledTask ScheduledTaskFromMojom(const mojom::ScheduledTaskPtr& mojo_task) {
+  ScheduledTask task;
+  task.id = mojo_task->id;
+  task.name = mojo_task->name;
+  task.prompt = mojo_task->prompt;
+  task.recurrence =
+      static_cast<ScheduledTaskRecurrence>(mojo_task->recurrence);
+  task.hour = mojo_task->hour;
+  task.minute = mojo_task->minute;
+  for (uint8_t weekday : mojo_task->weekdays) {
+    task.weekdays.insert(weekday);
+  }
+  task.one_time_date = mojo_task->one_time_date;
+  task.tool_allowlist.insert(mojo_task->tool_allowlist.begin(),
+                             mojo_task->tool_allowlist.end());
+  task.enabled = mojo_task->enabled;
+  // Run-history fields are intentionally not read from the incoming mojom
+  // struct here - ScheduledTaskService::UpdateTask preserves the existing
+  // stored history regardless of what the edit form sent.
+  return task;
+}
 
 std::vector<mojom::Conversation*> GetConversationsSortedByUpdatedTime(
     std::map<std::string, mojom::ConversationPtr, std::less<>>&
@@ -153,6 +205,11 @@ AIChatService::AIChatService(
   // all conversations.
   InitializeTools();
 
+  scheduled_task_service_ = std::make_unique<ScheduledTaskService>(
+      this, profile_prefs_,
+      base::BindRepeating(&AIChatService::OnScheduledTasksChanged,
+                          weak_ptr_factory_.GetWeakPtr()));
+
   pref_change_registrar_.Init(profile_prefs_);
   pref_change_registrar_.Add(
       prefs::kLastAcceptedDisclaimer,
@@ -202,6 +259,11 @@ void AIChatService::Bind(mojo::PendingReceiver<mojom::Service> receiver) {
 }
 
 void AIChatService::Shutdown() {
+  // Tear down first - it holds a ConversationHandler::Observer registration
+  // on whichever conversation it's currently running unattended, which must
+  // not dangle once conversation handlers below start getting destroyed.
+  scheduled_task_service_.reset();
+
   // Disconnect remotes
   receivers_.ClearWithReason(0, "Shutting down");
   weak_ptr_factory_.InvalidateWeakPtrs();
@@ -850,6 +912,56 @@ void AIChatService::RenameConversation(const std::string& id,
   OnConversationTitleChanged(id, new_name);
 }
 
+void AIChatService::GetScheduledTasks(GetScheduledTasksCallback callback) {
+  std::vector<mojom::ScheduledTaskPtr> tasks;
+  for (const auto& task : scheduled_task_service_->GetTasks()) {
+    tasks.push_back(ScheduledTaskToMojom(task));
+  }
+  std::move(callback).Run(std::move(tasks));
+}
+
+void AIChatService::CreateScheduledTask(mojom::ScheduledTaskPtr task) {
+  // The UI validates name/prompt/time before ever calling this - a rejected
+  // create here just means nothing gets added, no error surface needed.
+  scheduled_task_service_->CreateTask(ScheduledTaskFromMojom(task));
+}
+
+void AIChatService::UpdateScheduledTask(mojom::ScheduledTaskPtr task) {
+  std::string id = task->id;
+  scheduled_task_service_->UpdateTask(id, ScheduledTaskFromMojom(task));
+}
+
+void AIChatService::DeleteScheduledTask(const std::string& id) {
+  scheduled_task_service_->DeleteTask(id);
+}
+
+void AIChatService::SetScheduledTaskEnabled(const std::string& id,
+                                            bool enabled) {
+  scheduled_task_service_->SetTaskEnabled(id, enabled);
+}
+
+void AIChatService::GetAvailableToolsForScheduling(
+    GetAvailableToolsForSchedulingCallback callback) {
+  std::vector<mojom::ScheduledTaskToolInfoPtr> tools;
+  // Built once, thrown away after enumerating - the same throwaway
+  // construction CreateConversation() normally feeds straight into a live
+  // ConversationHandler, used here only to report the real, current tool
+  // catalog (see the mojom method's comment for why this can't just be a
+  // static list).
+  for (const auto& provider : CreateToolProvidersForNewConversation()) {
+    for (const auto& tool : provider->GetTools()) {
+      if (!tool) {
+        continue;
+      }
+      auto info = mojom::ScheduledTaskToolInfo::New();
+      info->name = std::string(tool->Name());
+      info->description = std::string(tool->Description());
+      tools.push_back(std::move(info));
+    }
+  }
+  std::move(callback).Run(std::move(tools));
+}
+
 void AIChatService::ConversationExists(const std::string& conversation_uuid,
                                        ConversationExistsCallback callback) {
   std::move(callback).Run(conversations_.contains(conversation_uuid));
@@ -921,6 +1033,14 @@ void AIChatService::OnPremiumStatusReceived(GetPremiumStatusCallback callback,
 bool AIChatService::CanUnloadConversation(ConversationHandler* conversation) {
   // Don't unload if there is active UI for the conversation
   if (conversation->IsAnyClientConnected()) {
+    return false;
+  }
+
+  // Don't unload a conversation ScheduledTaskService is running unattended -
+  // IsRequestInProgress() is false during the (possibly multi-second) window
+  // while a tool call is awaited between engine turns, which would otherwise
+  // race this function's checks below and destroy the handler mid-run.
+  if (conversation->HasUnattendedTaskActive()) {
     return false;
   }
 
@@ -1052,6 +1172,16 @@ void AIChatService::OnStateChanged() {
 void AIChatService::OnSkillsChanged() {
   for (auto& remote : observer_remotes_) {
     remote->OnSkillsChanged(prefs::GetSkillsFromPrefs(*profile_prefs_));
+  }
+}
+
+void AIChatService::OnScheduledTasksChanged() {
+  std::vector<mojom::ScheduledTaskPtr> tasks;
+  for (const auto& task : scheduled_task_service_->GetTasks()) {
+    tasks.push_back(ScheduledTaskToMojom(task));
+  }
+  for (auto& remote : observer_remotes_) {
+    remote->OnScheduledTasksChanged(mojo::Clone(tasks));
   }
 }
 

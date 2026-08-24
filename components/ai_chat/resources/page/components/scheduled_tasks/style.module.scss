@@ -1,0 +1,148 @@
+/* Copyright (c) 2026 The Brave Authors. All rights reserved.
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this file,
+ * You can obtain one at https://mozilla.org/MPL/2.0/. */
+
+.scroller {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow-y: auto;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 16px;
+  gap: 8px;
+}
+
+.title {
+  flex: 1;
+  font-weight: 600;
+  color: var(--leo-color-text-primary);
+}
+
+.empty {
+  padding: 16px;
+  color: var(--leo-color-text-secondary);
+  text-align: center;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 0 8px;
+  margin: 0;
+  list-style: none;
+}
+
+.item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px;
+  border-radius: 8px;
+
+  &:hover {
+    background: var(--leo-color-container-highlight);
+  }
+}
+
+.itemMain {
+  flex: 1;
+  min-width: 0;
+  cursor: pointer;
+}
+
+.itemName {
+  font-weight: 600;
+  color: var(--leo-color-text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.itemMeta {
+  font-size: 12px;
+  color: var(--leo-color-text-secondary);
+}
+
+.formSection {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 320px;
+  color: var(--leo-color-text-primary);
+}
+
+.fieldLabel {
+  font-weight: 600;
+  color: var(--leo-color-text-primary);
+  display: block;
+  margin-bottom: 4px;
+}
+
+.recurrenceRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.select,
+.timeInput {
+  padding: 6px 8px;
+  border-radius: 4px;
+  border: 1px solid var(--leo-color-divider-subtle);
+  background: var(--leo-color-container-background);
+  color: var(--leo-color-text-primary);
+}
+
+.timeInput {
+  width: 56px;
+}
+
+.weekdayRow {
+  display: flex;
+  gap: 4px;
+  margin-top: 4px;
+  flex-wrap: wrap;
+}
+
+.errorText {
+  color: var(--leo-color-systemfeedback-error-text);
+  font-size: 12px;
+  margin-top: 4px;
+}
+
+.toolsNote {
+  font-size: 12px;
+  color: var(--leo-color-text-secondary);
+  margin: 4px 0 8px;
+}
+
+.toolsList {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 16px;
+}
+
+.rightButtons {
+  display: flex;
+  gap: 8px;
+}
+
+.deleteButton {
+  --leo-button-color: var(--leo-color-systemfeedback-error-text);
+}

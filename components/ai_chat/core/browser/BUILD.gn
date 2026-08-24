@@ -22,6 +22,8 @@ static_library("browser") {
     "ai_chat_metrics.h",
     "ai_chat_service.cc",
     "ai_chat_service.h",
+    "scheduled_tasks/scheduled_task_service.cc",
+    "scheduled_tasks/scheduled_task_service.h",
     "ai_chat_tab_focus_metrics.cc",
     "ai_chat_tab_focus_metrics.h",
     "associated_archive_content.cc",

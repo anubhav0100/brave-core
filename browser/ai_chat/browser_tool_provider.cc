@@ -37,6 +37,7 @@
 #include "brave/browser/ai_chat/tools/n8n_tools.h"
 #include "brave/browser/n8n/n8n_process_manager_factory.h"
 #include "brave/browser/ai_chat/tools/page_capture_tools.h"
+#include "brave/browser/ai_chat/tools/scheduled_task_tools.h"
 #include "brave/browser/ai_chat/tools/read_word_document_tool.h"
 #include "brave/browser/ai_chat/tools/response_memory_tools.h"
 #include "brave/browser/ai_chat/tools/run_workflow_tool.h"
@@ -222,6 +223,18 @@ std::vector<base::WeakPtr<Tool>> BrowserToolProvider::GetTools() {
   if (analyze_youtube_video_seo_tool_) {
     tool_ptrs.push_back(analyze_youtube_video_seo_tool_->GetWeakPtr());
   }
+  if (create_scheduled_ai_task_tool_) {
+    tool_ptrs.push_back(create_scheduled_ai_task_tool_->GetWeakPtr());
+  }
+  if (list_scheduled_ai_tasks_tool_) {
+    tool_ptrs.push_back(list_scheduled_ai_tasks_tool_->GetWeakPtr());
+  }
+  if (update_scheduled_ai_task_tool_) {
+    tool_ptrs.push_back(update_scheduled_ai_task_tool_->GetWeakPtr());
+  }
+  if (delete_scheduled_ai_task_tool_) {
+    tool_ptrs.push_back(delete_scheduled_ai_task_tool_->GetWeakPtr());
+  }
 
   return tool_ptrs;
 }
@@ -256,6 +269,14 @@ void BrowserToolProvider::CreateTools(
       std::make_unique<InjectDelegationBriefTool>(delegation_manager);
   create_delegation_task_tool_ =
       std::make_unique<CreateDelegationTaskTool>(delegation_manager);
+  // Computer-use tools (screenshot, desktop input, RDP) all read/write
+  // per-profile state via ComputerUseSessionState - restricted to the
+  // dedicated AI Chat Agent profile so that state stays in one consistent
+  // place: a session started from a normal browsing profile would otherwise
+  // be invisible to chrome://computer-use and to these same tools when
+  // called again from the agent profile, since each profile gets its own
+  // independent ComputerUseSessionState instance.
+  if (browser_context->IsAIChatAgent()) {
   get_desktop_screenshot_tool_ =
       std::make_unique<GetDesktopScreenshotTool>(browser_context);
 #if BUILDFLAG(IS_WIN)
@@ -272,6 +293,7 @@ void BrowserToolProvider::CreateTools(
   close_rdp_session_tool_ =
       std::make_unique<CloseRdpSessionTool>(browser_context);
 #endif
+  }
   create_word_document_tool_ =
       std::make_unique<CreateWordDocumentTool>(browser_context);
   read_word_document_tool_ =
@@ -345,6 +367,14 @@ void BrowserToolProvider::CreateTools(
 #endif
   set_youtube_api_key_tool_ =
       std::make_unique<SetYouTubeApiKeyTool>(browser_context);
+  create_scheduled_ai_task_tool_ =
+      std::make_unique<CreateScheduledAiTaskTool>(browser_context);
+  list_scheduled_ai_tasks_tool_ =
+      std::make_unique<ListScheduledAiTasksTool>(browser_context);
+  update_scheduled_ai_task_tool_ =
+      std::make_unique<UpdateScheduledAiTaskTool>(browser_context);
+  delete_scheduled_ai_task_tool_ =
+      std::make_unique<DeleteScheduledAiTaskTool>(browser_context);
   analyze_youtube_video_seo_tool_ =
       std::make_unique<AnalyzeYouTubeVideoSeoTool>(browser_context);
 }

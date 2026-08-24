@@ -19,6 +19,8 @@
 
 #include "base/functional/bind.h"
 #include "base/strings/strcat.h"
+#include "base/strings/string_number_conversions.h"
+#include "base/strings/string_util.h"
 #include "base/strings/stringprintf.h"
 #include "base/strings/utf_string_conversions.h"
 #include "base/win/scoped_bstr.h"
@@ -36,20 +38,37 @@ constexpr long kDisconnectReasonLocalNotError = 1;
 constexpr long kDisconnectReasonRemoteByUser = 2;
 constexpr long kDisconnectReasonByServer = 3;
 
-std::string DisconnectReasonToString(long reason) {
-  switch (reason) {
-    case kDisconnectReasonNoInfo:
-      return "disconnected";
-    case kDisconnectReasonLocalNotError:
-      return "closed locally";
-    case kDisconnectReasonRemoteByUser:
-      return "closed by the remote user";
-    case kDisconnectReasonByServer:
-      return "closed by the server";
-    default:
-      return base::StrCat({"disconnected (reason=", std::to_string(reason),
-                           ")"});
+// The RDP ActiveX control's put_Server() wants a bare hostname/IP and
+// rejects anything else with E_INVALIDARG (hresult=0x80070057) - a "host:
+// port" string typed into a single field (an easy, common thing to type,
+// especially since that's also what the RDP permission challenge's own
+// plan text and mstsc.exe's own address bar both accept) is exactly such a
+// rejection. Rather than surfacing that as an opaque HRESULT, split a
+// trailing ":<digits>" off the host here and use it as the port instead -
+// it's the only reasonable interpretation of that input, and matches what
+// the user almost certainly meant. Left alone (including IPv6 literals,
+// which use colons for a different reason) if the suffix after the last
+// ':' isn't purely digits.
+void NormalizeHostAndPort(std::string* host, int* port) {
+  base::TrimWhitespaceASCII(*host, base::TRIM_ALL, host);
+  size_t colon_pos = host->rfind(':');
+  if (colon_pos == std::string::npos || colon_pos == host->size() - 1) {
+    return;
   }
+  std::string_view port_suffix(*host);
+  port_suffix.remove_prefix(colon_pos + 1);
+  int parsed_port = 0;
+  if (!base::StringToInt(port_suffix, &parsed_port) || parsed_port <= 0 ||
+      parsed_port > 65535) {
+    return;
+  }
+  std::string_view host_prefix(*host);
+  host_prefix.remove_suffix(host->size() - colon_pos);
+  if (host_prefix.empty()) {
+    return;
+  }
+  *port = parsed_port;
+  *host = std::string(host_prefix);
 }
 
 }  // namespace
@@ -78,12 +97,13 @@ class RdpSession::Impl
               RdpSession::ConnectedCallback callback) {
     host_ = host;
     port_ = port;
+    NormalizeHostAndPort(&host_, &port_);
     connected_callback_ = std::move(callback);
 
     RECT rect = {0, 0, GetSystemMetrics(SM_CXSCREEN) * 3 / 4,
                 GetSystemMetrics(SM_CYSCREEN) * 3 / 4};
-    std::wstring title =
-        base::UTF8ToWide(base::StrCat({"RDP: ", host, " - AI Automation Browser"}));
+    std::wstring title = base::UTF8ToWide(
+        base::StrCat({"RDP: ", host_, " - AI Automation Browser"}));
     if (!Create(nullptr, rect, title.c_str()) || !m_hWnd) {
       NotifyConnectResult(false, "Failed to create the RDP session window.");
       return;
@@ -208,6 +228,23 @@ class RdpSession::Impl
       return LogCreateFailure("Failed to disable device redirection", result);
     }
 
+    // Without this, the control can't complete CredSSP/NLA - which every
+    // RDP server since Windows 8 / Server 2012 requires by default - so the
+    // connection is rejected during the authentication handshake itself,
+    // before the control's own native credential dialog (see this class's
+    // header comment on never touching a password directly) ever gets a
+    // chance to render. That produced exactly this symptom: no prompt, an
+    // immediate disconnect.
+    Microsoft::WRL::ComPtr<mstsc::IMsRdpClientAdvancedSettings6> settings6;
+    result = client_->get_AdvancedSettings7(&settings6);
+    if (FAILED(result)) {
+      return LogCreateFailure("Failed to get CredSSP settings", result);
+    }
+    result = settings6->put_EnableCredSspSupport(VARIANT_TRUE);
+    if (FAILED(result)) {
+      return LogCreateFailure("Failed to enable CredSSP/NLA support", result);
+    }
+
     result = client_->Connect();
     if (FAILED(result)) {
       return LogCreateFailure("Failed to initiate the RDP connection", result);
@@ -242,7 +279,7 @@ class RdpSession::Impl
   STDMETHOD(OnRdpDisconnected)(long reason) {
     bool was_connected = connected_;
     connected_ = false;
-    std::string reason_string = DisconnectReasonToString(reason);
+    std::string reason_string = DescribeDisconnectReason(reason);
     if (!was_connected) {
       NotifyConnectResult(false, reason_string);
     }
@@ -264,6 +301,48 @@ class RdpSession::Impl
     }
     NotifyDisconnected(message);
     return S_OK;
+  }
+
+  // Turns a raw OnDisconnected() reason code into readable text. The small
+  // set of "not really an error" codes get friendly text directly; anything
+  // else asks the control itself for a real description via
+  // GetErrorDescription(reason, extendedReason) - the same API Microsoft's
+  // own MSTSC ActiveX documentation points at for this - rather than
+  // showing the user a bare number they have no way to act on (this is
+  // what previously showed "disconnected (reason=2825)" with nothing
+  // actionable in it).
+  std::string DescribeDisconnectReason(long reason) {
+    switch (reason) {
+      case kDisconnectReasonNoInfo:
+        return "disconnected";
+      case kDisconnectReasonLocalNotError:
+        return "closed locally";
+      case kDisconnectReasonRemoteByUser:
+        return "closed by the remote user";
+      case kDisconnectReasonByServer:
+        return "closed by the server";
+      default:
+        break;
+    }
+
+    if (client_) {
+      mstsc::ExtendedDisconnectReasonCode extended_reason =
+          static_cast<mstsc::ExtendedDisconnectReasonCode>(0);
+      client_->get_ExtendedDisconnectReason(&extended_reason);
+      base::win::ScopedBstr description;
+      HRESULT result = client_->GetErrorDescription(
+          static_cast<unsigned int>(reason),
+          static_cast<unsigned int>(extended_reason), description.Receive());
+      if (SUCCEEDED(result) && description.Get() && description.Length() > 0) {
+        return base::StrCat(
+            {base::WideToUTF8(std::wstring(description.Get(),
+                                           description.Length())),
+             " (reason=", std::to_string(reason), ")"});
+      }
+    }
+
+    return base::StrCat(
+        {"disconnected (reason=", std::to_string(reason), ")"});
   }
 
   int LogCreateFailure(const char* what, HRESULT result) {

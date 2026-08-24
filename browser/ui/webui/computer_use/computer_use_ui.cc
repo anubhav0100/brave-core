@@ -116,4 +116,18 @@ void ComputerUseUI::GetRdpHistory(GetRdpHistoryCallback callback) {
   std::move(callback).Run(std::move(history));
 }
 
+void ComputerUseUI::GetAlwaysAllowDesktopScreenshot(
+    GetAlwaysAllowDesktopScreenshotCallback callback) {
+  std::move(callback).Run(
+      computer_use::ComputerUseSessionStateFactory::GetForBrowserContext(
+          web_ui()->GetWebContents()->GetBrowserContext())
+          ->GetAlwaysAllowDesktopScreenshot());
+}
+
+void ComputerUseUI::SetAlwaysAllowDesktopScreenshot(bool always_allow) {
+  computer_use::ComputerUseSessionStateFactory::GetForBrowserContext(
+      web_ui()->GetWebContents()->GetBrowserContext())
+      ->SetAlwaysAllowDesktopScreenshot(always_allow);
+}
+
 WEB_UI_CONTROLLER_TYPE_IMPL(ComputerUseUI)

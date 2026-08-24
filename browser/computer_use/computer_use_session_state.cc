@@ -22,6 +22,8 @@
 namespace computer_use {
 
 namespace {
+constexpr char kAlwaysAllowDesktopScreenshotPref[] =
+    "brave.computer_use.always_allow_desktop_screenshot";
 #if BUILDFLAG(IS_WIN)
 constexpr char kRdpHistoryPref[] = "brave.computer_use.rdp_history";
 constexpr char kHostKey[] = "host";
@@ -51,9 +53,9 @@ ComputerUseSessionState::RdpHistoryEntry::operator=(const RdpHistoryEntry&) =
     default;
 ComputerUseSessionState::RdpHistoryEntry::~RdpHistoryEntry() = default;
 
-ComputerUseSessionState::ComputerUseSessionState(PrefService* prefs) {
+ComputerUseSessionState::ComputerUseSessionState(PrefService* prefs)
+    : prefs_(prefs) {
 #if BUILDFLAG(IS_WIN)
-  prefs_ = prefs;
   global_stop_hotkey_ = std::make_unique<GlobalStopHotkey>(base::BindRepeating(
       &ComputerUseSessionState::EmergencyStop, base::Unretained(this)));
 #endif
@@ -64,6 +66,7 @@ ComputerUseSessionState::~ComputerUseSessionState() = default;
 // static
 void ComputerUseSessionState::RegisterProfilePrefs(
     PrefRegistrySimple* registry) {
+  registry->RegisterBooleanPref(kAlwaysAllowDesktopScreenshotPref, false);
 #if BUILDFLAG(IS_WIN)
   registry->RegisterListPref(kRdpHistoryPref);
 #endif
@@ -88,6 +91,15 @@ void ComputerUseSessionState::GrantInputConsent() {
 
 bool ComputerUseSessionState::HasInputConsent() const {
   return input_consent_granted_;
+}
+
+void ComputerUseSessionState::SetAlwaysAllowDesktopScreenshot(
+    bool always_allow) {
+  prefs_->SetBoolean(kAlwaysAllowDesktopScreenshotPref, always_allow);
+}
+
+bool ComputerUseSessionState::GetAlwaysAllowDesktopScreenshot() const {
+  return prefs_->GetBoolean(kAlwaysAllowDesktopScreenshotPref);
 }
 
 void ComputerUseSessionState::MarkAppInteracted(

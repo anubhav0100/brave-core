@@ -9,6 +9,7 @@
 #include <utility>
 
 #include "base/functional/bind.h"
+#include "base/logging.h"
 #include "base/task/bind_post_task.h"
 #include "base/task/thread_pool.h"
 #include "content/public/browser/desktop_capture.h"
@@ -51,6 +52,16 @@ std::vector<uint8_t> EncodeFrameAsPng(webrtc::DesktopFrame* frame) {
 // never needs to track or outlive this object.
 class OneShotCapturer : public webrtc::DesktopCapturer::Callback {
  public:
+  // ERROR_TEMPORARY is webrtc's own documented signal to just call
+  // CaptureFrame() again (see desktop_capturer.h's Result enum) - real on
+  // Windows, where the first DXGI Desktop Duplication frame after starting
+  // duplication (or right after a mode/resolution change) commonly comes
+  // back this way. Treating it as a hard failure on the very first attempt,
+  // as this used to, meant a perfectly capturable desktop could still
+  // report "capture failed" to the user for a condition webrtc itself says
+  // to just retry past.
+  static constexpr int kMaxTemporaryErrorRetries = 3;
+
   static void CaptureOnCaptureSequence(
       DesktopCaptureSession::ScreenshotCallback callback) {
     auto owned = std::make_unique<OneShotCapturer>();
@@ -62,6 +73,8 @@ class OneShotCapturer : public webrtc::DesktopCapturer::Callback {
         content::desktop_capture::CreateDesktopCaptureOptions(),
         /*for_snapshot=*/true);
     if (!raw->capturer_) {
+      LOG(ERROR) << "computer_use: no desktop capturer is available on this "
+                    "platform/session (CreateScreenCapturer returned null)";
       raw->Finish(false, {});
       return;
     }
@@ -76,11 +89,31 @@ class OneShotCapturer : public webrtc::DesktopCapturer::Callback {
   void OnCaptureResult(
       webrtc::DesktopCapturer::Result result,
       std::unique_ptr<webrtc::DesktopFrame> frame) override {
+    if (result == webrtc::DesktopCapturer::Result::ERROR_TEMPORARY &&
+        temporary_error_retries_ < kMaxTemporaryErrorRetries) {
+      ++temporary_error_retries_;
+      LOG(WARNING) << "computer_use: desktop capture returned a temporary "
+                      "error (attempt "
+                   << temporary_error_retries_ << "/"
+                   << kMaxTemporaryErrorRetries << "), retrying";
+      capturer_->CaptureFrame();
+      return;
+    }
     if (result != webrtc::DesktopCapturer::Result::SUCCESS || !frame) {
+      LOG(ERROR) << "computer_use: desktop capture failed (result="
+                 << static_cast<int>(result) << ", has_frame=" << !!frame
+                 << ") - common causes on Windows: the session has no real "
+                    "GPU-backed display surface (some remote/virtual "
+                    "sessions), or the screen was locked/showing a UAC "
+                    "secure desktop at the moment of capture";
       Finish(false, {});
       return;
     }
     std::vector<uint8_t> png_bytes = EncodeFrameAsPng(frame.get());
+    if (png_bytes.empty()) {
+      LOG(ERROR) << "computer_use: captured a frame but PNG-encoding it "
+                    "failed";
+    }
     Finish(!png_bytes.empty(), std::move(png_bytes));
   }
 
@@ -92,6 +125,7 @@ class OneShotCapturer : public webrtc::DesktopCapturer::Callback {
   std::unique_ptr<webrtc::DesktopCapturer> capturer_;
   DesktopCaptureSession::ScreenshotCallback callback_;
   std::unique_ptr<OneShotCapturer> self_;
+  int temporary_error_retries_ = 0;
 };
 
 }  // namespace

@@ -158,6 +158,13 @@
   flex-direction: column;
 }
 
+.scheduledTasksButton {
+  position: absolute;
+  top: var(--leo-spacing-m, 8px);
+  right: calc(var(--leo-spacing-m, 8px) + 40px);
+  z-index: 3;
+}
+
 .conversationsListHeader {
   padding: 0 var(--leo-spacing-xl);
   width: 100%;

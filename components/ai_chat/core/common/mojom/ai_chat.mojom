@@ -145,6 +145,51 @@ struct Skill {
   mojo_base.mojom.Time last_used;
 };
 
+enum ScheduledTaskRecurrence {
+  kOnce,
+  kDaily,
+  kWeekly,
+};
+
+enum ScheduledTaskRunStatus {
+  kNeverRun,
+  kSuccess,
+  kFailed,
+  kPartial,
+};
+
+// One user-defined "run this prompt unattended at a set time" task - see
+// ScheduledTaskService (components/ai_chat/core/browser/scheduled_tasks).
+// Because nobody is present to approve a permission challenge while a
+// scheduled task runs, it may only use the tools named in tool_allowlist;
+// any other tool call it attempts is refused automatically.
+struct ScheduledTask {
+  string id;
+  string name;
+  string prompt;
+  ScheduledTaskRecurrence recurrence;
+  uint8 hour;
+  uint8 minute;
+  // Only meaningful when recurrence is kWeekly. 0=Sunday .. 6=Saturday.
+  array<uint8> weekdays;
+  // Only meaningful when recurrence is kOnce.
+  mojo_base.mojom.Time? one_time_date;
+  array<string> tool_allowlist;
+  bool enabled;
+
+  mojo_base.mojom.Time? last_run_time;
+  ScheduledTaskRunStatus last_run_status;
+  string last_run_summary;
+  string? last_conversation_uuid;
+  mojo_base.mojom.Time? next_run_time;
+};
+
+// One tool available to add to a scheduled task's tool_allowlist.
+struct ScheduledTaskToolInfo {
+  string name;
+  string description;
+};
+
 struct ModelWithSubtitle {
   Model model;
   string subtitle;
@@ -190,6 +235,19 @@ interface Service {
   DeleteConversation(string id);
   RenameConversation(string id, string new_name);
 
+  // Scheduled task management - see ScheduledTaskService. These run
+  // completely unattended at the time the user chooses, so
+  // GetAvailableToolsForScheduling() reports the real, current tool
+  // catalog for building a tool_allowlist checklist in the UI - the model
+  // can't be relied on to know it since nobody is present to correct it if
+  // it's wrong.
+  GetScheduledTasks() => (array<ScheduledTask> tasks);
+  CreateScheduledTask(ScheduledTask task);
+  UpdateScheduledTask(ScheduledTask task);
+  DeleteScheduledTask(string id);
+  SetScheduledTaskEnabled(string id, bool enabled);
+  GetAvailableToolsForScheduling() => (array<ScheduledTaskToolInfo> tools);
+
   // Determines whether a conversation exists - we need this so we can determine
   // whether a URL is bogus (i.e. made up) or if it corresponds to a
   // not-visible-in-sidebar conversation.
@@ -229,6 +287,7 @@ interface ServiceObserver {
   OnConversationListChanged(array<Conversation> conversations);
   OnStateChanged(ServiceState state);
   OnSkillsChanged(array<Skill> skills);
+  OnScheduledTasksChanged(array<ScheduledTask> tasks);
 };
 
 // Summary of one saved workflow (see the workflow orchestration engine

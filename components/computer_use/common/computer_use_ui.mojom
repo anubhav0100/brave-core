@@ -54,4 +54,12 @@ interface PageHandler {
   // The persisted (survives restart) log of RDP sessions on this profile,
   // most recent first.
   GetRdpHistory() => (array<RdpHistoryEntry> history);
+
+  // Whether get_desktop_screenshot's per-conversation "Security warning"
+  // permission challenge is skipped for every conversation on this
+  // profile, persisted across restarts. Off by default - a real reduction
+  // in per-conversation consent, so it's an explicit opt-in here rather
+  // than something a single in-chat "Allow" click sets on its own.
+  GetAlwaysAllowDesktopScreenshot() => (bool always_allow);
+  SetAlwaysAllowDesktopScreenshot(bool always_allow);
 };

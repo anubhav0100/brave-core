@@ -67,6 +67,7 @@ class ModelService;
 class TabTrackerService;
 class AIChatMetrics;
 class MemoryStorageTool;
+class ScheduledTaskService;
 
 bool CanAssociateContent(AssociatedContentDelegate* delegate);
 
@@ -144,6 +145,14 @@ class AIChatService : public KeyedService,
   // Provides memory tool for testing
   MemoryStorageTool* GetMemoryToolForTesting();
 
+  // Owns and drives every unattended scheduled task for this profile - see
+  // ScheduledTaskService. Used both by the scheduled-task AI Chat tools
+  // (browser/ai_chat/tools/scheduled_task_tools.h) and by this class's own
+  // mojom::Service handlers for the Scheduled Tasks UI.
+  ScheduledTaskService* GetScheduledTaskService() {
+    return scheduled_task_service_.get();
+  }
+
   ConversationHandler* GetConversation(std::string_view uuid);
   void GetConversation(std::string_view conversation_uuid,
                        base::OnceCallback<void(ConversationHandler*)>);
@@ -210,6 +219,13 @@ class AIChatService : public KeyedService,
   void DeleteConversation(const std::string& id) override;
   void RenameConversation(const std::string& id,
                           const std::string& new_name) override;
+  void GetScheduledTasks(GetScheduledTasksCallback callback) override;
+  void CreateScheduledTask(mojom::ScheduledTaskPtr task) override;
+  void UpdateScheduledTask(mojom::ScheduledTaskPtr task) override;
+  void DeleteScheduledTask(const std::string& id) override;
+  void SetScheduledTaskEnabled(const std::string& id, bool enabled) override;
+  void GetAvailableToolsForScheduling(
+      GetAvailableToolsForSchedulingCallback callback) override;
   void ConversationExists(const std::string& conversation_uuid,
                           ConversationExistsCallback callback) override;
   void ShareConversation(const std::string& encrypted_contents,
@@ -362,6 +378,7 @@ class AIChatService : public KeyedService,
   mojom::ServiceStatePtr BuildState();
   void OnStateChanged();
   void OnSkillsChanged();
+  void OnScheduledTasksChanged();
   void OnMemoryEnabledChanged();
   void InitializeTools();
 
@@ -397,6 +414,7 @@ class AIChatService : public KeyedService,
 
   // Memory tool that is available and shared across all conversations.
   std::unique_ptr<MemoryStorageTool> memory_tool_;
+  std::unique_ptr<ScheduledTaskService> scheduled_task_service_;
 
   base::FilePath profile_path_;
 

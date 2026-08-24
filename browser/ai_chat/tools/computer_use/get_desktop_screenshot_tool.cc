@@ -50,6 +50,14 @@ GetDesktopScreenshotTool::RequiresUserInteractionBeforeHandling(
   if (user_has_granted_permission_) {
     return false;
   }
+  // Persisted opt-in (chrome://computer-use Settings toggle) to skip this
+  // challenge for every future conversation too, not just this one - see
+  // ComputerUseSessionState::GetAlwaysAllowDesktopScreenshot.
+  if (computer_use::ComputerUseSessionStateFactory::GetForBrowserContext(
+          browser_context_)
+          ->GetAlwaysAllowDesktopScreenshot()) {
+    return false;
+  }
   // The user-facing wording lives in get_tool_permission_implications.tsx
   // (i18n) - this side only needs to surface a non-null challenge. See
   // HistorySearchTool for the identical pattern this mirrors.

@@ -76,6 +76,16 @@ class ComputerUseSessionState : public KeyedService {
   void GrantInputConsent();
   bool HasInputConsent() const;
 
+  // Persisted (survives restart, applies to every new conversation) opt-in
+  // to skip get_desktop_screenshot's per-conversation permission challenge
+  // entirely - set from the computer-use WebUI's Settings toggle, off by
+  // default. Deliberately a separate, explicit setting rather than
+  // something a single in-conversation "Allow" click escalates to on its
+  // own, since it removes a real per-conversation consent step going
+  // forward.
+  void SetAlwaysAllowDesktopScreenshot(bool always_allow);
+  bool GetAlwaysAllowDesktopScreenshot() const;
+
   // Apps the AI has already acted on this session, keyed by lowercase
   // process image name (e.g. "notepad.exe") - used by the risk classifier
   // to flag the *first* action against a not-yet-seen app as risky (see
@@ -131,9 +141,9 @@ class ComputerUseSessionState : public KeyedService {
   bool input_consent_granted_ = false;
   bool emergency_stopped_ = false;
   base::flat_set<std::string> interacted_apps_;
+  raw_ptr<PrefService> prefs_;
 
 #if BUILDFLAG(IS_WIN)
-  raw_ptr<PrefService> prefs_;
   std::unique_ptr<GlobalStopHotkey> global_stop_hotkey_;
   std::unique_ptr<RdpSession> rdp_session_;
   bool rdp_active_ = false;

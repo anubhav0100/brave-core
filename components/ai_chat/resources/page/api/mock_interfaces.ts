@@ -155,6 +155,8 @@ export function createMockService(
     getConversations: () => Promise.resolve({ conversations: [] }),
     getActionMenuList: () => Promise.resolve({ actionList: [] }),
     getSkills: () => Promise.resolve({ skills: [] }),
+    getScheduledTasks: () => Promise.resolve({ tasks: [] }),
+    getAvailableToolsForScheduling: () => Promise.resolve({ tools: [] }),
     getPremiumStatus: () =>
       Promise.resolve({ status: Mojom.PremiumStatus.Inactive, info: null }),
 
@@ -176,6 +178,10 @@ export function createMockService(
     createSkill: () => {},
     updateSkill: () => {},
     deleteSkill: () => {},
+    createScheduledTask: () => {},
+    updateScheduledTask: () => {},
+    deleteScheduledTask: () => {},
+    setScheduledTaskEnabled: () => {},
     bindObserver: () =>
       Promise.resolve({
         state: {

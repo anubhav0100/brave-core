@@ -69,6 +69,16 @@ export default function createAIChatApi(
           prefetchWithArgs: [],
           placeholderData: [] as Mojom.Skill[],
         },
+        getScheduledTasks: {
+          response: (result) => result.tasks,
+          prefetchWithArgs: [],
+          placeholderData: [] as Mojom.ScheduledTask[],
+        },
+        getAvailableToolsForScheduling: {
+          response: (result) => result.tools,
+          prefetchWithArgs: [],
+          placeholderData: [] as Mojom.ScheduledTaskToolInfo[],
+        },
         getPremiumStatus: {
           response: (result) => ({
             /**
@@ -184,6 +194,9 @@ export default function createAIChatApi(
           },
           onSkillsChanged: (skills) => {
             api.getSkills.update(skills)
+          },
+          onScheduledTasksChanged: (tasks) => {
+            api.getScheduledTasks.update(tasks)
           },
         },
         async (observer) => {

@@ -16,6 +16,7 @@ import scrollerStyles from '../../../common/scroller.module.scss'
 import { useConversation } from '../../state/conversation_context'
 import { useAIChat } from '../../state/ai_chat_context'
 import ConversationsList from '../conversations_list'
+import ScheduledTasksList from '../scheduled_tasks'
 import DeleteConversationModal from '../delete_conversation_modal'
 import { ConversationHeader } from '../header'
 import InputBox, { type InputBoxHandle } from '../input_box'
@@ -43,6 +44,7 @@ function Main() {
   const [isConversationListOpen, setIsConversationsListOpen] =
     React.useState(false)
   const [isShareDialogOpen, setIsShareDialogOpen] = React.useState(false)
+  const [isScheduledTasksOpen, setIsScheduledTasksOpen] = React.useState(false)
   const { isDragActive, isDragOver } = conversationContext
 
   const showAttachments = !!conversationContext.attachmentsDialog
@@ -182,12 +184,29 @@ function Main() {
           />
         </div>
       )}
+      {isScheduledTasksOpen && !aiChatContext.isStandalone && (
+        <div className={styles.conversationsList}>
+          <ScheduledTasksList onClose={() => setIsScheduledTasksOpen(false)} />
+        </div>
+      )}
       {showAgreementModal && <PrivacyMessage />}
       <ConversationHeader
         ref={headerElement}
         setIsConversationsListOpen={setIsConversationsListOpen}
         startSharingConversation={() => setIsShareDialogOpen(true)}
       />
+      {!aiChatContext.isStandalone && (
+        <Button
+          kind='plain-faint'
+          fab
+          size='small'
+          className={styles.scheduledTasksButton}
+          title='Scheduled Tasks'
+          onClick={() => setIsScheduledTasksOpen(true)}
+        >
+          <Icon name='calendar-check' />
+        </Button>
+      )}
       <AlertCenter
         position='top-center'
         className={styles.alertCenter}

@@ -47,10 +47,11 @@ const Header = styled.h1`
   margin: 0;
   font-size: 22px;
   font-weight: 700;
-  background: linear-gradient(90deg, #ff8a00, #e63946, #7b5bff);
-  background-clip: text;
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
+  /* A solid, guaranteed-visible color rather than a gradient text-clip -
+     that trick renders invisible (transparent, uncolored text) if
+     background-clip: text fails to apply for any reason, which is a real
+     risk on a WebUI page rather than a normal web page. */
+  color: #ffb15c;
 `
 
 const Banner = styled.div<{ $status: Status }>`
@@ -162,6 +163,10 @@ const inputBase = `
   padding: 9px 12px;
   font-size: 14px;
 
+  &::placeholder {
+    color: #9294c0;
+  }
+
   &:focus {
     outline: none;
     border-color: #7b5bff;
@@ -201,7 +206,7 @@ const HistoryTable = styled.table`
   th {
     text-align: left;
     padding: 8px 10px;
-    color: #8688b0;
+    color: #aeb0d6;
     font-weight: 600;
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
   }
@@ -237,13 +242,40 @@ const Frame = styled.img`
 `
 
 const EmptyState = styled.div`
-  color: #8688b0;
+  color: #aeb0d6;
   font-size: 14px;
+`
+
+const ToggleRow = styled.label`
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  cursor: pointer;
+  font-size: 14px;
+`
+
+const ToggleCheckbox = styled.input`
+  margin-top: 2px;
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  accent-color: #7b5bff;
+`
+
+const ToggleText = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+`
+
+const ToggleDesc = styled.span`
+  font-size: 12px;
+  color: #aeb0d6;
 `
 
 const Footer = styled.div`
   font-size: 12px;
-  color: #7375a3;
+  color: #9294c0;
   line-height: 1.6;
 `
 
@@ -303,6 +335,21 @@ function App() {
   const [rdpError, setRdpError] = React.useState('')
   const [rdpConnecting, setRdpConnecting] = React.useState(false)
   const [rdpHistory, setRdpHistory] = React.useState<RdpHistoryEntry[]>([])
+  const [alwaysAllowScreenshot, setAlwaysAllowScreenshot] = React.useState(false)
+
+  const refreshAlwaysAllowScreenshot = React.useCallback(() => {
+    API.getAlwaysAllowDesktopScreenshot().then(
+      (r: { alwaysAllow: boolean }) => {
+        setAlwaysAllowScreenshot(r.alwaysAllow)
+      }
+    )
+  }, [])
+
+  const toggleAlwaysAllowScreenshot = () => {
+    const next = !alwaysAllowScreenshot
+    setAlwaysAllowScreenshot(next)
+    API.setAlwaysAllowDesktopScreenshot(next)
+  }
 
   const refresh = React.useCallback(() => {
     API.getState().then(
@@ -343,7 +390,8 @@ function App() {
   React.useEffect(() => {
     refresh()
     refreshRdpHistory()
-  }, [refresh, refreshRdpHistory])
+    refreshAlwaysAllowScreenshot()
+  }, [refresh, refreshRdpHistory, refreshAlwaysAllowScreenshot])
 
   const stop = () => {
     API.stop()
@@ -421,6 +469,25 @@ function App() {
           ? <Frame src={frameDataUrl} alt="Latest captured desktop frame" />
           : <EmptyState>No screenshot captured yet in this session.</EmptyState>}
       </FrameContainer>
+
+      <Section>
+        <SectionTitle>Settings</SectionTitle>
+        <ToggleRow>
+          <ToggleCheckbox
+            type="checkbox"
+            checked={alwaysAllowScreenshot}
+            onChange={toggleAlwaysAllowScreenshot}
+          />
+          <ToggleText>
+            <span>Always allow AI screenshot access</span>
+            <ToggleDesc>
+              Skips the "Security warning" permission prompt in every new
+              conversation. Off by default - the AI Assistant will keep
+              asking once per conversation unless you turn this on.
+            </ToggleDesc>
+          </ToggleText>
+        </ToggleRow>
+      </Section>
 
       <Section>
         <SectionTitle>Remote Desktop (RDP)</SectionTitle>

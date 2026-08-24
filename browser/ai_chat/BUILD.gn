@@ -78,6 +78,8 @@ static_library("ai_chat") {
     "tools/response_memory_tools.h",
     "tools/run_workflow_tool.cc",
     "tools/run_workflow_tool.h",
+    "tools/scheduled_task_tools.cc",
+    "tools/scheduled_task_tools.h",
     "tools/computer_use/get_desktop_screenshot_tool.cc",
     "tools/computer_use/get_desktop_screenshot_tool.h",
     "tools/delegation_tools.cc",

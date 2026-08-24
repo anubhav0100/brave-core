@@ -44,6 +44,9 @@ class ComputerUseUI : public content::WebUIController,
                   ConnectRdpCallback callback) override;
   void DisconnectRdp() override;
   void GetRdpHistory(GetRdpHistoryCallback callback) override;
+  void GetAlwaysAllowDesktopScreenshot(
+      GetAlwaysAllowDesktopScreenshotCallback callback) override;
+  void SetAlwaysAllowDesktopScreenshot(bool always_allow) override;
 
   mojo::Receiver<computer_use::mojom::PageHandler> receiver_{this};
 

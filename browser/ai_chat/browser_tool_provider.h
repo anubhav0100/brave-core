@@ -80,6 +80,10 @@ class SearchIndexedContentTool;
 class TabManagementTool;
 class AnalyzeYouTubeVideoSeoTool;
 class SetYouTubeApiKeyTool;
+class CreateScheduledAiTaskTool;
+class ListScheduledAiTasksTool;
+class UpdateScheduledAiTaskTool;
+class DeleteScheduledAiTaskTool;
 
 // Implementation of ToolProvider that provides browser-specific
 // tools for conversations.
@@ -162,6 +166,10 @@ class BrowserToolProvider : public ToolProvider {
 #endif
   std::unique_ptr<SetYouTubeApiKeyTool> set_youtube_api_key_tool_;
   std::unique_ptr<AnalyzeYouTubeVideoSeoTool> analyze_youtube_video_seo_tool_;
+  std::unique_ptr<CreateScheduledAiTaskTool> create_scheduled_ai_task_tool_;
+  std::unique_ptr<ListScheduledAiTasksTool> list_scheduled_ai_tasks_tool_;
+  std::unique_ptr<UpdateScheduledAiTaskTool> update_scheduled_ai_task_tool_;
+  std::unique_ptr<DeleteScheduledAiTaskTool> delete_scheduled_ai_task_tool_;
   raw_ptr<Profile> profile_ = nullptr;
 };
 
