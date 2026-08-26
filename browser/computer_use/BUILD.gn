@@ -45,6 +45,7 @@ source_set("computer_use") {
       "win/com_imported_mstscax.h",
     ]
     deps += [
+      "//chrome/browser:shell_integration",
       "//third_party/wtl",
       "//ui/base",
     ]

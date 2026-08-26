@@ -62,6 +62,15 @@ class RdpSession {
   RdpSession(const RdpSession&) = delete;
   RdpSession& operator=(const RdpSession&) = delete;
 
+  // Tags the session window with `app_user_model_id` (see
+  // shell_integration::win::GetAppUserModelIdForBrowser) so Windows groups
+  // it in the taskbar/alt-tab with the profile that opened it, instead of
+  // defaulting to the browser process's own app identity - which made an
+  // RDP session opened from the AI Chat Agent profile appear to belong to a
+  // different/default profile. Call before Connect(); a no-op if never
+  // called (or called with an empty string).
+  void SetAppUserModelId(std::wstring app_user_model_id);
+
   void Connect(const std::string& host, int port, ConnectedCallback callback);
 
   // Requests a graceful disconnect; the window closes once done. Safe to

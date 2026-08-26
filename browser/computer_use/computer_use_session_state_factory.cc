@@ -38,7 +38,7 @@ std::unique_ptr<KeyedService>
 ComputerUseSessionStateFactory::BuildServiceInstanceForBrowserContext(
     content::BrowserContext* context) const {
   return std::make_unique<ComputerUseSessionState>(
-      user_prefs::UserPrefs::Get(context));
+      user_prefs::UserPrefs::Get(context), context->GetPath());
 }
 
 }  // namespace computer_use

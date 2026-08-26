@@ -17,6 +17,7 @@
 #if BUILDFLAG(IS_WIN)
 #include "brave/browser/computer_use/global_stop_hotkey.h"
 #include "brave/browser/computer_use/rdp_session.h"
+#include "chrome/browser/shell_integration_win.h"
 #endif
 
 namespace computer_use {
@@ -53,8 +54,9 @@ ComputerUseSessionState::RdpHistoryEntry::operator=(const RdpHistoryEntry&) =
     default;
 ComputerUseSessionState::RdpHistoryEntry::~RdpHistoryEntry() = default;
 
-ComputerUseSessionState::ComputerUseSessionState(PrefService* prefs)
-    : prefs_(prefs) {
+ComputerUseSessionState::ComputerUseSessionState(PrefService* prefs,
+                                                 base::FilePath profile_path)
+    : prefs_(prefs), profile_path_(std::move(profile_path)) {
 #if BUILDFLAG(IS_WIN)
   global_stop_hotkey_ = std::make_unique<GlobalStopHotkey>(base::BindRepeating(
       &ComputerUseSessionState::EmergencyStop, base::Unretained(this)));
@@ -131,6 +133,8 @@ void ComputerUseSessionState::ConnectRdp(
     int port,
     base::OnceCallback<void(bool, std::string)> callback) {
   rdp_session_ = std::make_unique<RdpSession>();
+  rdp_session_->SetAppUserModelId(
+      shell_integration::win::GetAppUserModelIdForBrowser(profile_path_));
   rdp_session_->SetDisconnectedCallback(base::BindRepeating(
       &ComputerUseSessionState::OnRdpDisconnected, base::Unretained(this)));
   rdp_target_host_ = host;

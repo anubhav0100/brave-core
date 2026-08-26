@@ -26,6 +26,7 @@
 #include "base/win/scoped_bstr.h"
 #include "brave/browser/computer_use/win/com_imported_mstscax.h"
 #include "ui/base/win/atl_module.h"
+#include "ui/base/win/shell.h"
 
 namespace computer_use {
 
@@ -85,6 +86,10 @@ class RdpSession::Impl
   DECLARE_WND_CLASS(L"BraveComputerUseRdpSession")
 
   Impl() { ui::win::CreateATLModuleIfNeeded(); }
+
+  void SetAppUserModelId(std::wstring app_user_model_id) {
+    app_user_model_id_ = std::move(app_user_model_id);
+  }
 
   ~Impl() override {
     if (m_hWnd) {
@@ -167,6 +172,10 @@ class RdpSession::Impl
   LRESULT OnCreate(CREATESTRUCT* create_struct) {
     RECT rect;
     GetClientRect(&rect);
+
+    if (!app_user_model_id_.empty()) {
+      ui::win::SetAppIdForWindow(app_user_model_id_, m_hWnd);
+    }
 
     activex_window_.Create(m_hWnd, rect, nullptr,
                            WS_CHILD | WS_VISIBLE);
@@ -368,6 +377,7 @@ class RdpSession::Impl
   std::string host_;
   int port_ = 3389;
   bool connected_ = false;
+  std::wstring app_user_model_id_;
 
   RdpSession::ConnectedCallback connected_callback_;
   RdpSession::DisconnectedCallback disconnected_callback_;
@@ -379,6 +389,10 @@ class RdpSession::Impl
 RdpSession::RdpSession() : impl_(std::make_unique<Impl>()) {}
 
 RdpSession::~RdpSession() = default;
+
+void RdpSession::SetAppUserModelId(std::wstring app_user_model_id) {
+  impl_->SetAppUserModelId(std::move(app_user_model_id));
+}
 
 void RdpSession::Connect(const std::string& host,
                          int port,

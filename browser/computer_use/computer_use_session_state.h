@@ -12,6 +12,7 @@
 #include <vector>
 
 #include "base/containers/flat_set.h"
+#include "base/files/file_path.h"
 #include "base/functional/callback.h"
 #include "base/memory/raw_ptr.h"
 #include "base/time/time.h"
@@ -57,7 +58,7 @@ class ComputerUseSessionState : public KeyedService {
     std::optional<base::Time> disconnected_at;
   };
 
-  explicit ComputerUseSessionState(PrefService* prefs);
+  ComputerUseSessionState(PrefService* prefs, base::FilePath profile_path);
   ~ComputerUseSessionState() override;
   ComputerUseSessionState(const ComputerUseSessionState&) = delete;
   ComputerUseSessionState& operator=(const ComputerUseSessionState&) = delete;
@@ -142,6 +143,7 @@ class ComputerUseSessionState : public KeyedService {
   bool emergency_stopped_ = false;
   base::flat_set<std::string> interacted_apps_;
   raw_ptr<PrefService> prefs_;
+  base::FilePath profile_path_;
 
 #if BUILDFLAG(IS_WIN)
   std::unique_ptr<GlobalStopHotkey> global_stop_hotkey_;
