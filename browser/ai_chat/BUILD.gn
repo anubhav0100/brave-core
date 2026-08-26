@@ -82,6 +82,8 @@ static_library("ai_chat") {
     "tools/scheduled_task_tools.h",
     "tools/computer_use/get_desktop_screenshot_tool.cc",
     "tools/computer_use/get_desktop_screenshot_tool.h",
+    "tools/computer_use/open_computer_use_page_tool.cc",
+    "tools/computer_use/open_computer_use_page_tool.h",
     "tools/delegation_tools.cc",
     "tools/delegation_tools.h",
     "tools/tab_utils.cc",

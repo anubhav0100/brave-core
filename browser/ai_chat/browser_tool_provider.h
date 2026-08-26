@@ -39,6 +39,7 @@ class DelegateToSubagentTool;
 class DelegationProcessManager;
 class GetDelegationStatusTool;
 class GetDesktopScreenshotTool;
+class OpenComputerUsePageTool;
 #if BUILDFLAG(IS_WIN)
 class CloseRdpSessionTool;
 class DesktopClickTool;
@@ -152,6 +153,7 @@ class BrowserToolProvider : public ToolProvider {
   std::unique_ptr<InjectDelegationBriefTool> inject_delegation_brief_tool_;
   std::unique_ptr<CreateDelegationTaskTool> create_delegation_task_tool_;
   std::unique_ptr<GetDesktopScreenshotTool> get_desktop_screenshot_tool_;
+  std::unique_ptr<OpenComputerUsePageTool> open_computer_use_page_tool_;
 #if BUILDFLAG(IS_WIN)
   std::unique_ptr<DesktopMoveMouseTool> desktop_move_mouse_tool_;
   std::unique_ptr<DesktopClickTool> desktop_click_tool_;

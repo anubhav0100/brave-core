@@ -1400,6 +1400,21 @@ bool BraveContentBrowserClient::HandleURLOverrideRewrite(
     return true;
   }
 
+#if BUILDFLAG(ENABLE_AI_CHAT) && !BUILDFLAG(IS_ANDROID)
+  // brave://computer-use => chrome://computer-use - the WebUI is only ever
+  // registered under the chrome: scheme (see GetWebUIFactoryFunction in
+  // brave_web_ui_controller_factory.cc), but users of a Brave-branded
+  // browser reasonably expect brave://<page> to work for any of its own
+  // pages.
+  if (url->host() == kComputerUseHost &&
+      url->SchemeIs(content::kBraveUIScheme)) {
+    GURL::Replacements replacements;
+    replacements.SetSchemeStr(content::kChromeUIScheme);
+    *url = url->ReplaceComponents(replacements);
+    return true;
+  }
+#endif
+
   return false;
 }
 

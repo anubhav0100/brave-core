@@ -20,6 +20,7 @@
 #include "brave/browser/ai_chat/tools/create_spreadsheet_tool.h"
 #include "brave/browser/ai_chat/tools/create_word_document_tool.h"
 #include "brave/browser/ai_chat/tools/computer_use/get_desktop_screenshot_tool.h"
+#include "brave/browser/ai_chat/tools/computer_use/open_computer_use_page_tool.h"
 #if BUILDFLAG(IS_WIN)
 #include "brave/browser/ai_chat/tools/computer_use/close_rdp_session_tool.h"
 #include "brave/browser/ai_chat/tools/computer_use/desktop_click_tool.h"
@@ -103,6 +104,9 @@ std::vector<base::WeakPtr<Tool>> BrowserToolProvider::GetTools() {
   }
   if (get_desktop_screenshot_tool_) {
     tool_ptrs.push_back(get_desktop_screenshot_tool_->GetWeakPtr());
+  }
+  if (open_computer_use_page_tool_) {
+    tool_ptrs.push_back(open_computer_use_page_tool_->GetWeakPtr());
   }
 #if BUILDFLAG(IS_WIN)
   if (desktop_move_mouse_tool_) {
@@ -279,6 +283,8 @@ void BrowserToolProvider::CreateTools(
   if (browser_context->IsAIChatAgent()) {
   get_desktop_screenshot_tool_ =
       std::make_unique<GetDesktopScreenshotTool>(browser_context);
+  open_computer_use_page_tool_ =
+      std::make_unique<OpenComputerUsePageTool>(browser_context);
 #if BUILDFLAG(IS_WIN)
   desktop_move_mouse_tool_ =
       std::make_unique<DesktopMoveMouseTool>(browser_context);
