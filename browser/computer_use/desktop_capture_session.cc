@@ -7,11 +7,15 @@
 
 #include <memory>
 #include <utility>
+#include <vector>
 
+#include "base/compiler_specific.h"
+#include "base/containers/span.h"
 #include "base/functional/bind.h"
 #include "base/logging.h"
 #include "base/task/bind_post_task.h"
 #include "base/task/thread_pool.h"
+#include "build/build_config.h"
 #include "content/public/browser/desktop_capture.h"
 #include "third_party/libyuv/include/libyuv/planar_functions.h"
 #include "third_party/skia/include/core/SkBitmap.h"
@@ -19,6 +23,20 @@
 #include "third_party/webrtc/modules/desktop_capture/desktop_capturer.h"
 #include "third_party/webrtc/modules/desktop_capture/desktop_frame.h"
 #include "ui/gfx/codec/png_codec.h"
+
+#if BUILDFLAG(IS_WIN)
+#include <windows.h>
+
+#include "base/win/scoped_hdc.h"
+
+// Only defined when the target Windows SDK version macros are high enough;
+// this build's exact value (0x00000002) is fixed by Microsoft's own
+// documentation for PrintWindow, so defining it directly here if missing is
+// safe regardless of WINVER/NTDDI_VERSION.
+#ifndef PW_RENDERFULLCONTENT
+#define PW_RENDERFULLCONTENT 0x00000002
+#endif
+#endif
 
 namespace ai_chat {
 
@@ -42,6 +60,107 @@ std::vector<uint8_t> EncodeFrameAsPng(webrtc::DesktopFrame* frame) {
                                            /*discard_transparency=*/true)
       .value_or(std::vector<uint8_t>());
 }
+
+#if BUILDFLAG(IS_WIN)
+// GDI's BitBlt-based capture (webrtc's automatic fallback when DXGI Desktop
+// Duplication isn't available on this hardware/driver - see
+// ScreenCapturerWinGdi) can't correctly capture hardware-accelerated/
+// DirectX-rendered window surfaces, which come back as solid black - this
+// notably includes the RDP ActiveX control's own window (rdp_session.cc).
+// PrintWindow's PW_RENDERFULLCONTENT flag (Windows 8.1+) is specifically
+// designed to render that kind of content correctly, so overlay just the
+// current foreground window's PrintWindow output onto the already-captured
+// frame - cheap (one window, not the whole desktop composited again) and
+// directly fixes the case that actually matters for this tool: whatever the
+// user/AI is currently looking at.
+//
+// Known tradeoff: if some other topmost/always-on-top window partially
+// covers the foreground window, this paints over that overlapping region
+// with the foreground window's content regardless (PrintWindow renders a
+// window's content irrespective of on-screen occlusion) - a narrow edge
+// case, and still strictly better than the black rectangle it replaces.
+// Safe to call unconditionally even when the base capture was already
+// correct (DXGI succeeded) - at worst it's redundant work with that same
+// edge-case tradeoff, never a crash.
+void CompositeForegroundWindowIfHardwareRendered(webrtc::DesktopFrame* frame) {
+  HWND hwnd = GetForegroundWindow();
+  if (!hwnd || !IsWindow(hwnd) || !IsWindowVisible(hwnd) || IsIconic(hwnd)) {
+    return;
+  }
+  RECT window_rect;
+  if (!GetWindowRect(hwnd, &window_rect)) {
+    return;
+  }
+  int width = window_rect.right - window_rect.left;
+  int height = window_rect.bottom - window_rect.top;
+  if (width <= 0 || height <= 0) {
+    return;
+  }
+
+  base::win::ScopedGetDC screen_dc(nullptr);
+  base::win::ScopedCreateDC mem_dc(CreateCompatibleDC(screen_dc));
+  if (!mem_dc.is_valid()) {
+    return;
+  }
+  HBITMAP bitmap = CreateCompatibleBitmap(screen_dc, width, height);
+  if (!bitmap) {
+    return;
+  }
+  HGDIOBJ old_bitmap = SelectObject(mem_dc.Get(), bitmap);
+
+  bool printed = !!PrintWindow(hwnd, mem_dc.Get(), PW_RENDERFULLCONTENT);
+
+  std::vector<uint8_t> window_pixels;
+  int lines_copied = 0;
+  if (printed) {
+    BITMAPINFO bmi = {};
+    bmi.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
+    bmi.bmiHeader.biWidth = width;
+    bmi.bmiHeader.biHeight = -height;  // Negative for top-down rows.
+    bmi.bmiHeader.biPlanes = 1;
+    bmi.bmiHeader.biBitCount = 32;
+    bmi.bmiHeader.biCompression = BI_RGB;
+    window_pixels.resize(static_cast<size_t>(width) * height * 4);
+    lines_copied = GetDIBits(mem_dc.Get(), bitmap, 0, height,
+                             window_pixels.data(), &bmi, DIB_RGB_COLORS);
+  }
+
+  SelectObject(mem_dc.Get(), old_bitmap);
+  DeleteObject(bitmap);
+
+  if (!printed || lines_copied != height) {
+    return;
+  }
+
+  webrtc::DesktopRect window_dest_rect = webrtc::DesktopRect::MakeLTRB(
+      window_rect.left, window_rect.top, window_rect.right,
+      window_rect.bottom);
+  window_dest_rect.IntersectWith(webrtc::DesktopRect::MakeSize(frame->size()));
+  if (window_dest_rect.is_empty()) {
+    return;
+  }
+
+  base::span<const uint8_t> window_pixels_span(window_pixels);
+  size_t copy_len = static_cast<size_t>(window_dest_rect.width()) * 4;
+  for (int y = window_dest_rect.top(); y < window_dest_rect.bottom(); ++y) {
+    int src_y = y - window_rect.top;
+    size_t src_offset =
+        static_cast<size_t>(src_y) * width * 4 +
+        static_cast<size_t>(window_dest_rect.left() - window_rect.left) * 4;
+    auto src_row = window_pixels_span.subspan(src_offset, copy_len);
+    uint8_t* dest_row = frame->GetFrameDataAtPos(
+        webrtc::DesktopVector(window_dest_rect.left(), y));
+    // SAFETY: `dest_row` points into `frame`'s pixel buffer at row `y`,
+    // which is within `frame->size()` since `window_dest_rect` was
+    // intersected with it above; `copy_len` is that same rect's row width
+    // in bytes, so it can't read past the row (or the frame, since y is
+    // also bounded).
+    auto dest_row_span =
+        UNSAFE_BUFFERS(base::span<uint8_t>(dest_row, copy_len));
+    dest_row_span.copy_from(src_row);
+  }
+}
+#endif  // BUILDFLAG(IS_WIN)
 
 // Owns a webrtc::DesktopCapturer for the lifetime of exactly one screenshot
 // capture. Created, used, and destroyed entirely on the capture task
@@ -109,6 +228,9 @@ class OneShotCapturer : public webrtc::DesktopCapturer::Callback {
       Finish(false, {});
       return;
     }
+#if BUILDFLAG(IS_WIN)
+    CompositeForegroundWindowIfHardwareRendered(frame.get());
+#endif
     std::vector<uint8_t> png_bytes = EncodeFrameAsPng(frame.get());
     if (png_bytes.empty()) {
       LOG(ERROR) << "computer_use: captured a frame but PNG-encoding it "
