@@ -27,20 +27,33 @@ const pulse = keyframes`
 const GlobalStyle = createGlobalStyle`
   body {
     margin: 0;
-    background: radial-gradient(circle at 20% 20%, #1b1e3d 0%, #0d0e21 60%, #08091a 100%);
-    min-height: 100vh;
   }
 `
 
 const Container = styled.div`
+  /* Set directly on this scoped component rather than on body via
+     GlobalStyle - the body-targeted background rule wasn't reliably taking
+     effect on this WebUI page (the page rendered on a plain white
+     background instead), which made every light/pastel text color below
+     nearly invisible. This uses the same styled-components mechanism the
+     Header/Banner/buttons already render correctly with. */
+  min-height: 100vh;
+  background: radial-gradient(circle at 20% 20%, #1b1e3d 0%, #0d0e21 60%, #08091a 100%);
   display: flex;
   flex-direction: column;
   gap: 20px;
   padding: 28px;
-  max-width: 900px;
-  margin: 0 auto;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   color: #e8e9f7;
+`
+
+const Inner = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  max-width: 900px;
+  width: 100%;
+  margin: 0 auto;
 `
 
 const Header = styled.h1`
@@ -444,6 +457,7 @@ function App() {
 
   return (
     <Container>
+    <Inner>
       <Header>AI Computer Use</Header>
       <Banner $status={status}>
         <Dot $status={status} />
@@ -553,6 +567,7 @@ function App() {
       <Footer>
         Global emergency stop: <Kbd>Ctrl</Kbd> + <Kbd>Alt</Kbd> + <Kbd>Shift</Kbd> + <Kbd>Esc</Kbd> - works even when the browser isn't focused.
       </Footer>
+    </Inner>
     </Container>
   )
 }
