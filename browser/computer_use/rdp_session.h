@@ -13,6 +13,13 @@
 
 namespace computer_use {
 
+// The RDP session window's Win32 class name (see Impl's DECLARE_WND_CLASS in
+// rdp_session.cc) - exported so other code (desktop_capture_session.cc's
+// hardware-accelerated-window compositing) can find this specific window by
+// class rather than by its human-readable, host-dependent title text.
+inline constexpr wchar_t kRdpSessionWindowClassName[] =
+    L"BraveComputerUseRdpSession";
+
 // Hosts Microsoft's RDP ActiveX control (MsTscAx) in a real, visible,
 // top-level window titled "RDP: <host> - AI Automation Browser" - not
 // hidden, and not embedded inside any Chromium tab/view (true tab

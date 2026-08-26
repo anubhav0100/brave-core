@@ -5,7 +5,9 @@
 
 #include "brave/browser/computer_use/desktop_capture_session.h"
 
+#include <iterator>
 #include <memory>
+#include <string_view>
 #include <utility>
 #include <vector>
 
@@ -28,6 +30,7 @@
 #include <windows.h>
 
 #include "base/win/scoped_hdc.h"
+#include "brave/browser/computer_use/rdp_session.h"
 
 // Only defined when the target Windows SDK version macros are high enough;
 // this build's exact value (0x00000002) is fixed by Microsoft's own
@@ -68,22 +71,19 @@ std::vector<uint8_t> EncodeFrameAsPng(webrtc::DesktopFrame* frame) {
 // DirectX-rendered window surfaces, which come back as solid black - this
 // notably includes the RDP ActiveX control's own window (rdp_session.cc).
 // PrintWindow's PW_RENDERFULLCONTENT flag (Windows 8.1+) is specifically
-// designed to render that kind of content correctly, so overlay just the
-// current foreground window's PrintWindow output onto the already-captured
-// frame - cheap (one window, not the whole desktop composited again) and
-// directly fixes the case that actually matters for this tool: whatever the
-// user/AI is currently looking at.
+// designed to render that kind of content correctly, so overlay a window's
+// PrintWindow output onto the already-captured frame - cheap (one window,
+// not the whole desktop composited again).
 //
 // Known tradeoff: if some other topmost/always-on-top window partially
-// covers the foreground window, this paints over that overlapping region
-// with the foreground window's content regardless (PrintWindow renders a
-// window's content irrespective of on-screen occlusion) - a narrow edge
-// case, and still strictly better than the black rectangle it replaces.
-// Safe to call unconditionally even when the base capture was already
-// correct (DXGI succeeded) - at worst it's redundant work with that same
-// edge-case tradeoff, never a crash.
-void CompositeForegroundWindowIfHardwareRendered(webrtc::DesktopFrame* frame) {
-  HWND hwnd = GetForegroundWindow();
+// covers this one, this paints over that overlapping region with this
+// window's content regardless (PrintWindow renders a window's content
+// irrespective of on-screen occlusion) - a narrow edge case, and still
+// strictly better than the black rectangle it replaces. Safe to call
+// unconditionally even when the base capture was already correct (DXGI
+// succeeded) - at worst it's redundant work with that same edge-case
+// tradeoff, never a crash.
+void CompositeWindowIfPossible(webrtc::DesktopFrame* frame, HWND hwnd) {
   if (!hwnd || !IsWindow(hwnd) || !IsWindowVisible(hwnd) || IsIconic(hwnd)) {
     return;
   }
@@ -160,6 +160,33 @@ void CompositeForegroundWindowIfHardwareRendered(webrtc::DesktopFrame* frame) {
     dest_row_span.copy_from(src_row);
   }
 }
+
+BOOL CALLBACK CompositeIfRdpSessionWindow(HWND hwnd, LPARAM lparam) {
+  wchar_t class_name[256];
+  int len = GetClassNameW(hwnd, class_name, std::size(class_name));
+  if (len > 0 &&
+      std::wstring_view(class_name, static_cast<size_t>(len)) ==
+          computer_use::kRdpSessionWindowClassName) {
+    CompositeWindowIfPossible(reinterpret_cast<webrtc::DesktopFrame*>(lparam),
+                              hwnd);
+  }
+  return TRUE;  // Keep enumerating - there's normally only one, but this
+                // doesn't assume that.
+}
+
+// The screenshot tool is almost always invoked from the AI Chat conversation
+// itself, which is part of the browser's own window - meaning
+// GetForegroundWindow() (input focus) is normally the browser, not whatever
+// separate window (like an RDP session, rdp_session.cc) the user/AI actually
+// wants captured. Compositing the foreground window still helps in the less
+// common case where something else genuinely has focus, but finding the RDP
+// session window specifically by its known Win32 class name - regardless of
+// focus - is what actually matters for the common case this feature exists
+// for.
+void CompositeHardwareRenderedWindows(webrtc::DesktopFrame* frame) {
+  CompositeWindowIfPossible(frame, GetForegroundWindow());
+  EnumWindows(&CompositeIfRdpSessionWindow, reinterpret_cast<LPARAM>(frame));
+}
 #endif  // BUILDFLAG(IS_WIN)
 
 // Owns a webrtc::DesktopCapturer for the lifetime of exactly one screenshot
@@ -229,7 +256,7 @@ class OneShotCapturer : public webrtc::DesktopCapturer::Callback {
       return;
     }
 #if BUILDFLAG(IS_WIN)
-    CompositeForegroundWindowIfHardwareRendered(frame.get());
+    CompositeHardwareRenderedWindows(frame.get());
 #endif
     std::vector<uint8_t> png_bytes = EncodeFrameAsPng(frame.get());
     if (png_bytes.empty()) {

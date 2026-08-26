@@ -83,7 +83,7 @@ class RdpSession::Impl
                             1,
                             0> {
  public:
-  DECLARE_WND_CLASS(L"BraveComputerUseRdpSession")
+  DECLARE_WND_CLASS(kRdpSessionWindowClassName)
 
   Impl() { ui::win::CreateATLModuleIfNeeded(); }
 
