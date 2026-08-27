@@ -312,6 +312,7 @@ void ComputerUseSessionState::CaptureRdpFrameTick() {
   if (!rdp_session_ || !rdp_capture_session_) {
     return;
   }
+  rdp_session_->KeepBelowOtherWindows();
   rdp_capture_session_->CaptureWindow(
       rdp_session_->GetWindowId(),
       base::BindOnce(&ComputerUseSessionState::OnRdpFrameCaptured,
@@ -321,13 +322,15 @@ void ComputerUseSessionState::CaptureRdpFrameTick() {
 void ComputerUseSessionState::OnRdpFrameCaptured(
     bool success,
     std::vector<uint8_t> png_bytes) {
-  if (!success || png_bytes.empty() || !rdp_frame_captured_callback_) {
+  if (!success || png_bytes.empty()) {
     return;
   }
   std::string data_url =
       base::StrCat({"data:image/png;base64,", base::Base64Encode(png_bytes)});
   SetLatestFrame(data_url);
-  rdp_frame_captured_callback_.Run(std::move(data_url));
+  if (rdp_frame_captured_callback_) {
+    rdp_frame_captured_callback_.Run(std::move(data_url));
+  }
 }
 #endif
 

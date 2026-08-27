@@ -22,27 +22,50 @@ inline constexpr wchar_t kRdpSessionWindowClassName[] =
     L"BraveComputerUseRdpSession";
 
 // Hosts Microsoft's RDP ActiveX control (MsTscAx) in a real top-level
-// window titled "RDP: <host> - AI Automation Browser" - created but never
-// shown on screen (see Connect()). True tab embedding (making the control
-// itself a child of a browser tab's native view hierarchy) isn't something
-// Chromium's tab strip supports - tabs are WebContents, not arbitrary
-// native views - so instead this window is hidden and its content is
-// captured window-specifically (GetWindowId() + DesktopCaptureSession::
-// CaptureWindow()) and streamed into chrome://computer-use's own tab as a
-// live image, with mouse/keyboard forwarded back via SendMouseEvent()/
-// SendKeyEvent() - the standard approach real remote-desktop web clients
-// use. See computer_use_session_state.h for the capture-timer/mojo-push
-// wiring built on top of this.
+// window titled "RDP: <host> - AI Automation Browser" - positioned at a
+// real, on-screen location but pushed to the bottom of the Z-order (see
+// Connect()), and created with WS_EX_TOOLWINDOW, so it never appears in
+// the taskbar or Alt+Tab and is normally covered by whatever else is on
+// screen (typically the browser window itself), without ever being
+// activated or stealing focus. This is the third design tried, after two
+// that each broke hardware-accelerated capture specifically: never
+// showing the window at all leaves it with no renderable surface, so
+// window capture (GDI PrintWindow / the Windows Graphics Capture
+// fallback) permanently fails; positioning it entirely outside the
+// virtual desktop's bounds captures as solid black, because WGC (window
+// capture's fallback for hardware-accelerated surfaces, which this
+// content needs) treats a window with zero on-screen presence as fully
+// occluded/cloaked and returns blank content, the same power-saving
+// behavior a minimized window gets; a fully-transparent layered window
+// (WS_EX_LAYERED, alpha 0) ALSO captured as solid black, since WGC
+// reflects the window's real alpha-blended visual result. Both of those
+// capture mechanisms fundamentally reflect "what a human would actually
+// see," so any technique that hides content from a human also hides it
+// from them - staying at the bottom of the Z-order on a real, valid
+// screen position is what keeps the window genuinely on-screen and
+// opaque (so capture gets real content) while still being invisible in
+// practice, without relying on a Windows mechanism that conflates
+// "invisible to a human" with "invisible to capture." True tab embedding
+// (making the control itself a child of a browser tab's native view
+// hierarchy) isn't something Chromium's tab strip supports - tabs are
+// WebContents, not arbitrary native views - so instead this window's
+// content is captured window-specifically (GetWindowId() +
+// DesktopCaptureSession::CaptureWindow()) and streamed into
+// chrome://computer-use's own tab as a live image, with mouse/keyboard
+// forwarded back via SendMouseEvent()/SendKeyEvent() - the standard
+// approach real remote-desktop web clients use. See
+// computer_use_session_state.h for the capture-timer/mojo-push wiring
+// built on top of this.
 //
 // Adapted from remoting/host/win/rdp_client_window.cc's ActiveX-hosting
 // pattern (not linked - remoting/'s DEPS forbids external dependents;
 // com_imported_mstscax.h, the MIDL-generated COM interface header that
 // pattern depends on, is copied into browser/computer_use/win/ for the
-// same reason). Deliberately does NOT port that file's window-hiding or
-// its WH_CBT hook that auto-dismisses any dialog the RDP control shows -
-// this is a real interactive session a human should see, including its
-// certificate/trust warnings, not a headless one. Also deliberately never
-// touches a password: host/port are the only inputs this class takes:
+// same reason). Deliberately does NOT port that file's WH_CBT hook that
+// auto-dismisses any dialog the RDP control shows - this is a real
+// interactive session a human should see, including its certificate/trust
+// warnings, not a headless one. Also deliberately never touches a
+// password: host/port are the only inputs this class takes:
 // authentication is handled by the RDP control's own native prompt (or by
 // Windows Credential Manager if the user has already saved credentials for
 // that host, exactly as mstsc.exe itself would use them) - the browser
@@ -95,6 +118,16 @@ class RdpSession {
   // reinterpret_casts to. 0 if there's no window (never connected, or
   // already torn down).
   intptr_t GetWindowId() const;
+
+  // Re-asserts that the session window stays at the bottom of the
+  // Z-order (see Connect()'s doc comment) - the RDP ActiveX control
+  // brings its own window to the foreground once a session actually
+  // finishes connecting, undoing the placement Connect() establishes at
+  // creation time. Called once automatically when the connection
+  // completes; ComputerUseSessionState also calls this on every capture
+  // timer tick for the rest of the session as a defensive measure against
+  // other events doing the same. A no-op if there's no window.
+  void KeepBelowOtherWindows();
 
   // Posts a mouse event directly to the RDP ActiveX control's window,
   // bypassing SendInput entirely - this works even though the window is

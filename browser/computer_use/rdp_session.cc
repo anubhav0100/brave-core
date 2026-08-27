@@ -105,18 +105,55 @@ class RdpSession::Impl
     NormalizeHostAndPort(&host_, &port_);
     connected_callback_ = std::move(callback);
 
-    RECT rect = {0, 0, GetSystemMetrics(SM_CXSCREEN) * 3 / 4,
-                GetSystemMetrics(SM_CYSCREEN) * 3 / 4};
+    int width = GetSystemMetrics(SM_CXSCREEN) * 3 / 4;
+    int height = GetSystemMetrics(SM_CYSCREEN) * 3 / 4;
+    // Positioned at a real, on-screen location, at the bottom of the
+    // Z-order rather than made transparent or moved off-screen. Two
+    // earlier techniques were tried and both failed for hardware-
+    // accelerated content specifically (the RDP control's video decode/
+    // present path): positioning the window entirely outside the virtual
+    // desktop's bounds captures as solid black (Windows Graphics Capture,
+    // window capture's fallback for hardware-accelerated surfaces, treats
+    // a window with zero on-screen presence as fully occluded/cloaked and
+    // returns blank content - the same power-saving behavior a minimized
+    // window gets); a fully-transparent layered window (WS_EX_LAYERED,
+    // alpha 0) ALSO captures as solid black, since WGC reflects the
+    // window's actual alpha-blended visual result, which is invisible by
+    // definition. Both capture mechanisms fundamentally reflect "what a
+    // human would actually see," so hiding content from a human hides it
+    // from these same capture APIs. Staying at the bottom of the Z-order
+    // on a real, valid screen position keeps the window genuinely
+    // on-screen and opaque (so WGC/PrintWindow get real content), while
+    // in practice being covered by whatever else is on screen - normally
+    // the browser window itself. WS_EX_TOOLWINDOW keeps it out of the
+    // taskbar/Alt+Tab.
+    RECT rect = {0, 0, width, height};
     std::wstring title = base::UTF8ToWide(
         base::StrCat({"RDP: ", host_, " - AI Automation Browser"}));
-    if (!Create(nullptr, rect, title.c_str()) || !m_hWnd) {
+    if (!Create(nullptr, rect, title.c_str(), 0, WS_EX_TOOLWINDOW) ||
+       !m_hWnd) {
       NotifyConnectResult(false, "Failed to create the RDP session window.");
       return;
     }
-    // Deliberately never shown - see this class's header comment. The
-    // window still needs to exist and process messages (the ActiveX
-    // control renders into it and receives input via it regardless of
-    // visibility), it's just never put on screen.
+    ShowWindow(SW_SHOWNOACTIVATE);
+    KeepBelowOtherWindows();
+  }
+
+  // Re-asserts the bottom-of-Z-order placement Connect() establishes -
+  // needed because the RDP ActiveX control brings its own window to the
+  // foreground once a session actually finishes connecting (mirroring
+  // mstsc.exe's own normal behavior of surfacing itself to the user once
+  // ready), undoing the one-time placement from window creation. Called
+  // again from OnConnected() for that reason, and from
+  // ComputerUseSessionState's repeating capture timer for the rest of the
+  // session as a defensive measure, since other events (e.g. a
+  // certificate warning dialog closing) could plausibly do the same.
+  void KeepBelowOtherWindows() {
+    if (!m_hWnd) {
+      return;
+    }
+    ::SetWindowPos(m_hWnd, HWND_BOTTOM, 0, 0, 0, 0,
+                  SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
   }
 
   void Disconnect() {
@@ -362,6 +399,7 @@ class RdpSession::Impl
 
   STDMETHOD(OnConnected)() {
     connected_ = true;
+    KeepBelowOtherWindows();
     NotifyConnectResult(true, "");
     return S_OK;
   }
@@ -496,6 +534,10 @@ void RdpSession::SetDisconnectedCallback(DisconnectedCallback callback) {
 
 intptr_t RdpSession::GetWindowId() const {
   return impl_->GetWindowId();
+}
+
+void RdpSession::KeepBelowOtherWindows() {
+  impl_->KeepBelowOtherWindows();
 }
 
 void RdpSession::SendMouseEvent(int x, int y, int buttons, int wheel_delta) {
