@@ -129,6 +129,16 @@ class RdpSession {
   // other events doing the same. A no-op if there's no window.
   void KeepBelowOtherWindows();
 
+  // Shows (or re-hides) the session window as a real, focusable, on-screen
+  // window - an explicit escape hatch for the user to get guaranteed-
+  // working mouse/keyboard control, on top of (not instead of) the
+  // embedded canvas view: window capture keeps running normally either
+  // way, so the canvas stays live. `show=true` brings the window to the
+  // foreground normally, exactly like a real window the user opened
+  // directly; `show=false` returns to KeepBelowOtherWindows()'s hidden-
+  // in-practice placement. A no-op if there's no window.
+  void SetShownAsWindow(bool show);
+
   // Posts a mouse event directly to the RDP ActiveX control's window,
   // bypassing SendInput entirely - this works even though the window is
   // hidden, unlike SendInput which requires the target to be the real

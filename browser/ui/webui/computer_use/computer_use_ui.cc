@@ -13,10 +13,12 @@
 #include "brave/browser/computer_use/computer_use_session_state_factory.h"
 #include "brave/browser/ui/webui/brave_webui_source.h"
 #include "brave/components/computer_use/browser/resources/grit/computer_use_generated_map.h"
+#include "brave/components/constants/webui_url_constants.h"
 #include "build/build_config.h"
 #include "components/grit/brave_components_resources.h"
 #include "content/public/browser/web_contents.h"
 #include "content/public/browser/web_ui.h"
+#include "url/gurl.h"
 
 ComputerUseUI::ComputerUseUI(content::WebUI* web_ui, std::string_view host)
     : content::WebUIController(web_ui) {
@@ -162,6 +164,26 @@ void ComputerUseUI::SendRdpKeyEvent(int32_t virtual_key_code, bool key_down) {
       web_ui()->GetWebContents()->GetBrowserContext())
       ->SendRdpKeyEvent(virtual_key_code, key_down);
 #endif
+}
+
+void ComputerUseUI::SetRdpShownAsWindow(bool show) {
+#if BUILDFLAG(IS_WIN)
+  computer_use::ComputerUseSessionStateFactory::GetForBrowserContext(
+      web_ui()->GetWebContents()->GetBrowserContext())
+      ->SetRdpShownAsWindow(show);
+#endif
+}
+
+void ComputerUseUI::OpenNewComputerUseTab() {
+  // Routed through the browser process (NEW_FOREGROUND_TAB) rather than a
+  // plain window.open() call on this page's own URL, which was found not
+  // to correctly reinitialize the new tab's Mojo JS bindings (it loaded
+  // with a "Mojo is not defined" error instead of a working page).
+  web_ui()->GetWebContents()->OpenURL(
+      {GURL(kComputerUseURL), content::Referrer(),
+       WindowOpenDisposition::NEW_FOREGROUND_TAB, ui::PAGE_TRANSITION_LINK,
+       /*is_renderer_initiated=*/false},
+      /*navigation_handle_callback=*/{});
 }
 
 void ComputerUseUI::OnRdpFrameCaptured(std::string frame_data_url) {

@@ -57,6 +57,8 @@ class ComputerUseUI : public content::WebUIController,
                          int32_t buttons,
                          int32_t wheel_delta) override;
   void SendRdpKeyEvent(int32_t virtual_key_code, bool key_down) override;
+  void SetRdpShownAsWindow(bool show) override;
+  void OpenNewComputerUseTab() override;
 
   // Callbacks registered with ComputerUseSessionState so its RDP capture
   // timer/state-change events push through `page_` - see

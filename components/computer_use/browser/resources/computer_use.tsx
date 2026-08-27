@@ -5,7 +5,7 @@
 
 import * as ComputerUseMojo from 'gen/brave/components/computer_use/common/computer_use_ui.mojom.m.js'
 import * as React from 'react'
-import styled, { createGlobalStyle, keyframes } from 'styled-components'
+import styled, { createGlobalStyle, css, keyframes } from 'styled-components'
 import { createRoot } from 'react-dom/client'
 import StyledComponentsProvider from '$web-common/StyledComponentsProvider'
 
@@ -79,7 +79,7 @@ const Banner = styled.div<{ $status: Status }>`
   font-size: 15px;
   color: ${p => statusColors[p.$status].text};
   background: linear-gradient(120deg, ${p => statusColors[p.$status].from}, ${p => statusColors[p.$status].to});
-  ${p => p.$status === 'active' ? `animation: ${pulse} 2s ease-in-out infinite;` : ''}
+  ${p => p.$status === 'active' ? css`animation: ${pulse} 2s ease-in-out infinite;` : ''}
 `
 
 const Dot = styled.span<{ $status: Status }>`
@@ -206,6 +206,12 @@ const PortInput = styled.input`
 const ConnectButton = styled.button`
   ${buttonBase}
   background: linear-gradient(120deg, #7b5bff, #4834d4);
+`
+
+const SecondaryButton = styled.button`
+  ${buttonBase}
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
 `
 
 const RdpErrorText = styled.div`
@@ -465,7 +471,7 @@ function App() {
   // onFrameCaptured above), while its on-page display size is independently
   // scaled by CSS (max-width/max-height), so this scales back out to native
   // pixels before forwarding.
-  const toRdpCoords = (e: React.MouseEvent<HTMLCanvasElement>) => {
+  const toRdpCoords = (e: { clientX: number, clientY: number }) => {
     const canvas = rdpCanvasRef.current!
     const rect = canvas.getBoundingClientRect()
     const scaleX = canvas.width / rect.width
@@ -492,15 +498,29 @@ function App() {
     API.sendRdpMouseEvent(x, y, e.buttons, 0)
   }
 
-  const handleRdpWheel = (e: React.WheelEvent<HTMLCanvasElement>) => {
-    e.preventDefault()
-    const { x, y } = toRdpCoords(e)
-    // Legacy WheelEvent.wheelDelta convention (positive = up, multiples of
-    // 120) - see RdpSession::SendMouseEvent's doc comment for why this,
-    // rather than deltaY, is the wire format.
-    const wheelDelta = e.deltaY < 0 ? 120 : -120
-    API.sendRdpMouseEvent(x, y, e.buttons, wheelDelta)
-  }
+  // Not wired up via React's onWheel prop - React registers wheel listeners
+  // as passive for scroll-performance reasons, which silently disables
+  // preventDefault() (logs a console warning and still scrolls the page).
+  // Attached as a real, non-passive native listener in the effect below
+  // instead, matching how a real remote-desktop client needs to fully
+  // capture scroll input rather than letting it also scroll the host page.
+  React.useEffect(() => {
+    const canvas = rdpCanvasRef.current
+    if (!canvas) {
+      return
+    }
+    const onWheel = (e: WheelEvent) => {
+      e.preventDefault()
+      const { x, y } = toRdpCoords(e)
+      // Legacy WheelEvent.wheelDelta convention (positive = up, multiples
+      // of 120) - see RdpSession::SendMouseEvent's doc comment for why
+      // this, rather than deltaY, is the wire format.
+      const wheelDelta = e.deltaY < 0 ? 120 : -120
+      API.sendRdpMouseEvent(x, y, e.buttons, wheelDelta)
+    }
+    canvas.addEventListener('wheel', onWheel, { passive: false })
+    return () => canvas.removeEventListener('wheel', onWheel)
+  }, [rdpActive])
 
   const handleRdpKeyDown = (e: React.KeyboardEvent<HTMLCanvasElement>) => {
     e.preventDefault()
@@ -557,6 +577,23 @@ function App() {
       refresh()
       refreshRdpHistory()
     }, 500)
+  }
+
+  // Pops the RDP session's own native window to the foreground as a real,
+  // focusable window - an escape hatch for guaranteed-working mouse/
+  // keyboard control alongside the embedded canvas above, which keeps
+  // updating normally either way (capture isn't affected by this).
+  const openRdpAsWindow = () => {
+    API.setRdpShownAsWindow(true)
+  }
+
+  // A second chrome://computer-use tab, so the live RDP view can sit
+  // alongside whatever else is already open rather than sharing space
+  // with it. Routed through the backend (not window.open() on this
+  // page's own URL) - that was found to load with a "Mojo is not
+  // defined" error instead of a working page.
+  const openComputerUseInNewTab = () => {
+    API.openNewComputerUseTab()
   }
 
   const status: Status = emergencyStopped ? 'stopped' : active ? 'active' : 'idle'
@@ -616,6 +653,12 @@ function App() {
             <RdpForm>
               <span>Connected to {rdpTargetHost}:{rdpTargetPort}</span>
               <StopButton onClick={disconnectRdp}>Disconnect</StopButton>
+              <SecondaryButton onClick={openRdpAsWindow}>
+                Open in Window
+              </SecondaryButton>
+              <SecondaryButton onClick={openComputerUseInNewTab}>
+                Open in New Tab
+              </SecondaryButton>
             </RdpForm>
             <RdpCanvasContainer>
               <RdpCanvas
@@ -624,7 +667,6 @@ function App() {
                 onMouseMove={handleRdpMouseMove}
                 onMouseDown={handleRdpMouseDown}
                 onMouseUp={handleRdpMouseUp}
-                onWheel={handleRdpWheel}
                 onKeyDown={handleRdpKeyDown}
                 onKeyUp={handleRdpKeyUp}
                 onContextMenu={e => e.preventDefault()}

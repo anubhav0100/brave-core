@@ -294,6 +294,12 @@ void ComputerUseSessionState::SendRdpCharEvent(char16_t character) {
   }
 }
 
+void ComputerUseSessionState::SetRdpShownAsWindow(bool show) {
+  if (rdp_session_) {
+    rdp_session_->SetShownAsWindow(show);
+  }
+}
+
 void ComputerUseSessionState::StartRdpCaptureTimer() {
   if (!rdp_capture_session_) {
     rdp_capture_session_ = std::make_unique<ai_chat::DesktopCaptureSession>();
@@ -306,12 +312,14 @@ void ComputerUseSessionState::StartRdpCaptureTimer() {
 
 void ComputerUseSessionState::StopRdpCaptureTimer() {
   rdp_capture_timer_.Stop();
+  rdp_capture_in_flight_ = false;
 }
 
 void ComputerUseSessionState::CaptureRdpFrameTick() {
-  if (!rdp_session_ || !rdp_capture_session_) {
+  if (!rdp_session_ || !rdp_capture_session_ || rdp_capture_in_flight_) {
     return;
   }
+  rdp_capture_in_flight_ = true;
   rdp_session_->KeepBelowOtherWindows();
   rdp_capture_session_->CaptureWindow(
       rdp_session_->GetWindowId(),
@@ -322,6 +330,7 @@ void ComputerUseSessionState::CaptureRdpFrameTick() {
 void ComputerUseSessionState::OnRdpFrameCaptured(
     bool success,
     std::vector<uint8_t> png_bytes) {
+  rdp_capture_in_flight_ = false;
   if (!success || png_bytes.empty()) {
     return;
   }

@@ -147,13 +147,30 @@ class RdpSession::Impl
   // again from OnConnected() for that reason, and from
   // ComputerUseSessionState's repeating capture timer for the rest of the
   // session as a defensive measure, since other events (e.g. a
-  // certificate warning dialog closing) could plausibly do the same.
+  // certificate warning dialog closing) could plausibly do the same. A
+  // no-op while SetShownAsWindow(true) is in effect - otherwise the timer
+  // driving this (every ~200ms) would undo an explicit "show as window"
+  // request within a single tick, before the user could ever see it.
   void KeepBelowOtherWindows() {
-    if (!m_hWnd) {
+    if (!m_hWnd || shown_as_window_) {
       return;
     }
     ::SetWindowPos(m_hWnd, HWND_BOTTOM, 0, 0, 0, 0,
                   SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
+  }
+
+  void SetShownAsWindow(bool show) {
+    if (!m_hWnd) {
+      return;
+    }
+    shown_as_window_ = show;
+    if (show) {
+      ::ShowWindow(m_hWnd, SW_SHOW);
+      ::SetForegroundWindow(m_hWnd);
+    } else {
+      ::SetWindowPos(m_hWnd, HWND_BOTTOM, 0, 0, 0, 0,
+                    SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
+    }
   }
 
   void Disconnect() {
@@ -177,6 +194,19 @@ class RdpSession::Impl
       return;
     }
     HWND target = activex_window_.m_hWnd;
+    // `x`/`y` are relative to the captured image, which is this session's
+    // top-level window's full outer rect (title bar and borders included -
+    // that's what GetWindowId()'s window-specific capture grabs), not its
+    // client area where `target` actually lives and interprets message
+    // coordinates. Translate by the offset between the two so a click that
+    // looks correct on the captured frame actually lands on the same spot
+    // in the real session, instead of being off by the title bar's height.
+    RECT window_rect{};
+    ::GetWindowRect(m_hWnd, &window_rect);
+    POINT client_origin{0, 0};
+    ::ClientToScreen(m_hWnd, &client_origin);
+    x -= (client_origin.x - window_rect.left);
+    y -= (client_origin.y - window_rect.top);
     LPARAM position = MAKELPARAM(x, y);
     WPARAM key_state = ((buttons & kMouseButtonLeft) ? MK_LBUTTON : 0) |
                        ((buttons & kMouseButtonRight) ? MK_RBUTTON : 0) |
@@ -186,6 +216,9 @@ class RdpSession::Impl
 
     int changed = buttons ^ last_mouse_buttons_;
     if (changed & kMouseButtonLeft) {
+      if (buttons & kMouseButtonLeft) {
+        NotifyFocused();
+      }
       ::PostMessage(target,
                     (buttons & kMouseButtonLeft) ? WM_LBUTTONDOWN
                                                  : WM_LBUTTONUP,
@@ -224,8 +257,29 @@ class RdpSession::Impl
     if (!activex_window_.m_hWnd) {
       return;
     }
+    if (key_down) {
+      NotifyFocused();
+    }
     ::PostMessage(activex_window_.m_hWnd, key_down ? WM_KEYDOWN : WM_KEYUP,
                  static_cast<WPARAM>(virtual_key_code), 0);
+  }
+
+  // Posts WM_SETFOCUS directly to the ActiveX control's window, rather
+  // than calling the real SetFocus() API. Many ActiveX/OLE-hosted
+  // controls (this one included) track focus themselves and only treat
+  // keyboard/mouse input as "real" once they've seen a focus notification
+  // - PostMessage-ing input alone, without this, was observed to leave
+  // clicks and key presses silently ignored by the control even though
+  // the messages were delivered. The real SetFocus() API would work too,
+  // but also activates this window's top-level parent as a side effect
+  // (per its own documentation), which would undo Connect()'s bottom-of-
+  // Z-order placement - posting the notification message directly gets
+  // the control to update its own internal focus state without going
+  // through that real, activating focus change.
+  void NotifyFocused() {
+    if (activex_window_.m_hWnd) {
+      ::PostMessage(activex_window_.m_hWnd, WM_SETFOCUS, 0, 0);
+    }
   }
 
   void SendCharEvent(char16_t character) {
@@ -498,6 +552,7 @@ class RdpSession::Impl
   bool connected_ = false;
   std::wstring app_user_model_id_;
   int last_mouse_buttons_ = 0;
+  bool shown_as_window_ = false;
 
   RdpSession::ConnectedCallback connected_callback_;
   RdpSession::DisconnectedCallback disconnected_callback_;
@@ -538,6 +593,10 @@ intptr_t RdpSession::GetWindowId() const {
 
 void RdpSession::KeepBelowOtherWindows() {
   impl_->KeepBelowOtherWindows();
+}
+
+void RdpSession::SetShownAsWindow(bool show) {
+  impl_->SetShownAsWindow(show);
 }
 
 void RdpSession::SendMouseEvent(int x, int y, int buttons, int wheel_delta) {

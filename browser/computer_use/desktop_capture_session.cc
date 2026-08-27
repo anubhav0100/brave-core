@@ -292,11 +292,21 @@ class OneShotCapturer : public webrtc::DesktopCapturer::Callback {
     }
 #endif
     std::vector<uint8_t> png_bytes = EncodeFrameAsPng(frame.get());
-    if (png_bytes.empty()) {
+    // `encode_success` must be computed into its own variable, in its own
+    // statement, before the Finish() call below - evaluation order between
+    // a function call's arguments is unspecified, so
+    // `Finish(!png_bytes.empty(), std::move(png_bytes))` risked the
+    // compiler binding the moved-from `png_bytes` argument before
+    // evaluating `.empty()` on the (now emptied) source, silently turning
+    // every successful capture into a reported failure despite the
+    // callee still receiving the real, complete image data. Confirmed via
+    // live testing - not a hypothetical.
+    bool encode_success = !png_bytes.empty();
+    if (!encode_success) {
       LOG(ERROR) << "computer_use: captured a frame but PNG-encoding it "
                     "failed";
     }
-    Finish(!png_bytes.empty(), std::move(png_bytes));
+    Finish(encode_success, std::move(png_bytes));
   }
 
   void Finish(bool success, std::vector<uint8_t> png_bytes) {

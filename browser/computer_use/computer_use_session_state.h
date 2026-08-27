@@ -149,6 +149,11 @@ class ComputerUseSessionState : public KeyedService {
   void SendRdpMouseEvent(int x, int y, int buttons, int wheel_delta);
   void SendRdpKeyEvent(int virtual_key_code, bool key_down);
   void SendRdpCharEvent(char16_t character);
+
+  // Shows (or re-hides) the RDP session's own native window - see
+  // RdpSession::SetShownAsWindow() for the exact semantics. No-ops if no
+  // RDP session is active.
+  void SetRdpShownAsWindow(bool show);
 #endif
 
  private:
@@ -190,6 +195,16 @@ class ComputerUseSessionState : public KeyedService {
 
   std::unique_ptr<ai_chat::DesktopCaptureSession> rdp_capture_session_;
   base::RepeatingTimer rdp_capture_timer_;
+  // True from the moment a capture is requested until its result comes
+  // back - CaptureRdpFrameTick() skips starting a new capture while one is
+  // already in flight, rather than firing unconditionally every timer
+  // tick. Without this, a capture that takes longer than the ~200ms tick
+  // interval (plausible for busier/more actively-updating remote content)
+  // would overlap with the next tick's attempt, both targeting the same
+  // window - observed in practice to make every subsequent capture on
+  // that window hang indefinitely (capturer creation kept succeeding, but
+  // no result - success or failure - ever came back again).
+  bool rdp_capture_in_flight_ = false;
   base::RepeatingCallback<void(std::string)> rdp_frame_captured_callback_;
   base::RepeatingCallback<void(bool, std::string, int)>
       rdp_state_changed_callback_;

@@ -77,6 +77,22 @@ interface PageHandler {
   // SendKeyEvent() for the exact parameter semantics.
   SendRdpMouseEvent(int32 x, int32 y, int32 buttons, int32 wheel_delta);
   SendRdpKeyEvent(int32 virtual_key_code, bool key_down);
+
+  // Shows (or re-hides) the RDP session's own native window as a real,
+  // focusable, on-screen window - an escape hatch for precise mouse/
+  // keyboard control alongside the embedded live view, since a real
+  // foreground window trivially supports full input the way a captured-
+  // and-forwarded canvas may not always match perfectly. The embedded
+  // canvas keeps working normally either way - this doesn't affect
+  // capture, only whether the underlying window is also visible.
+  SetRdpShownAsWindow(bool show);
+
+  // Opens a second chrome://computer-use tab in the current browser
+  // window, so the live RDP view can sit alongside whatever else is
+  // already open. Routed through the browser process rather than a plain
+  // window.open() call on the WebUI page's own URL, which does not
+  // correctly reinitialize this page's Mojo bindings for the new tab.
+  OpenNewComputerUseTab();
 };
 
 // Pushed from the browser to the computer-use WebUI page.
