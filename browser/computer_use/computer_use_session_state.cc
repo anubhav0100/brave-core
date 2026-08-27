@@ -7,14 +7,17 @@
 
 #include <utility>
 
+#include "base/base64.h"
 #include "base/functional/bind.h"
 #include "base/json/values_util.h"
+#include "base/strings/strcat.h"
 #include "base/values.h"
 #include "components/prefs/pref_registry_simple.h"
 #include "components/prefs/pref_service.h"
 #include "components/prefs/scoped_user_pref_update.h"
 
 #if BUILDFLAG(IS_WIN)
+#include "brave/browser/computer_use/desktop_capture_session.h"
 #include "brave/browser/computer_use/global_stop_hotkey.h"
 #include "brave/browser/computer_use/rdp_session.h"
 #include "chrome/browser/shell_integration_win.h"
@@ -34,6 +37,10 @@ constexpr char kDisconnectedAtKey[] = "disconnected_at";
 // Cap the persisted log so it can't grow unbounded on a profile that opens
 // a lot of RDP sessions over its lifetime.
 constexpr size_t kMaxRdpHistoryEntries = 200;
+// ~5fps - the RDP session window is a live view for the user to click/type
+// into, not video, so this keeps PNG-encoding cost modest without feeling
+// unresponsive for typical admin-console work.
+constexpr base::TimeDelta kRdpCaptureInterval = base::Milliseconds(200);
 #endif
 }  // namespace
 
@@ -150,6 +157,7 @@ void ComputerUseSessionState::DisconnectRdp() {
   if (rdp_session_) {
     rdp_session_->Disconnect();
   }
+  StopRdpCaptureTimer();
 }
 
 bool ComputerUseSessionState::IsRdpActive() const {
@@ -207,6 +215,11 @@ void ComputerUseSessionState::OnRdpConnectResult(
     rdp_target_port_ = 0;
   } else {
     AppendRdpHistoryEntry(host, port);
+    StartRdpCaptureTimer();
+  }
+  if (rdp_state_changed_callback_) {
+    rdp_state_changed_callback_.Run(rdp_active_, rdp_target_host_,
+                                    rdp_target_port_);
   }
   std::move(callback).Run(success, std::move(error_message));
 }
@@ -216,6 +229,10 @@ void ComputerUseSessionState::OnRdpDisconnected(std::string reason) {
   rdp_target_host_.clear();
   rdp_target_port_ = 0;
   CloseLatestOpenRdpHistoryEntry();
+  StopRdpCaptureTimer();
+  if (rdp_state_changed_callback_) {
+    rdp_state_changed_callback_.Run(false, std::string(), 0);
+  }
 }
 
 void ComputerUseSessionState::AppendRdpHistoryEntry(const std::string& host,
@@ -243,6 +260,74 @@ void ComputerUseSessionState::CloseLatestOpenRdpHistoryEntry() {
       return;
     }
   }
+}
+
+void ComputerUseSessionState::SetRdpFrameCapturedCallback(
+    base::RepeatingCallback<void(std::string)> callback) {
+  rdp_frame_captured_callback_ = std::move(callback);
+}
+
+void ComputerUseSessionState::SetRdpStateChangedCallback(
+    base::RepeatingCallback<void(bool, std::string, int)> callback) {
+  rdp_state_changed_callback_ = std::move(callback);
+}
+
+void ComputerUseSessionState::SendRdpMouseEvent(int x,
+                                                int y,
+                                                int buttons,
+                                                int wheel_delta) {
+  if (rdp_session_) {
+    rdp_session_->SendMouseEvent(x, y, buttons, wheel_delta);
+  }
+}
+
+void ComputerUseSessionState::SendRdpKeyEvent(int virtual_key_code,
+                                              bool key_down) {
+  if (rdp_session_) {
+    rdp_session_->SendKeyEvent(virtual_key_code, key_down);
+  }
+}
+
+void ComputerUseSessionState::SendRdpCharEvent(char16_t character) {
+  if (rdp_session_) {
+    rdp_session_->SendCharEvent(character);
+  }
+}
+
+void ComputerUseSessionState::StartRdpCaptureTimer() {
+  if (!rdp_capture_session_) {
+    rdp_capture_session_ = std::make_unique<ai_chat::DesktopCaptureSession>();
+  }
+  rdp_capture_timer_.Start(
+      FROM_HERE, kRdpCaptureInterval,
+      base::BindRepeating(&ComputerUseSessionState::CaptureRdpFrameTick,
+                          rdp_capture_weak_ptr_factory_.GetWeakPtr()));
+}
+
+void ComputerUseSessionState::StopRdpCaptureTimer() {
+  rdp_capture_timer_.Stop();
+}
+
+void ComputerUseSessionState::CaptureRdpFrameTick() {
+  if (!rdp_session_ || !rdp_capture_session_) {
+    return;
+  }
+  rdp_capture_session_->CaptureWindow(
+      rdp_session_->GetWindowId(),
+      base::BindOnce(&ComputerUseSessionState::OnRdpFrameCaptured,
+                     rdp_capture_weak_ptr_factory_.GetWeakPtr()));
+}
+
+void ComputerUseSessionState::OnRdpFrameCaptured(
+    bool success,
+    std::vector<uint8_t> png_bytes) {
+  if (!success || png_bytes.empty() || !rdp_frame_captured_callback_) {
+    return;
+  }
+  std::string data_url =
+      base::StrCat({"data:image/png;base64,", base::Base64Encode(png_bytes)});
+  SetLatestFrame(data_url);
+  rdp_frame_captured_callback_.Run(std::move(data_url));
 }
 #endif
 

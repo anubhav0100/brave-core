@@ -62,4 +62,35 @@ interface PageHandler {
   // than something a single in-chat "Allow" click sets on its own.
   GetAlwaysAllowDesktopScreenshot() => (bool always_allow);
   SetAlwaysAllowDesktopScreenshot(bool always_allow);
+
+  // Registers `page` to receive OnFrameCaptured() pushes for as long as the
+  // page is open - the WebUI page's live view of the RDP session (see
+  // rdp_session.h; RDP's window is hidden, so this push is the only way its
+  // content ever reaches the user). A later call replaces any previously
+  // bound page (mirrors ComputerUseSessionState::SetRdpFrameCapturedCallback,
+  // which this delegates to).
+  BindPage(pending_remote<Page> page);
+
+  // Forwards mouse/keyboard input to the active RDP session window, for the
+  // WebUI page's <canvas> to call as the user interacts with it. No-ops if
+  // no RDP session is active. See RdpSession::SendMouseEvent()/
+  // SendKeyEvent() for the exact parameter semantics.
+  SendRdpMouseEvent(int32 x, int32 y, int32 buttons, int32 wheel_delta);
+  SendRdpKeyEvent(int32 virtual_key_code, bool key_down);
+};
+
+// Pushed from the browser to the computer-use WebUI page.
+interface Page {
+  // A freshly captured frame of the active RDP session window, as a
+  // data: URL - pushed on a repeating timer (see ComputerUseSessionState's
+  // rdp_capture_timer_) for as long as RDP stays connected.
+  OnFrameCaptured(string frame_data_url);
+
+  // Fires whenever RDP connects or disconnects, for any reason - including
+  // ones the page didn't itself initiate, like the AI's open_rdp_session
+  // tool connecting, the remote server dropping the connection, or the
+  // remote user closing the session from inside it. Lets the page keep its
+  // canvas/status in sync without polling GetState().
+  OnRdpStateChanged(bool rdp_active, string rdp_target_host,
+                    int32 rdp_target_port);
 };

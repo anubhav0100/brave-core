@@ -15,12 +15,18 @@
 #include "base/files/file_path.h"
 #include "base/functional/callback.h"
 #include "base/memory/raw_ptr.h"
+#include "base/memory/weak_ptr.h"
 #include "base/time/time.h"
+#include "base/timer/timer.h"
 #include "build/build_config.h"
 #include "components/keyed_service/core/keyed_service.h"
 
 class PrefRegistrySimple;
 class PrefService;
+
+namespace ai_chat {
+class DesktopCaptureSession;
+}  // namespace ai_chat
 
 namespace computer_use {
 
@@ -121,6 +127,28 @@ class ComputerUseSessionState : public KeyedService {
   // Persisted (survives restart) log of RDP sessions on this profile, most
   // recent first - see RdpHistoryEntry.
   std::vector<RdpHistoryEntry> GetRdpHistory() const;
+
+  // Registers the callback the WebUI push interface (ComputerUseUI) invokes
+  // with a fresh data: URL each time a new frame is captured from the (now
+  // hidden - see rdp_session.h) RDP session window, while one is active.
+  // Only one callback is supported at a time (the WebUI mojom Page remote,
+  // once bound) - a later call replaces the previous one.
+  void SetRdpFrameCapturedCallback(
+      base::RepeatingCallback<void(std::string)> callback);
+
+  // Registers the callback the WebUI push interface invokes whenever RDP
+  // connects or disconnects, for any reason - see mojom Page::
+  // OnRdpStateChanged. Only one callback is supported at a time, like
+  // SetRdpFrameCapturedCallback above.
+  void SetRdpStateChangedCallback(
+      base::RepeatingCallback<void(bool, std::string, int)> callback);
+
+  // Forwards mouse/keyboard input directly to the RDP session window - see
+  // RdpSession::SendMouseEvent()/SendKeyEvent()/SendCharEvent() for the
+  // exact semantics. No-ops if no RDP session is active.
+  void SendRdpMouseEvent(int x, int y, int buttons, int wheel_delta);
+  void SendRdpKeyEvent(int virtual_key_code, bool key_down);
+  void SendRdpCharEvent(char16_t character);
 #endif
 
  private:
@@ -135,6 +163,14 @@ class ComputerUseSessionState : public KeyedService {
 
   void AppendRdpHistoryEntry(const std::string& host, int port);
   void CloseLatestOpenRdpHistoryEntry();
+
+  // Starts/stops the ~5fps capture timer that feeds
+  // `rdp_frame_captured_callback_` while an RDP session is active - started
+  // on a successful connect, stopped on disconnect.
+  void StartRdpCaptureTimer();
+  void StopRdpCaptureTimer();
+  void CaptureRdpFrameTick();
+  void OnRdpFrameCaptured(bool success, std::vector<uint8_t> png_bytes);
 #endif
 
   bool active_ = false;
@@ -151,6 +187,14 @@ class ComputerUseSessionState : public KeyedService {
   bool rdp_active_ = false;
   std::string rdp_target_host_;
   int rdp_target_port_ = 0;
+
+  std::unique_ptr<ai_chat::DesktopCaptureSession> rdp_capture_session_;
+  base::RepeatingTimer rdp_capture_timer_;
+  base::RepeatingCallback<void(std::string)> rdp_frame_captured_callback_;
+  base::RepeatingCallback<void(bool, std::string, int)>
+      rdp_state_changed_callback_;
+  base::WeakPtrFactory<ComputerUseSessionState> rdp_capture_weak_ptr_factory_{
+      this};
 #endif
 };
 

@@ -118,8 +118,11 @@ void AppendMouseButton(std::vector<INPUT>* inputs,
   inputs->push_back(input);
 }
 
+}  // namespace
+
 // Parses e.g. "Ctrl+Shift+T" into modifier VK codes plus a main VK code.
-// Returns false if the main key isn't recognized.
+// Returns false if the main key isn't recognized. Declared in
+// input_injector.h so desktop_press_key_tool.cc can share this table too.
 bool ParseKeyCombo(const std::string& key,
                    std::vector<WORD>* modifiers,
                    WORD* main_vk) {
@@ -175,8 +178,6 @@ bool ParseKeyCombo(const std::string& key,
 
   return false;
 }
-
-}  // namespace
 
 InputInjector::InputInjector() = default;
 InputInjector::~InputInjector() = default;

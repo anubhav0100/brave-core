@@ -10,13 +10,18 @@
 #include "base/functional/bind.h"
 #include "base/json/json_reader.h"
 #include "base/strings/strcat.h"
+#include "brave/browser/ai_chat/tools/tab_utils.h"
 #include "brave/browser/computer_use/computer_use_session_state.h"
 #include "brave/browser/computer_use/computer_use_session_state_factory.h"
 #include "brave/components/ai_chat/core/browser/tools/tool_input_properties.h"
 #include "brave/components/ai_chat/core/browser/tools/tool_utils.h"
 #include "brave/components/ai_chat/core/common/mojom/ai_chat.mojom.h"
 #include "brave/components/ai_chat/core/common/mojom/common.mojom.h"
+#include "brave/components/constants/webui_url_constants.h"
+#include "chrome/browser/profiles/profile.h"
 #include "content/public/browser/browser_context.h"
+#include "content/public/browser/web_contents.h"
+#include "url/gurl.h"
 
 namespace ai_chat {
 
@@ -43,15 +48,16 @@ std::string_view OpenRdpSessionTool::Name() const {
 }
 
 std::string_view OpenRdpSessionTool::Description() const {
-  return "Opens a visible RDP (Remote Desktop) session to a host the user "
-         "administers, in its own window. Requires the user's explicit "
-         "confirmation naming the target host every single time - never "
-         "silently autonomous, regardless of any prior permission grants. "
-         "Never provide a password - authentication is handled by the RDP "
-         "client's own prompt or the user's saved Windows credentials for "
-         "that host. Once connected, get_desktop_screenshot and the "
-         "desktop_* input tools work on the RDP window like any other "
-         "on-screen window.";
+  return "Opens an RDP (Remote Desktop) session to a host the user "
+         "administers, shown live in the user's chrome://computer-use tab "
+         "(opened automatically if not already open). Requires the user's "
+         "explicit confirmation naming the target host every single time - "
+         "never silently autonomous, regardless of any prior permission "
+         "grants. Never provide a password - authentication is handled by "
+         "the RDP client's own prompt or the user's saved Windows "
+         "credentials for that host. Once connected, get_desktop_screenshot "
+         "and the desktop_* input tools work on the remote session like any "
+         "other on-screen window.";
 }
 
 bool OpenRdpSessionTool::IsAgentTool() const {
@@ -113,12 +119,35 @@ void OpenRdpSessionTool::UseTool(const std::string& input_json,
 void OpenRdpSessionTool::OnConnectResult(UseToolCallback callback,
                                          bool success,
                                          std::string error_message) {
+  if (!success) {
+    std::move(callback).Run(
+        CreateContentBlocksForText(base::StrCat(
+            {"Error: RDP connection failed: ", error_message})),
+        {});
+    return;
+  }
+
+  GURL url(kComputerUseURL);
+  Profile* profile = Profile::FromBrowserContext(browser_context_);
+  bool opened_tab = false;
+  if (profile && FindAndActivateExistingTab(profile, url)) {
+    opened_tab = true;
+  } else if (content::WebContents* web_contents =
+                GetActiveWebContentsFor(browser_context_)) {
+    web_contents->OpenURL(
+        {url, content::Referrer(), WindowOpenDisposition::NEW_FOREGROUND_TAB,
+         ui::PAGE_TRANSITION_LINK, /*is_renderer_initiated=*/false},
+        /*navigation_handle_callback=*/{});
+    opened_tab = true;
+  }
+
   std::move(callback).Run(
       CreateContentBlocksForText(
-          success ? "RDP session connected. A window showing the remote "
-                    "desktop is now visible to the user."
-                 : base::StrCat({"Error: RDP connection failed: ",
-                                error_message})),
+          opened_tab
+              ? "RDP session connected. The remote desktop is now shown "
+                "live in the user's chrome://computer-use tab."
+              : "RDP session connected, but there was no open browser "
+                "window to show chrome://computer-use in."),
       {});
 }
 

@@ -6,6 +6,7 @@
 #ifndef BRAVE_BROWSER_COMPUTER_USE_RDP_SESSION_H_
 #define BRAVE_BROWSER_COMPUTER_USE_RDP_SESSION_H_
 
+#include <cstdint>
 #include <memory>
 #include <string>
 
@@ -20,17 +21,18 @@ namespace computer_use {
 inline constexpr wchar_t kRdpSessionWindowClassName[] =
     L"BraveComputerUseRdpSession";
 
-// Hosts Microsoft's RDP ActiveX control (MsTscAx) in a real, visible,
-// top-level window titled "RDP: <host> - AI Automation Browser" - not
-// hidden, and not embedded inside any Chromium tab/view (true tab
-// embedding needs native-child-window mixing into the Views/Aura
-// hierarchy, a much larger undertaking deferred past this first cut - see
-// brave-ai-computer-use.md's Phase 3 notes). Being a real on-screen window
-// is enough for it to compose for free with the rest of this feature:
-// get_desktop_screenshot already captures whatever's on screen, and the
-// desktop_* input tools already target whatever's on screen via SendInput
-// - neither needs to know or care that a window happens to be an RDP
-// session rather than a local app.
+// Hosts Microsoft's RDP ActiveX control (MsTscAx) in a real top-level
+// window titled "RDP: <host> - AI Automation Browser" - created but never
+// shown on screen (see Connect()). True tab embedding (making the control
+// itself a child of a browser tab's native view hierarchy) isn't something
+// Chromium's tab strip supports - tabs are WebContents, not arbitrary
+// native views - so instead this window is hidden and its content is
+// captured window-specifically (GetWindowId() + DesktopCaptureSession::
+// CaptureWindow()) and streamed into chrome://computer-use's own tab as a
+// live image, with mouse/keyboard forwarded back via SendMouseEvent()/
+// SendKeyEvent() - the standard approach real remote-desktop web clients
+// use. See computer_use_session_state.h for the capture-timer/mojo-push
+// wiring built on top of this.
 //
 // Adapted from remoting/host/win/rdp_client_window.cc's ActiveX-hosting
 // pattern (not linked - remoting/'s DEPS forbids external dependents;
@@ -87,6 +89,40 @@ class RdpSession {
   bool IsConnected() const;
 
   void SetDisconnectedCallback(DisconnectedCallback callback);
+
+  // An opaque id for this session's (hidden) window, suitable for
+  // DesktopCaptureSession::CaptureWindow() - the same value a Windows HWND
+  // reinterpret_casts to. 0 if there's no window (never connected, or
+  // already torn down).
+  intptr_t GetWindowId() const;
+
+  // Posts a mouse event directly to the RDP ActiveX control's window,
+  // bypassing SendInput entirely - this works even though the window is
+  // hidden, unlike SendInput which requires the target to be the real
+  // on-screen focused/hit-tested window. `x`/`y` are client-area
+  // coordinates (i.e. relative to the session window's own content, not
+  // the desktop) - matching what a window-specific capture (GetWindowId())
+  // naturally produces. `buttons` is a bitmask matching DOM
+  // MouseEvent.buttons (1=left, 2=right, 4=middle). `wheel_delta` matches
+  // the legacy but still-supported DOM WheelEvent.wheelDelta (positive =
+  // scroll up/away from the user, in multiples of 120) - deliberately not
+  // the standardized WheelEvent.deltaY, which is inverted and not
+  // consistently scaled; 0 for a plain move/click with no scrolling.
+  void SendMouseEvent(int x, int y, int buttons, int wheel_delta);
+
+  // Posts a key event directly to the RDP ActiveX control's window.
+  // `virtual_key_code` is a Windows VK_* code - for common keys this is
+  // numerically identical to the deprecated DOM KeyboardEvent.keyCode,
+  // which is the simplification this is designed to be fed from directly;
+  // exotic/IME input isn't handled specially in this first cut.
+  void SendKeyEvent(int virtual_key_code, bool key_down);
+
+  // Posts a single typed character directly to the RDP ActiveX control's
+  // window via WM_CHAR - unlike SendKeyEvent, this takes the character
+  // itself rather than a virtual-key code, so it can inject arbitrary
+  // Unicode text regardless of keyboard layout, the same guarantee
+  // InputInjector::TypeText makes for the non-RDP desktop_type_text path.
+  void SendCharEvent(char16_t character);
 
  private:
   class Impl;

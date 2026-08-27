@@ -113,7 +113,10 @@ class RdpSession::Impl
       NotifyConnectResult(false, "Failed to create the RDP session window.");
       return;
     }
-    ShowWindow(SW_SHOW);
+    // Deliberately never shown - see this class's header comment. The
+    // window still needs to exist and process messages (the ActiveX
+    // control renders into it and receives input via it regardless of
+    // visibility), it's just never put on screen.
   }
 
   void Disconnect() {
@@ -128,7 +131,85 @@ class RdpSession::Impl
     disconnected_callback_ = std::move(callback);
   }
 
+  intptr_t GetWindowId() const {
+    return reinterpret_cast<intptr_t>(static_cast<HWND>(m_hWnd));
+  }
+
+  void SendMouseEvent(int x, int y, int buttons, int wheel_delta) {
+    if (!activex_window_.m_hWnd) {
+      return;
+    }
+    HWND target = activex_window_.m_hWnd;
+    LPARAM position = MAKELPARAM(x, y);
+    WPARAM key_state = ((buttons & kMouseButtonLeft) ? MK_LBUTTON : 0) |
+                       ((buttons & kMouseButtonRight) ? MK_RBUTTON : 0) |
+                       ((buttons & kMouseButtonMiddle) ? MK_MBUTTON : 0);
+
+    ::PostMessage(target, WM_MOUSEMOVE, key_state, position);
+
+    int changed = buttons ^ last_mouse_buttons_;
+    if (changed & kMouseButtonLeft) {
+      ::PostMessage(target,
+                    (buttons & kMouseButtonLeft) ? WM_LBUTTONDOWN
+                                                 : WM_LBUTTONUP,
+                    key_state, position);
+    }
+    if (changed & kMouseButtonRight) {
+      ::PostMessage(target,
+                    (buttons & kMouseButtonRight) ? WM_RBUTTONDOWN
+                                                  : WM_RBUTTONUP,
+                    key_state, position);
+    }
+    if (changed & kMouseButtonMiddle) {
+      ::PostMessage(target,
+                    (buttons & kMouseButtonMiddle) ? WM_MBUTTONDOWN
+                                                   : WM_MBUTTONUP,
+                    key_state, position);
+    }
+    last_mouse_buttons_ = buttons;
+
+    if (wheel_delta != 0) {
+      // WM_MOUSEWHEEL is the one mouse message whose lparam is defined as
+      // SCREEN (not client) coordinates - a Win32 quirk, not a mistake here.
+      // `wheel_delta` is already in WM_MOUSEWHEEL's own units/sign
+      // convention (multiples of 120, positive = away from the user) - see
+      // this method's header comment on why the caller sends
+      // WheelEvent.wheelDelta rather than .deltaY.
+      POINT screen_point{x, y};
+      ::ClientToScreen(target, &screen_point);
+      ::PostMessage(target, WM_MOUSEWHEEL,
+                    MAKEWPARAM(key_state, static_cast<short>(wheel_delta)),
+                    MAKELPARAM(screen_point.x, screen_point.y));
+    }
+  }
+
+  void SendKeyEvent(int virtual_key_code, bool key_down) {
+    if (!activex_window_.m_hWnd) {
+      return;
+    }
+    ::PostMessage(activex_window_.m_hWnd, key_down ? WM_KEYDOWN : WM_KEYUP,
+                 static_cast<WPARAM>(virtual_key_code), 0);
+  }
+
+  void SendCharEvent(char16_t character) {
+    if (!activex_window_.m_hWnd) {
+      return;
+    }
+    // WM_CHAR takes the character itself, not a virtual-key code - lets
+    // arbitrary Unicode text reach the session regardless of keyboard
+    // layout, mirroring what InputInjector::TypeText achieves via
+    // SendInput's KEYEVENTF_UNICODE flag.
+    ::PostMessage(activex_window_.m_hWnd, WM_CHAR,
+                 static_cast<WPARAM>(character), 0);
+  }
+
  private:
+  // Bitmask values matching DOM MouseEvent.buttons, which is what this
+  // class's SendMouseEvent() is designed to be fed from directly.
+  static constexpr int kMouseButtonLeft = 1;
+  static constexpr int kMouseButtonRight = 2;
+  static constexpr int kMouseButtonMiddle = 4;
+
   typedef IDispEventImpl<1,
                          Impl,
                          &__uuidof(mstsc::IMsTscAxEvents),
@@ -378,6 +459,7 @@ class RdpSession::Impl
   int port_ = 3389;
   bool connected_ = false;
   std::wstring app_user_model_id_;
+  int last_mouse_buttons_ = 0;
 
   RdpSession::ConnectedCallback connected_callback_;
   RdpSession::DisconnectedCallback disconnected_callback_;
@@ -410,6 +492,22 @@ bool RdpSession::IsConnected() const {
 
 void RdpSession::SetDisconnectedCallback(DisconnectedCallback callback) {
   impl_->SetDisconnectedCallback(std::move(callback));
+}
+
+intptr_t RdpSession::GetWindowId() const {
+  return impl_->GetWindowId();
+}
+
+void RdpSession::SendMouseEvent(int x, int y, int buttons, int wheel_delta) {
+  impl_->SendMouseEvent(x, y, buttons, wheel_delta);
+}
+
+void RdpSession::SendKeyEvent(int virtual_key_code, bool key_down) {
+  impl_->SendKeyEvent(virtual_key_code, key_down);
+}
+
+void RdpSession::SendCharEvent(char16_t character) {
+  impl_->SendCharEvent(character);
 }
 
 }  // namespace computer_use

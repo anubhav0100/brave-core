@@ -70,6 +70,18 @@ class DesktopInputToolBase : public Tool {
   // a successful injected action.
   void MarkAppInteracted(const std::string& process_name);
 
+  // Process-name identifiers for GetActionContext()/MarkAppInteracted(),
+  // aware of RDP: when an RDP session is active, the local desktop's
+  // window-at-point/foreground-window lookups (action_risk_classifier.h)
+  // are meaningless - the coordinates/focus being acted on refer to the
+  // RDP session's own hidden window's content, not anything actually
+  // visible on the local desktop. A synthetic "rdp:<host>" identifier is
+  // used instead in that case, so the "first action against this app"
+  // risk check still behaves sensibly, scoped to the RDP target rather
+  // than whatever unrelated local window happens to occupy those pixels.
+  std::string GetTargetProcessName(int x, int y) const;
+  std::string GetForegroundTargetProcessName() const;
+
   raw_ptr<content::BrowserContext> browser_context_;
   std::unique_ptr<InputInjector> input_injector_;
 };

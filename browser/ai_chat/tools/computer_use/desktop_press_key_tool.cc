@@ -9,6 +9,8 @@
 
 #include "base/json/json_reader.h"
 #include "brave/browser/computer_use/action_risk_classifier.h"
+#include "brave/browser/computer_use/computer_use_session_state.h"
+#include "brave/browser/computer_use/computer_use_session_state_factory.h"
 #include "brave/browser/computer_use/input_injector.h"
 #include "brave/components/ai_chat/core/browser/tools/tool_input_properties.h"
 #include "brave/components/ai_chat/core/browser/tools/tool_utils.h"
@@ -58,7 +60,7 @@ DesktopPressKeyTool::GetActionContext(
   if (!key) {
     return std::nullopt;
   }
-  return std::make_pair(computer_use::GetForegroundProcessName(), *key);
+  return std::make_pair(GetForegroundTargetProcessName(), *key);
 }
 
 void DesktopPressKeyTool::UseTool(const std::string& input_json,
@@ -82,8 +84,28 @@ void DesktopPressKeyTool::UseTool(const std::string& input_json,
     return;
   }
 
-  std::string process_name = computer_use::GetForegroundProcessName();
-  bool success = input_injector_->PressKey(*key);
+  std::string process_name = GetForegroundTargetProcessName();
+  auto* state =
+      computer_use::ComputerUseSessionStateFactory::GetForBrowserContext(
+          browser_context_);
+  bool success;
+  if (state->IsRdpActive()) {
+    std::vector<WORD> modifiers;
+    WORD main_vk = 0;
+    success = ParseKeyCombo(*key, &modifiers, &main_vk);
+    if (success) {
+      for (WORD vk : modifiers) {
+        state->SendRdpKeyEvent(vk, /*key_down=*/true);
+      }
+      state->SendRdpKeyEvent(main_vk, /*key_down=*/true);
+      state->SendRdpKeyEvent(main_vk, /*key_down=*/false);
+      for (auto it = modifiers.rbegin(); it != modifiers.rend(); ++it) {
+        state->SendRdpKeyEvent(*it, /*key_down=*/false);
+      }
+    }
+  } else {
+    success = input_injector_->PressKey(*key);
+  }
   if (success) {
     MarkAppInteracted(process_name);
   }

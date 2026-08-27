@@ -8,6 +8,8 @@
 #include <utility>
 
 #include "base/json/json_reader.h"
+#include "brave/browser/computer_use/computer_use_session_state.h"
+#include "brave/browser/computer_use/computer_use_session_state_factory.h"
 #include "brave/browser/computer_use/input_injector.h"
 #include "brave/components/ai_chat/core/browser/tools/tool_input_properties.h"
 #include "brave/components/ai_chat/core/browser/tools/tool_utils.h"
@@ -78,7 +80,16 @@ void DesktopMoveMouseTool::UseTool(const std::string& input_json,
     return;
   }
 
-  bool success = input_injector_->MoveMouse(*x, *y);
+  auto* state =
+      computer_use::ComputerUseSessionStateFactory::GetForBrowserContext(
+          browser_context_);
+  bool success;
+  if (state->IsRdpActive()) {
+    state->SendRdpMouseEvent(*x, *y, 0, 0);
+    success = true;
+  } else {
+    success = input_injector_->MoveMouse(*x, *y);
+  }
   std::move(callback).Run(
       CreateContentBlocksForText(success ? "Mouse moved."
                                          : "Error: failed to move the mouse."),

@@ -72,6 +72,20 @@ void GetDesktopScreenshotTool::UserPermissionGranted(
 
 void GetDesktopScreenshotTool::UseTool(const std::string& input_json,
                                        UseToolCallback callback) {
+  auto* state =
+      computer_use::ComputerUseSessionStateFactory::GetForBrowserContext(
+          browser_context_);
+  // While RDP is active, its session window is hidden (see rdp_session.h)
+  // and never appears in a full-desktop capture at all - the RDP capture
+  // timer (ComputerUseSessionState) already keeps a fresh, window-specific
+  // capture of it (~5x/sec), so reuse that instead of taking a second,
+  // redundant full-desktop capture that wouldn't show it anyway.
+  if (state->IsRdpActive() && !state->GetLatestFrameDataUrl().empty()) {
+    std::move(callback).Run(
+        CreateContentBlocksForImage(GURL(state->GetLatestFrameDataUrl())),
+        {});
+    return;
+  }
   capture_session_->CaptureScreenshot(
       base::BindOnce(&GetDesktopScreenshotTool::OnScreenshotCaptured,
                      weak_ptr_factory_.GetWeakPtr(), std::move(callback)));

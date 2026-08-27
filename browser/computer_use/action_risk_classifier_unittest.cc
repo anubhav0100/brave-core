@@ -26,7 +26,7 @@ class ActionRiskClassifierTest : public testing::Test {
   }
 
   TestingPrefServiceSimple prefs_;
-  ComputerUseSessionState state_{&prefs_};
+  ComputerUseSessionState state_{&prefs_, base::FilePath()};
 };
 
 TEST_F(ActionRiskClassifierTest, SensitiveProcessIsAlwaysRisky) {

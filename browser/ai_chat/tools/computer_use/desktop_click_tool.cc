@@ -8,7 +8,10 @@
 #include <utility>
 
 #include "base/json/json_reader.h"
+#include "base/strings/strcat.h"
 #include "brave/browser/computer_use/action_risk_classifier.h"
+#include "brave/browser/computer_use/computer_use_session_state.h"
+#include "brave/browser/computer_use/computer_use_session_state_factory.h"
 #include "brave/browser/computer_use/input_injector.h"
 #include "brave/components/ai_chat/core/browser/tools/tool_input_properties.h"
 #include "brave/components/ai_chat/core/browser/tools/tool_utils.h"
@@ -65,8 +68,7 @@ DesktopClickTool::GetActionContext(const std::string& arguments_json) const {
   if (!x || !y) {
     return std::nullopt;
   }
-  return std::make_pair(computer_use::GetProcessNameAtPoint(*x, *y),
-                        std::string());
+  return std::make_pair(GetTargetProcessName(*x, *y), std::string());
 }
 
 void DesktopClickTool::UseTool(const std::string& input_json,
@@ -96,9 +98,27 @@ void DesktopClickTool::UseTool(const std::string& input_json,
   bool double_click =
       input && input->FindBool(kPropertyDoubleClick).value_or(false);
 
-  bool success = input_injector_->Click(*x, *y, button, double_click);
+  auto* state =
+      computer_use::ComputerUseSessionStateFactory::GetForBrowserContext(
+          browser_context_);
+  bool success;
+  if (state->IsRdpActive()) {
+    int button_bit = button == "right"    ? 2
+                     : button == "middle" ? 4
+                                          : 1;
+    state->SendRdpMouseEvent(*x, *y, 0, 0);
+    state->SendRdpMouseEvent(*x, *y, button_bit, 0);
+    state->SendRdpMouseEvent(*x, *y, 0, 0);
+    if (double_click) {
+      state->SendRdpMouseEvent(*x, *y, button_bit, 0);
+      state->SendRdpMouseEvent(*x, *y, 0, 0);
+    }
+    success = true;
+  } else {
+    success = input_injector_->Click(*x, *y, button, double_click);
+  }
   if (success) {
-    MarkAppInteracted(computer_use::GetProcessNameAtPoint(*x, *y));
+    MarkAppInteracted(GetTargetProcessName(*x, *y));
   }
   std::move(callback).Run(
       CreateContentBlocksForText(success ? "Clicked."

@@ -10,10 +10,13 @@
 #include <string>
 #include <string_view>
 
+#include "base/memory/weak_ptr.h"
 #include "brave/components/computer_use/common/computer_use_ui.mojom.h"
 #include "content/public/browser/web_ui_controller.h"
 #include "mojo/public/cpp/bindings/pending_receiver.h"
+#include "mojo/public/cpp/bindings/pending_remote.h"
 #include "mojo/public/cpp/bindings/receiver.h"
+#include "mojo/public/cpp/bindings/remote.h"
 
 namespace content {
 class WebUI;
@@ -47,8 +50,26 @@ class ComputerUseUI : public content::WebUIController,
   void GetAlwaysAllowDesktopScreenshot(
       GetAlwaysAllowDesktopScreenshotCallback callback) override;
   void SetAlwaysAllowDesktopScreenshot(bool always_allow) override;
+  void BindPage(
+      mojo::PendingRemote<computer_use::mojom::Page> page) override;
+  void SendRdpMouseEvent(int32_t x,
+                         int32_t y,
+                         int32_t buttons,
+                         int32_t wheel_delta) override;
+  void SendRdpKeyEvent(int32_t virtual_key_code, bool key_down) override;
+
+  // Callbacks registered with ComputerUseSessionState so its RDP capture
+  // timer/state-change events push through `page_` - see
+  // ComputerUseSessionState::SetRdpFrameCapturedCallback/
+  // SetRdpStateChangedCallback.
+  void OnRdpFrameCaptured(std::string frame_data_url);
+  void OnRdpStateChanged(bool rdp_active,
+                         std::string rdp_target_host,
+                         int rdp_target_port);
 
   mojo::Receiver<computer_use::mojom::PageHandler> receiver_{this};
+  mojo::Remote<computer_use::mojom::Page> page_;
+  base::WeakPtrFactory<ComputerUseUI> weak_ptr_factory_{this};
 
   WEB_UI_CONTROLLER_TYPE_DECL();
 };

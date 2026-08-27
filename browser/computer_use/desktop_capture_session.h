@@ -6,6 +6,7 @@
 #ifndef BRAVE_BROWSER_COMPUTER_USE_DESKTOP_CAPTURE_SESSION_H_
 #define BRAVE_BROWSER_COMPUTER_USE_DESKTOP_CAPTURE_SESSION_H_
 
+#include <cstdint>
 #include <vector>
 
 #include "base/functional/callback_forward.h"
@@ -45,6 +46,16 @@ class DesktopCaptureSession {
   // negligible against "let the AI look at the screen" being an occasional
   // action, not continuous video.
   void CaptureScreenshot(ScreenshotCallback callback);
+
+  // Like CaptureScreenshot(), but captures one specific window (`window_id`,
+  // a platform window handle - an HWND on Windows) instead of the full
+  // desktop. Uses content::desktop_capture::CreateWindowCapturer(), which
+  // (unlike the full-desktop path) already handles hardware-accelerated/
+  // DirectX-rendered window content correctly on its own - no
+  // PrintWindow-overlay compositing needed here. Used for the RDP session
+  // window (rdp_session.h), which is never shown on screen, so a
+  // full-desktop capture wouldn't show it at all.
+  void CaptureWindow(intptr_t window_id, ScreenshotCallback callback);
 
  private:
   scoped_refptr<base::SingleThreadTaskRunner> capture_task_runner_;

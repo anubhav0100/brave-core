@@ -10,6 +10,8 @@ import { createRoot } from 'react-dom/client'
 import StyledComponentsProvider from '$web-common/StyledComponentsProvider'
 
 const API = ComputerUseMojo.PageHandler.getRemote()
+const pageCallbackRouter = new ComputerUseMojo.PageCallbackRouter()
+API.bindPage(pageCallbackRouter.$.bindNewPipeAndPassRemote())
 
 type Status = 'idle' | 'active' | 'stopped'
 
@@ -211,6 +213,23 @@ const RdpErrorText = styled.div`
   font-size: 13px;
 `
 
+const RdpCanvasContainer = styled.div`
+  border: 2px solid #7b5bff55;
+  border-radius: 14px;
+  padding: 8px;
+  display: flex;
+  justify-content: center;
+  background: #000;
+`
+
+const RdpCanvas = styled.canvas`
+  max-width: 100%;
+  max-height: 75vh;
+  border-radius: 8px;
+  cursor: default;
+  outline: none;
+`
+
 const HistoryTable = styled.table`
   width: 100%;
   border-collapse: collapse;
@@ -349,6 +368,7 @@ function App() {
   const [rdpConnecting, setRdpConnecting] = React.useState(false)
   const [rdpHistory, setRdpHistory] = React.useState<RdpHistoryEntry[]>([])
   const [alwaysAllowScreenshot, setAlwaysAllowScreenshot] = React.useState(false)
+  const rdpCanvasRef = React.useRef<HTMLCanvasElement>(null)
 
   const refreshAlwaysAllowScreenshot = React.useCallback(() => {
     API.getAlwaysAllowDesktopScreenshot().then(
@@ -405,6 +425,92 @@ function App() {
     refreshRdpHistory()
     refreshAlwaysAllowScreenshot()
   }, [refresh, refreshRdpHistory, refreshAlwaysAllowScreenshot])
+
+  // Live RDP view: pushed by ComputerUseUI's Page interface (see
+  // computer_use_ui.mojom) - a fresh frame roughly every 200ms while an RDP
+  // session is connected, and a state update whenever RDP connects or
+  // disconnects for any reason (this page's own button, the AI's tool, or
+  // the remote end). This page is never torn down and recreated (a full
+  // navigation reloads the whole document), so these listeners are
+  // registered once for the page's lifetime rather than cleaned up.
+  React.useEffect(() => {
+    pageCallbackRouter.onFrameCaptured.addListener((frameDataUrl: string) => {
+      const canvas = rdpCanvasRef.current
+      if (!canvas) {
+        return
+      }
+      const image = new Image()
+      image.onload = () => {
+        if (canvas.width !== image.naturalWidth || canvas.height !== image.naturalHeight) {
+          canvas.width = image.naturalWidth
+          canvas.height = image.naturalHeight
+        }
+        canvas.getContext('2d')?.drawImage(image, 0, 0)
+      }
+      image.src = frameDataUrl
+    })
+    pageCallbackRouter.onRdpStateChanged.addListener(
+      (active: boolean, host: string, port: number) => {
+        setRdpActive(active)
+        setRdpTargetHost(host)
+        setRdpTargetPort(port)
+        refreshRdpHistory()
+      }
+    )
+  }, [refreshRdpHistory])
+
+  // Translates a canvas-local pointer event into RDP-window client-area
+  // coordinates - the canvas' backing store (width/height) is kept sized to
+  // exactly match the captured frame's native resolution (see
+  // onFrameCaptured above), while its on-page display size is independently
+  // scaled by CSS (max-width/max-height), so this scales back out to native
+  // pixels before forwarding.
+  const toRdpCoords = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    const canvas = rdpCanvasRef.current!
+    const rect = canvas.getBoundingClientRect()
+    const scaleX = canvas.width / rect.width
+    const scaleY = canvas.height / rect.height
+    return {
+      x: Math.round((e.clientX - rect.left) * scaleX),
+      y: Math.round((e.clientY - rect.top) * scaleY),
+    }
+  }
+
+  const handleRdpMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    const { x, y } = toRdpCoords(e)
+    API.sendRdpMouseEvent(x, y, e.buttons, 0)
+  }
+
+  const handleRdpMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    e.currentTarget.focus()
+    const { x, y } = toRdpCoords(e)
+    API.sendRdpMouseEvent(x, y, e.buttons, 0)
+  }
+
+  const handleRdpMouseUp = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    const { x, y } = toRdpCoords(e)
+    API.sendRdpMouseEvent(x, y, e.buttons, 0)
+  }
+
+  const handleRdpWheel = (e: React.WheelEvent<HTMLCanvasElement>) => {
+    e.preventDefault()
+    const { x, y } = toRdpCoords(e)
+    // Legacy WheelEvent.wheelDelta convention (positive = up, multiples of
+    // 120) - see RdpSession::SendMouseEvent's doc comment for why this,
+    // rather than deltaY, is the wire format.
+    const wheelDelta = e.deltaY < 0 ? 120 : -120
+    API.sendRdpMouseEvent(x, y, e.buttons, wheelDelta)
+  }
+
+  const handleRdpKeyDown = (e: React.KeyboardEvent<HTMLCanvasElement>) => {
+    e.preventDefault()
+    API.sendRdpKeyEvent(e.keyCode, true)
+  }
+
+  const handleRdpKeyUp = (e: React.KeyboardEvent<HTMLCanvasElement>) => {
+    e.preventDefault()
+    API.sendRdpKeyEvent(e.keyCode, false)
+  }
 
   const stop = () => {
     API.stop()
@@ -466,7 +572,7 @@ function App() {
       {rdpActive && (
         <RdpBadge>
           Connected via RDP to <strong>{rdpTargetHost}:{rdpTargetPort}</strong> -
-          a separate window shows the remote desktop.
+          shown live in the Remote Desktop section below.
         </RdpBadge>
       )}
       <ButtonRow>
@@ -506,10 +612,25 @@ function App() {
       <Section>
         <SectionTitle>Remote Desktop (RDP)</SectionTitle>
         {rdpActive ? (
-          <RdpForm>
-            <span>Connected to {rdpTargetHost}:{rdpTargetPort}</span>
-            <StopButton onClick={disconnectRdp}>Disconnect</StopButton>
-          </RdpForm>
+          <>
+            <RdpForm>
+              <span>Connected to {rdpTargetHost}:{rdpTargetPort}</span>
+              <StopButton onClick={disconnectRdp}>Disconnect</StopButton>
+            </RdpForm>
+            <RdpCanvasContainer>
+              <RdpCanvas
+                ref={rdpCanvasRef}
+                tabIndex={0}
+                onMouseMove={handleRdpMouseMove}
+                onMouseDown={handleRdpMouseDown}
+                onMouseUp={handleRdpMouseUp}
+                onWheel={handleRdpWheel}
+                onKeyDown={handleRdpKeyDown}
+                onKeyUp={handleRdpKeyUp}
+                onContextMenu={e => e.preventDefault()}
+              />
+            </RdpCanvasContainer>
+          </>
         ) : (
           <RdpForm>
             <HostInput

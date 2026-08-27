@@ -224,7 +224,38 @@ class OneShotCapturer : public webrtc::DesktopCapturer::Callback {
       raw->Finish(false, {});
       return;
     }
+    raw->composite_hardware_rendered_windows_ = true;
     raw->capturer_->SelectSource(webrtc::kFullDesktopScreenId);
+    raw->capturer_->Start(raw);
+    raw->capturer_->CaptureFrame();
+  }
+
+  // Like CaptureOnCaptureSequence(), but captures one specific window
+  // (`window_id`) instead of the full desktop - see
+  // DesktopCaptureSession::CaptureWindow()'s header comment.
+  static void CaptureWindowOnCaptureSequence(
+      intptr_t window_id,
+      DesktopCaptureSession::ScreenshotCallback callback) {
+    auto owned = std::make_unique<OneShotCapturer>();
+    OneShotCapturer* raw = owned.get();
+    raw->callback_ = std::move(callback);
+    raw->self_ = std::move(owned);
+
+    raw->capturer_ = content::desktop_capture::CreateWindowCapturer(
+        content::desktop_capture::CreateDesktopCaptureOptions());
+    if (!raw->capturer_) {
+      LOG(ERROR) << "computer_use: no window capturer is available on this "
+                    "platform (CreateWindowCapturer returned null)";
+      raw->Finish(false, {});
+      return;
+    }
+    if (!raw->capturer_->SelectSource(
+            static_cast<webrtc::DesktopCapturer::SourceId>(window_id))) {
+      LOG(ERROR) << "computer_use: window capturer rejected the requested "
+                    "window (it may have been closed)";
+      raw->Finish(false, {});
+      return;
+    }
     raw->capturer_->Start(raw);
     raw->capturer_->CaptureFrame();
   }
@@ -256,7 +287,9 @@ class OneShotCapturer : public webrtc::DesktopCapturer::Callback {
       return;
     }
 #if BUILDFLAG(IS_WIN)
-    CompositeHardwareRenderedWindows(frame.get());
+    if (composite_hardware_rendered_windows_) {
+      CompositeHardwareRenderedWindows(frame.get());
+    }
 #endif
     std::vector<uint8_t> png_bytes = EncodeFrameAsPng(frame.get());
     if (png_bytes.empty()) {
@@ -275,6 +308,10 @@ class OneShotCapturer : public webrtc::DesktopCapturer::Callback {
   DesktopCaptureSession::ScreenshotCallback callback_;
   std::unique_ptr<OneShotCapturer> self_;
   int temporary_error_retries_ = 0;
+  // Only set for the full-desktop capture path - the window-specific path
+  // (content::desktop_capture::CreateWindowCapturer()) already handles
+  // hardware-accelerated content correctly on its own.
+  bool composite_hardware_rendered_windows_ = false;
 };
 
 }  // namespace
@@ -291,6 +328,15 @@ void DesktopCaptureSession::CaptureScreenshot(ScreenshotCallback callback) {
       FROM_HERE,
       base::BindOnce(
           &OneShotCapturer::CaptureOnCaptureSequence,
+          base::BindPostTaskToCurrentDefault(std::move(callback))));
+}
+
+void DesktopCaptureSession::CaptureWindow(intptr_t window_id,
+                                          ScreenshotCallback callback) {
+  capture_task_runner_->PostTask(
+      FROM_HERE,
+      base::BindOnce(
+          &OneShotCapturer::CaptureWindowOnCaptureSequence, window_id,
           base::BindPostTaskToCurrentDefault(std::move(callback))));
 }
 

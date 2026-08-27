@@ -8,7 +8,10 @@
 #include <utility>
 
 #include "base/json/json_reader.h"
+#include "base/strings/utf_string_conversions.h"
 #include "brave/browser/computer_use/action_risk_classifier.h"
+#include "brave/browser/computer_use/computer_use_session_state.h"
+#include "brave/browser/computer_use/computer_use_session_state_factory.h"
 #include "brave/browser/computer_use/input_injector.h"
 #include "brave/components/ai_chat/core/browser/tools/tool_input_properties.h"
 #include "brave/components/ai_chat/core/browser/tools/tool_utils.h"
@@ -56,7 +59,7 @@ DesktopTypeTextTool::GetActionContext(
   if (!text) {
     return std::nullopt;
   }
-  return std::make_pair(computer_use::GetForegroundProcessName(), *text);
+  return std::make_pair(GetForegroundTargetProcessName(), *text);
 }
 
 void DesktopTypeTextTool::UseTool(const std::string& input_json,
@@ -80,8 +83,25 @@ void DesktopTypeTextTool::UseTool(const std::string& input_json,
     return;
   }
 
-  std::string process_name = computer_use::GetForegroundProcessName();
-  bool success = input_injector_->TypeText(*text);
+  std::string process_name = GetForegroundTargetProcessName();
+  auto* state =
+      computer_use::ComputerUseSessionStateFactory::GetForBrowserContext(
+          browser_context_);
+  bool success;
+  if (state->IsRdpActive()) {
+    std::u16string text16 = base::UTF8ToUTF16(*text);
+    for (char16_t ch : text16) {
+      if (ch == u'\n') {
+        state->SendRdpKeyEvent(VK_RETURN, /*key_down=*/true);
+        state->SendRdpKeyEvent(VK_RETURN, /*key_down=*/false);
+        continue;
+      }
+      state->SendRdpCharEvent(ch);
+    }
+    success = true;
+  } else {
+    success = input_injector_->TypeText(*text);
+  }
   if (success) {
     MarkAppInteracted(process_name);
   }

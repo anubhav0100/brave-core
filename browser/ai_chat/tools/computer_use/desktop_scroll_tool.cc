@@ -9,6 +9,8 @@
 
 #include "base/json/json_reader.h"
 #include "brave/browser/computer_use/action_risk_classifier.h"
+#include "brave/browser/computer_use/computer_use_session_state.h"
+#include "brave/browser/computer_use/computer_use_session_state_factory.h"
 #include "brave/browser/computer_use/input_injector.h"
 #include "brave/components/ai_chat/core/browser/tools/tool_input_properties.h"
 #include "brave/components/ai_chat/core/browser/tools/tool_utils.h"
@@ -67,8 +69,7 @@ DesktopScrollTool::GetActionContext(const std::string& arguments_json) const {
   if (!x || !y) {
     return std::nullopt;
   }
-  return std::make_pair(computer_use::GetProcessNameAtPoint(*x, *y),
-                        std::string());
+  return std::make_pair(GetTargetProcessName(*x, *y), std::string());
 }
 
 void DesktopScrollTool::UseTool(const std::string& input_json,
@@ -95,9 +96,21 @@ void DesktopScrollTool::UseTool(const std::string& input_json,
   int delta_x = input ? input->FindInt(kPropertyDeltaX).value_or(0) : 0;
   int delta_y = input ? input->FindInt(kPropertyDeltaY).value_or(0) : 0;
 
-  bool success = input_injector_->Scroll(*x, *y, delta_x, delta_y);
+  auto* state =
+      computer_use::ComputerUseSessionStateFactory::GetForBrowserContext(
+          browser_context_);
+  bool success;
+  if (state->IsRdpActive()) {
+    // RdpSession::SendMouseEvent only carries one wheel axis (matching
+    // WM_MOUSEWHEEL) - horizontal scroll (delta_x) isn't forwarded to RDP
+    // sessions.
+    state->SendRdpMouseEvent(*x, *y, 0, delta_y);
+    success = true;
+  } else {
+    success = input_injector_->Scroll(*x, *y, delta_x, delta_y);
+  }
   if (success) {
-    MarkAppInteracted(computer_use::GetProcessNameAtPoint(*x, *y));
+    MarkAppInteracted(GetTargetProcessName(*x, *y));
   }
   std::move(callback).Run(
       CreateContentBlocksForText(success ? "Scrolled."

@@ -130,4 +130,53 @@ void ComputerUseUI::SetAlwaysAllowDesktopScreenshot(bool always_allow) {
       ->SetAlwaysAllowDesktopScreenshot(always_allow);
 }
 
+void ComputerUseUI::BindPage(
+    mojo::PendingRemote<computer_use::mojom::Page> page) {
+  page_.reset();
+  page_.Bind(std::move(page));
+#if BUILDFLAG(IS_WIN)
+  auto* state =
+      computer_use::ComputerUseSessionStateFactory::GetForBrowserContext(
+          web_ui()->GetWebContents()->GetBrowserContext());
+  state->SetRdpFrameCapturedCallback(base::BindRepeating(
+      &ComputerUseUI::OnRdpFrameCaptured, weak_ptr_factory_.GetWeakPtr()));
+  state->SetRdpStateChangedCallback(base::BindRepeating(
+      &ComputerUseUI::OnRdpStateChanged, weak_ptr_factory_.GetWeakPtr()));
+#endif
+}
+
+void ComputerUseUI::SendRdpMouseEvent(int32_t x,
+                                      int32_t y,
+                                      int32_t buttons,
+                                      int32_t wheel_delta) {
+#if BUILDFLAG(IS_WIN)
+  computer_use::ComputerUseSessionStateFactory::GetForBrowserContext(
+      web_ui()->GetWebContents()->GetBrowserContext())
+      ->SendRdpMouseEvent(x, y, buttons, wheel_delta);
+#endif
+}
+
+void ComputerUseUI::SendRdpKeyEvent(int32_t virtual_key_code, bool key_down) {
+#if BUILDFLAG(IS_WIN)
+  computer_use::ComputerUseSessionStateFactory::GetForBrowserContext(
+      web_ui()->GetWebContents()->GetBrowserContext())
+      ->SendRdpKeyEvent(virtual_key_code, key_down);
+#endif
+}
+
+void ComputerUseUI::OnRdpFrameCaptured(std::string frame_data_url) {
+  if (page_) {
+    page_->OnFrameCaptured(std::move(frame_data_url));
+  }
+}
+
+void ComputerUseUI::OnRdpStateChanged(bool rdp_active,
+                                      std::string rdp_target_host,
+                                      int rdp_target_port) {
+  if (page_) {
+    page_->OnRdpStateChanged(rdp_active, std::move(rdp_target_host),
+                             rdp_target_port);
+  }
+}
+
 WEB_UI_CONTROLLER_TYPE_IMPL(ComputerUseUI)

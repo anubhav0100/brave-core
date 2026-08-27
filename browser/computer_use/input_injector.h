@@ -6,9 +6,22 @@
 #ifndef BRAVE_BROWSER_COMPUTER_USE_INPUT_INJECTOR_H_
 #define BRAVE_BROWSER_COMPUTER_USE_INPUT_INJECTOR_H_
 
+#include <windows.h>
+
 #include <string>
+#include <vector>
 
 namespace ai_chat {
+
+// Parses e.g. "Ctrl+Shift+T" into modifier virtual-key codes plus a main
+// virtual-key code - the same key-name table InputInjector::PressKey uses
+// via SendInput, exposed so an RDP-active desktop_press_key_tool call can
+// share it instead of duplicating the table (see rdp_session.h's
+// SendKeyEvent, which needs a VK code directly rather than a key name).
+// Returns false if the main key isn't recognized.
+bool ParseKeyCombo(const std::string& key,
+                   std::vector<WORD>* modifiers,
+                   WORD* main_vk);
 
 // Injects synthetic mouse and keyboard input at the OS level via Win32's
 // SendInput(), targeting whatever's on screen at the given desktop

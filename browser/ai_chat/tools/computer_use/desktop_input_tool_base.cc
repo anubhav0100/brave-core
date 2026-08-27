@@ -7,6 +7,7 @@
 
 #include <utility>
 
+#include "base/strings/strcat.h"
 #include "brave/browser/computer_use/action_risk_classifier.h"
 #include "brave/browser/computer_use/computer_use_session_state.h"
 #include "brave/browser/computer_use/computer_use_session_state_factory.h"
@@ -73,6 +74,26 @@ void DesktopInputToolBase::MarkAppInteracted(
   computer_use::ComputerUseSessionStateFactory::GetForBrowserContext(
       browser_context_)
       ->MarkAppInteracted(process_name);
+}
+
+std::string DesktopInputToolBase::GetTargetProcessName(int x, int y) const {
+  auto* state =
+      computer_use::ComputerUseSessionStateFactory::GetForBrowserContext(
+          browser_context_);
+  if (state->IsRdpActive()) {
+    return base::StrCat({"rdp:", state->GetRdpTargetHost()});
+  }
+  return computer_use::GetProcessNameAtPoint(x, y);
+}
+
+std::string DesktopInputToolBase::GetForegroundTargetProcessName() const {
+  auto* state =
+      computer_use::ComputerUseSessionStateFactory::GetForBrowserContext(
+          browser_context_);
+  if (state->IsRdpActive()) {
+    return base::StrCat({"rdp:", state->GetRdpTargetHost()});
+  }
+  return computer_use::GetForegroundProcessName();
 }
 
 }  // namespace ai_chat
