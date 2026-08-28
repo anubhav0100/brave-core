@@ -69,6 +69,13 @@ class ComputerUseUI : public content::WebUIController,
                          std::string rdp_target_host,
                          int rdp_target_port);
 
+  // Registered with ComputerUseSessionState::SetRdpOpenAiAssistantCallback -
+  // fires when the user clicks the RDP popup window's own "AI Assistant"
+  // button (see rdp_session.h). Finds the Browser this WebUI's tab lives in
+  // and brings it to the front with the AI Assistant side panel open, since
+  // the popup that was just clicked normally covers it.
+  void OnRdpOpenAiAssistantRequested();
+
   mojo::Receiver<computer_use::mojom::PageHandler> receiver_{this};
   mojo::Remote<computer_use::mojom::Page> page_;
   base::WeakPtrFactory<ComputerUseUI> weak_ptr_factory_{this};

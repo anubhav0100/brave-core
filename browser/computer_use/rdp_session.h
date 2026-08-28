@@ -139,6 +139,16 @@ class RdpSession {
   // in-practice placement. A no-op if there's no window.
   void SetShownAsWindow(bool show);
 
+  // Registers a callback fired when the user clicks the small "AI
+  // Assistant" button shown in the corner of the session window while
+  // SetShownAsWindow(true) is in effect - the popup covers the browser
+  // window underneath it (including its AI Assistant side panel), so this
+  // is the only way to get back to it without hunting for the browser
+  // window separately. The button itself only exists on the session
+  // window (hidden along with everything else while shown_as_window_ is
+  // false), so this never affects what the embedded canvas view captures.
+  void SetOpenAiAssistantCallback(base::RepeatingClosure callback);
+
   // Posts a mouse event directly to the RDP ActiveX control's window,
   // bypassing SendInput entirely - this works even though the window is
   // hidden, unlike SendInput which requires the target to be the real

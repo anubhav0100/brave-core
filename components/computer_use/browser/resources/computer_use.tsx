@@ -13,6 +13,11 @@ const API = ComputerUseMojo.PageHandler.getRemote()
 const pageCallbackRouter = new ComputerUseMojo.PageCallbackRouter()
 API.bindPage(pageCallbackRouter.$.bindNewPipeAndPassRemote())
 
+// The "Open in New Tab" button (see openComputerUseInNewTab below) opens
+// this same page with ?view=rdp appended - a dedicated tab showing just
+// the live RDP view, not the rest of this page's banner/settings/history.
+const isRdpFocusedView = new URLSearchParams(location.search).get('view') === 'rdp'
+
 type Status = 'idle' | 'active' | 'stopped'
 
 const statusColors: Record<Status, { from: string, to: string, glow: string, text: string }> = {
@@ -226,6 +231,36 @@ const RdpCanvasContainer = styled.div`
   display: flex;
   justify-content: center;
   background: #000;
+`
+
+// Used only in the dedicated RDP tab (?view=rdp) - fills the whole page
+// with the canvas instead of sharing space with the banner/settings/
+// history sections a normal computer-use tab shows.
+const FocusedRdpContainer = styled.div`
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: #000;
+`
+
+const FocusedRdpStatusBar = styled.div`
+  padding: 8px 14px;
+  font-size: 13px;
+  color: #c9caf7;
+  background: #14162e;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+`
+
+const FocusedRdpCanvas = styled.canvas`
+  flex: 1;
+  width: 100%;
+  min-height: 0;
+  object-fit: contain;
+  outline: none;
+  cursor: default;
 `
 
 const RdpCanvas = styled.canvas`
@@ -597,6 +632,30 @@ function App() {
   }
 
   const status: Status = emergencyStopped ? 'stopped' : active ? 'active' : 'idle'
+
+  if (isRdpFocusedView) {
+    return (
+      <FocusedRdpContainer>
+        <FocusedRdpStatusBar>
+          {rdpActive
+            ? <span>Connected to {rdpTargetHost}:{rdpTargetPort}</span>
+            : <span>No active RDP session</span>}
+        </FocusedRdpStatusBar>
+        {rdpActive && (
+          <FocusedRdpCanvas
+            ref={rdpCanvasRef}
+            tabIndex={0}
+            onMouseMove={handleRdpMouseMove}
+            onMouseDown={handleRdpMouseDown}
+            onMouseUp={handleRdpMouseUp}
+            onKeyDown={handleRdpKeyDown}
+            onKeyUp={handleRdpKeyUp}
+            onContextMenu={e => e.preventDefault()}
+          />
+        )}
+      </FocusedRdpContainer>
+    )
+  }
 
   return (
     <Container>

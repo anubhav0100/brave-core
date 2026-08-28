@@ -154,6 +154,13 @@ class ComputerUseSessionState : public KeyedService {
   // RdpSession::SetShownAsWindow() for the exact semantics. No-ops if no
   // RDP session is active.
   void SetRdpShownAsWindow(bool show);
+
+  // Registers the callback fired when the user clicks the RDP session
+  // window's own "AI Assistant" button (see RdpSession::
+  // SetOpenAiAssistantCallback) - set once by ComputerUseUI and re-applied
+  // to each new RdpSession ConnectRdp() creates, since that callback lives
+  // on the session object itself, which is replaced on every reconnect.
+  void SetRdpOpenAiAssistantCallback(base::RepeatingClosure callback);
 #endif
 
  private:
@@ -204,10 +211,23 @@ class ComputerUseSessionState : public KeyedService {
   // window - observed in practice to make every subsequent capture on
   // that window hang indefinitely (capturer creation kept succeeding, but
   // no result - success or failure - ever came back again).
+  //
+  // When a capture does hang like that, `rdp_capture_started_at_` lets
+  // CaptureRdpFrameTick() notice and force this back to false after a
+  // generous timeout, rather than leaving future captures blocked for the
+  // rest of the session - a real occurrence during rapid AI-driven
+  // click/type sequences (fast enough to race the ActiveX control's own
+  // foreground-seeking behavior against an in-flight capture). This
+  // recovers the live preview; separately, KeepBelowOtherWindows() itself
+  // is now called on every tick regardless of capture health, since a
+  // stuck capture must never also leave the session window visibly stuck
+  // on screen (see CaptureRdpFrameTick()'s own comment).
   bool rdp_capture_in_flight_ = false;
+  base::TimeTicks rdp_capture_started_at_;
   base::RepeatingCallback<void(std::string)> rdp_frame_captured_callback_;
   base::RepeatingCallback<void(bool, std::string, int)>
       rdp_state_changed_callback_;
+  base::RepeatingClosure rdp_open_ai_assistant_callback_;
   base::WeakPtrFactory<ComputerUseSessionState> rdp_capture_weak_ptr_factory_{
       this};
 #endif

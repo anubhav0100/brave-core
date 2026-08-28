@@ -41,6 +41,10 @@ constexpr size_t kMaxRdpHistoryEntries = 200;
 // into, not video, so this keeps PNG-encoding cost modest without feeling
 // unresponsive for typical admin-console work.
 constexpr base::TimeDelta kRdpCaptureInterval = base::Milliseconds(200);
+// Generous relative to the ~200ms tick - a capture that hasn't resolved
+// within this long is presumed hung (see rdp_capture_in_flight_'s comment)
+// rather than just slow.
+constexpr base::TimeDelta kRdpCaptureHangTimeout = base::Seconds(2);
 #endif
 }  // namespace
 
@@ -144,6 +148,9 @@ void ComputerUseSessionState::ConnectRdp(
       shell_integration::win::GetAppUserModelIdForBrowser(profile_path_));
   rdp_session_->SetDisconnectedCallback(base::BindRepeating(
       &ComputerUseSessionState::OnRdpDisconnected, base::Unretained(this)));
+  if (rdp_open_ai_assistant_callback_) {
+    rdp_session_->SetOpenAiAssistantCallback(rdp_open_ai_assistant_callback_);
+  }
   rdp_target_host_ = host;
   rdp_target_port_ = port;
   rdp_session_->Connect(
@@ -300,6 +307,14 @@ void ComputerUseSessionState::SetRdpShownAsWindow(bool show) {
   }
 }
 
+void ComputerUseSessionState::SetRdpOpenAiAssistantCallback(
+    base::RepeatingClosure callback) {
+  rdp_open_ai_assistant_callback_ = std::move(callback);
+  if (rdp_session_) {
+    rdp_session_->SetOpenAiAssistantCallback(rdp_open_ai_assistant_callback_);
+  }
+}
+
 void ComputerUseSessionState::StartRdpCaptureTimer() {
   if (!rdp_capture_session_) {
     rdp_capture_session_ = std::make_unique<ai_chat::DesktopCaptureSession>();
@@ -316,11 +331,29 @@ void ComputerUseSessionState::StopRdpCaptureTimer() {
 }
 
 void ComputerUseSessionState::CaptureRdpFrameTick() {
-  if (!rdp_session_ || !rdp_capture_session_ || rdp_capture_in_flight_) {
+  if (!rdp_session_) {
     return;
   }
-  rdp_capture_in_flight_ = true;
+  // Unconditional on every tick, independent of capture health below - if a
+  // capture ever hangs (see rdp_capture_in_flight_'s comment) this must
+  // still keep firing, or the session window is left sitting wherever the
+  // ActiveX control's own foreground-seeking last put it until the hang
+  // timeout below recovers, rather than merely losing the live preview.
   rdp_session_->KeepBelowOtherWindows();
+
+  if (!rdp_capture_session_) {
+    return;
+  }
+  if (rdp_capture_in_flight_) {
+    if (base::TimeTicks::Now() - rdp_capture_started_at_ <
+        kRdpCaptureHangTimeout) {
+      return;
+    }
+    // The previous capture never came back - don't let it block the live
+    // preview for the rest of the session; let this tick start a fresh one.
+  }
+  rdp_capture_in_flight_ = true;
+  rdp_capture_started_at_ = base::TimeTicks::Now();
   rdp_capture_session_->CaptureWindow(
       rdp_session_->GetWindowId(),
       base::BindOnce(&ComputerUseSessionState::OnRdpFrameCaptured,
