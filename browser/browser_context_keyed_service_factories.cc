@@ -50,6 +50,7 @@
 #include "brave/browser/ai_chat/content_index/ai_chat_content_index_factory.h"
 #include "brave/browser/ai_chat/workflows/workflow_repository_factory.h"
 #include "brave/browser/computer_use/computer_use_session_state_factory.h"
+#include "brave/browser/lead_research/lead_research_state_factory.h"
 #include "brave/browser/ai_chat/colibri/colibri_service_factory.h"
 #include "brave/browser/colibri/colibri_process_manager_factory.h"
 #include "brave/browser/delegation/delegation_process_manager_factory.h"
@@ -240,6 +241,7 @@ void EnsureBrowserContextKeyedServiceFactoriesBuilt() {
     ai_chat::DelegationProcessManagerFactory::GetInstance();
     ai_chat::ColibriProcessManagerFactory::GetInstance();
     computer_use::ComputerUseSessionStateFactory::GetInstance();
+    lead_research::LeadResearchStateFactory::GetInstance();
   }
 #endif
 

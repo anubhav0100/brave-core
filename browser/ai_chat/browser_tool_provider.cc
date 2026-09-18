@@ -21,6 +21,13 @@
 #include "brave/browser/ai_chat/tools/create_word_document_tool.h"
 #include "brave/browser/ai_chat/tools/computer_use/get_desktop_screenshot_tool.h"
 #include "brave/browser/ai_chat/tools/computer_use/open_computer_use_page_tool.h"
+#include "brave/browser/ai_chat/tools/lead_research/calculate_lead_score_tool.h"
+#include "brave/browser/ai_chat/tools/lead_research/create_lead_campaign_tool.h"
+#include "brave/browser/ai_chat/tools/lead_research/export_leads_tool.h"
+#include "brave/browser/ai_chat/tools/lead_research/list_leads_tool.h"
+#include "brave/browser/ai_chat/tools/lead_research/open_linkedin_handoff_tool.h"
+#include "brave/browser/ai_chat/tools/lead_research/open_maps_search_tool.h"
+#include "brave/browser/ai_chat/tools/lead_research/save_lead_tool.h"
 #if BUILDFLAG(IS_WIN)
 #include "brave/browser/ai_chat/tools/computer_use/close_rdp_session_tool.h"
 #include "brave/browser/ai_chat/tools/computer_use/desktop_click_tool.h"
@@ -107,6 +114,27 @@ std::vector<base::WeakPtr<Tool>> BrowserToolProvider::GetTools() {
   }
   if (open_computer_use_page_tool_) {
     tool_ptrs.push_back(open_computer_use_page_tool_->GetWeakPtr());
+  }
+  if (create_lead_campaign_tool_) {
+    tool_ptrs.push_back(create_lead_campaign_tool_->GetWeakPtr());
+  }
+  if (open_maps_search_tool_) {
+    tool_ptrs.push_back(open_maps_search_tool_->GetWeakPtr());
+  }
+  if (open_linkedin_handoff_tool_) {
+    tool_ptrs.push_back(open_linkedin_handoff_tool_->GetWeakPtr());
+  }
+  if (save_lead_tool_) {
+    tool_ptrs.push_back(save_lead_tool_->GetWeakPtr());
+  }
+  if (list_leads_tool_) {
+    tool_ptrs.push_back(list_leads_tool_->GetWeakPtr());
+  }
+  if (calculate_lead_score_tool_) {
+    tool_ptrs.push_back(calculate_lead_score_tool_->GetWeakPtr());
+  }
+  if (export_leads_tool_) {
+    tool_ptrs.push_back(export_leads_tool_->GetWeakPtr());
   }
 #if BUILDFLAG(IS_WIN)
   if (desktop_move_mouse_tool_) {
@@ -273,6 +301,22 @@ void BrowserToolProvider::CreateTools(
       std::make_unique<InjectDelegationBriefTool>(delegation_manager);
   create_delegation_task_tool_ =
       std::make_unique<CreateDelegationTaskTool>(delegation_manager);
+  // Lead Research tools - unlike computer-use, these don't need the
+  // dedicated AI Chat Agent profile: they only open a tab at a fixed, safe
+  // URL and read/write local campaign/lead records, no OS-level
+  // automation, so they're available from any normal conversation.
+  create_lead_campaign_tool_ =
+      std::make_unique<CreateLeadCampaignTool>(browser_context);
+  open_maps_search_tool_ =
+      std::make_unique<OpenMapsSearchTool>(browser_context);
+  open_linkedin_handoff_tool_ =
+      std::make_unique<OpenLinkedInHandoffTool>(browser_context);
+  save_lead_tool_ = std::make_unique<SaveLeadTool>(browser_context);
+  list_leads_tool_ = std::make_unique<ListLeadsTool>(browser_context);
+  calculate_lead_score_tool_ =
+      std::make_unique<CalculateLeadScoreTool>(browser_context);
+  export_leads_tool_ = std::make_unique<ExportLeadsTool>(browser_context);
+
   // Computer-use tools (screenshot, desktop input, RDP) all read/write
   // per-profile state via ComputerUseSessionState - restricted to the
   // dedicated AI Chat Agent profile so that state stays in one consistent

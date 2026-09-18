@@ -477,6 +477,7 @@ if (enable_ai_chat) {
     "//brave/browser/ai_chat/ollama",
     "//brave/browser/computer_use",
     "//brave/browser/delegation",
+    "//brave/browser/lead_research",
     "//brave/browser/n8n",
     "//brave/browser/ui/webui/ai_chat",
     "//brave/components/ai_chat/content/browser",

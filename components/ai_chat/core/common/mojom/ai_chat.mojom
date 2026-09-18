@@ -61,6 +61,16 @@ const string kDesktopPressKeyToolName = "desktop_press_key";
 const string kOpenRdpSessionToolName = "open_rdp_session";
 const string kCloseRdpSessionToolName = "close_rdp_session";
 
+// Lead Research tools (browser/ai_chat/tools/lead_research/) - see
+// Brave_AI_Lead_Assistant_Development_Blueprint.md.
+const string kCreateLeadCampaignToolName = "create_lead_campaign";
+const string kOpenMapsSearchToolName = "open_maps_search";
+const string kOpenLinkedInHandoffToolName = "open_linkedin_handoff";
+const string kSaveLeadToolName = "save_lead";
+const string kListLeadsToolName = "list_leads";
+const string kCalculateLeadScoreToolName = "calculate_lead_score";
+const string kExportLeadsToolName = "export_leads";
+
 // Server side tools
 const string kBraveNewsSearchToolName = "brave_news_search";
 const string kBraveWebSearchToolName = "brave_web_search";

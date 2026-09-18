@@ -40,6 +40,13 @@ class DelegationProcessManager;
 class GetDelegationStatusTool;
 class GetDesktopScreenshotTool;
 class OpenComputerUsePageTool;
+class CalculateLeadScoreTool;
+class CreateLeadCampaignTool;
+class ExportLeadsTool;
+class ListLeadsTool;
+class OpenLinkedInHandoffTool;
+class OpenMapsSearchTool;
+class SaveLeadTool;
 #if BUILDFLAG(IS_WIN)
 class CloseRdpSessionTool;
 class DesktopClickTool;
@@ -154,6 +161,13 @@ class BrowserToolProvider : public ToolProvider {
   std::unique_ptr<CreateDelegationTaskTool> create_delegation_task_tool_;
   std::unique_ptr<GetDesktopScreenshotTool> get_desktop_screenshot_tool_;
   std::unique_ptr<OpenComputerUsePageTool> open_computer_use_page_tool_;
+  std::unique_ptr<CreateLeadCampaignTool> create_lead_campaign_tool_;
+  std::unique_ptr<OpenMapsSearchTool> open_maps_search_tool_;
+  std::unique_ptr<OpenLinkedInHandoffTool> open_linkedin_handoff_tool_;
+  std::unique_ptr<SaveLeadTool> save_lead_tool_;
+  std::unique_ptr<ListLeadsTool> list_leads_tool_;
+  std::unique_ptr<CalculateLeadScoreTool> calculate_lead_score_tool_;
+  std::unique_ptr<ExportLeadsTool> export_leads_tool_;
 #if BUILDFLAG(IS_WIN)
   std::unique_ptr<DesktopMoveMouseTool> desktop_move_mouse_tool_;
   std::unique_ptr<DesktopClickTool> desktop_click_tool_;
