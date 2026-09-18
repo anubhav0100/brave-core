@@ -86,6 +86,37 @@ std::string DesktopInputToolBase::GetTargetProcessName(int x, int y) const {
   return computer_use::GetProcessNameAtPoint(x, y);
 }
 
+std::optional<std::string> DesktopInputToolBase::ResolveTargetOverride(
+    const std::string* target_argument,
+    bool* out_use_rdp) const {
+  auto* state =
+      computer_use::ComputerUseSessionStateFactory::GetForBrowserContext(
+          browser_context_);
+  bool rdp_active = state->IsRdpActive();
+
+  if (!target_argument || target_argument->empty()) {
+    *out_use_rdp = rdp_active;
+    return std::nullopt;
+  }
+  if (*target_argument == kTargetValueRdp) {
+    if (!rdp_active) {
+      return "Error: target=\"rdp\" was requested but no RDP session is "
+             "currently active. Call open_rdp_session first.";
+    }
+    *out_use_rdp = true;
+    return std::nullopt;
+  }
+  if (*target_argument == kTargetValueLocalDesktop) {
+    *out_use_rdp = false;
+    return std::nullopt;
+  }
+  // Shouldn't normally happen - the "target" property's schema restricts
+  // it to the two values above - but fall back to auto rather than erroring
+  // on an unrecognized value from a non-conforming caller.
+  *out_use_rdp = rdp_active;
+  return std::nullopt;
+}
+
 std::string DesktopInputToolBase::GetForegroundTargetProcessName() const {
   auto* state =
       computer_use::ComputerUseSessionStateFactory::GetForBrowserContext(

@@ -38,6 +38,16 @@ class InputInjector;
 //   it, every time, regardless of prior consent.
 class DesktopInputToolBase : public Tool {
  public:
+  // Shared optional input property letting the model explicitly say which
+  // surface an action targets, instead of relying solely on
+  // ComputerUseSessionState's ambient "is RDP active" flag - see
+  // ResolveTargetOverride()'s own comment for why. Every desktop_* tool
+  // and get_desktop_screenshot accepts this under the same key/values, so
+  // the model only needs to learn it once.
+  static constexpr char kPropertyTarget[] = "target";
+  static constexpr char kTargetValueRdp[] = "rdp";
+  static constexpr char kTargetValueLocalDesktop[] = "local_desktop";
+
   explicit DesktopInputToolBase(content::BrowserContext* browser_context);
   ~DesktopInputToolBase() override;
 
@@ -81,6 +91,18 @@ class DesktopInputToolBase : public Tool {
   // than whatever unrelated local window happens to occupy those pixels.
   std::string GetTargetProcessName(int x, int y) const;
   std::string GetForegroundTargetProcessName() const;
+
+  // Resolves whether this call should target the RDP session or the local
+  // desktop. `target_argument` is the tool call's own "target" argument
+  // (nullptr/empty if the model didn't pass one, which preserves today's
+  // implicit behavior - auto-follow ComputerUseSessionState::IsRdpActive()).
+  // An explicit "rdp" request errors out (via the returned string) instead
+  // of silently falling back if no RDP session is actually active, so a
+  // model that's confident it's targeting RDP finds out immediately if
+  // that's wrong, rather than silently acting on the local desktop.
+  std::optional<std::string> ResolveTargetOverride(
+      const std::string* target_argument,
+      bool* out_use_rdp) const;
 
   raw_ptr<content::BrowserContext> browser_context_;
   std::unique_ptr<InputInjector> input_injector_;

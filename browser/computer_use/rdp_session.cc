@@ -40,6 +40,18 @@ namespace {
 // rather than the repeating capture timer alone, is needed.
 constexpr UINT kReassertHiddenMessage = WM_APP + 1;
 
+// Not 0 - a fully-transparent (alpha 0) layered window was found to capture
+// as solid black (see Connect()'s comment on why) - but low enough to be
+// visually imperceptible to a human even at full-screen brightness. This is
+// the actual invisibility guarantee now; the Z-order placement below is
+// kept as a defense-in-depth measure but is no longer load-bearing on its
+// own, since it proved insufficient by itself against the ActiveX control's
+// own repeated, varied attempts to raise this window (see KeepBelowOtherWindows()'s
+// and OnWindowPosChanging()'s comments for that history) - none of which
+// matter anymore if the window is invisible regardless of where it sits.
+constexpr BYTE kHiddenWindowAlpha = 1;
+constexpr BYTE kVisibleWindowAlpha = 255;
+
 // Child control id for the "AI Assistant" button shown in the corner of
 // the session window while it's shown as a real popup (see
 // Impl::SetShownAsWindow) - lets the user get back to the browser's AI
@@ -148,11 +160,16 @@ class RdpSession::Impl
     RECT rect = {0, 0, width, height};
     std::wstring title = base::UTF8ToWide(
         base::StrCat({"RDP: ", host_, " - AI Automation Browser"}));
-    if (!Create(nullptr, rect, title.c_str(), 0, WS_EX_TOOLWINDOW) ||
+    if (!Create(nullptr, rect, title.c_str(), 0,
+               WS_EX_TOOLWINDOW | WS_EX_LAYERED) ||
        !m_hWnd) {
       NotifyConnectResult(false, "Failed to create the RDP session window.");
       return;
     }
+    // The actual invisibility guarantee - see kHiddenWindowAlpha's comment.
+    // Set before ShowWindow() so the window is never visibly opaque even
+    // for a single frame.
+    ::SetLayeredWindowAttributes(m_hWnd, 0, kHiddenWindowAlpha, LWA_ALPHA);
     ShowWindow(SW_SHOWNOACTIVATE);
     KeepBelowOtherWindows();
   }
@@ -182,6 +199,9 @@ class RdpSession::Impl
       return;
     }
     shown_as_window_ = show;
+    ::SetLayeredWindowAttributes(
+        m_hWnd, 0, show ? kVisibleWindowAlpha : kHiddenWindowAlpha,
+        LWA_ALPHA);
     if (show) {
       ::ShowWindow(m_hWnd, SW_SHOW);
       ::SetForegroundWindow(m_hWnd);
@@ -373,6 +393,7 @@ class RdpSession::Impl
     MSG_WM_CREATE(OnCreate)
     MSG_WM_DESTROY(OnDestroy)
     MSG_WM_SIZE(OnSize)
+    MSG_WM_WINDOWPOSCHANGING(OnWindowPosChanging)
     MESSAGE_HANDLER_EX(kReassertHiddenMessage, OnReassertHiddenMessage)
     COMMAND_ID_HANDLER_EX(kOpenAiAssistantButtonId, OnOpenAiAssistantClicked)
   END_MSG_MAP()
@@ -536,6 +557,30 @@ class RdpSession::Impl
   LRESULT OnReassertHiddenMessage(UINT, WPARAM, LPARAM) {
     KeepBelowOtherWindows();
     return 0;
+  }
+
+  // The definitive fix for the ActiveX control raising this window: every
+  // earlier attempt (re-hiding on a timer, re-hiding right after posting
+  // WM_SETFOCUS, re-hiding again after a click's own button-down message)
+  // was reactive - undoing the raise after Windows had already applied it,
+  // racing whatever posted the next reassert message to get there first.
+  // WM_WINDOWPOSCHANGING instead fires synchronously, before Windows
+  // applies ANY change to this window's Z-order/activation/visibility -
+  // regardless of what triggered it (SetForegroundWindow, BringWindowToTop,
+  // ShowWindow, or our own KeepBelowOtherWindows() call) - so rewriting the
+  // proposed WINDOWPOS here takes effect atomically as part of that same
+  // change, with no gap for the window to become visible in between. Only
+  // touches z-order/activation fields, never position/size, so legitimate
+  // resizes (e.g. OnSize's activex_window_ resize, or the control's own
+  // SmartSizing-driven resizes) are unaffected. A no-op while
+  // shown_as_window_ is true, so SetShownAsWindow(true)'s own
+  // SetForegroundWindow() call still works normally.
+  void OnWindowPosChanging(LPWINDOWPOS window_pos) {
+    if (!window_pos || shown_as_window_) {
+      return;
+    }
+    window_pos->hwndInsertAfter = HWND_BOTTOM;
+    window_pos->flags |= SWP_NOACTIVATE;
   }
 
   void OnOpenAiAssistantClicked(UINT, int, HWND) {

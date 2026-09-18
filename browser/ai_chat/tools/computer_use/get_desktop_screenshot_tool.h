@@ -48,6 +48,7 @@ class GetDesktopScreenshotTool : public Tool {
   std::string_view Name() const override;
   std::string_view Description() const override;
   bool IsAgentTool() const override;
+  std::optional<base::DictValue> InputProperties() const override;
   std::variant<bool, mojom::PermissionChallengePtr>
   RequiresUserInteractionBeforeHandling(
       const mojom::ToolUseEvent& tool_use) const override;

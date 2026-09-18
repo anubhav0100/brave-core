@@ -44,6 +44,13 @@ std::optional<base::DictValue> DesktopMoveMouseTool::InputProperties() const {
   return CreateInputProperties({
       {kPropertyX, IntegerProperty("X coordinate in desktop pixels")},
       {kPropertyY, IntegerProperty("Y coordinate in desktop pixels")},
+      {kPropertyTarget,
+       StringProperty(
+           "Which surface to act on - \"rdp\" for the active RDP session, "
+           "\"local_desktop\" for this machine's own desktop. Omit to "
+           "auto-target whichever is currently active.",
+           std::vector<std::string>{kTargetValueRdp,
+                                    kTargetValueLocalDesktop})},
   });
 }
 
@@ -80,11 +87,19 @@ void DesktopMoveMouseTool::UseTool(const std::string& input_json,
     return;
   }
 
+  const std::string* target_ptr =
+      input ? input->FindString(kPropertyTarget) : nullptr;
+  bool use_rdp = false;
+  if (auto error = ResolveTargetOverride(target_ptr, &use_rdp)) {
+    std::move(callback).Run(CreateContentBlocksForText(*error), {});
+    return;
+  }
+
   auto* state =
       computer_use::ComputerUseSessionStateFactory::GetForBrowserContext(
           browser_context_);
   bool success;
-  if (state->IsRdpActive()) {
+  if (use_rdp) {
     state->SendRdpMouseEvent(*x, *y, 0, 0);
     success = true;
   } else {

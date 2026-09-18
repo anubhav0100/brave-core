@@ -20,12 +20,15 @@
 #include "brave/browser/ai_chat/tools/select_tool.h"
 #include "brave/browser/ai_chat/tools/type_tool.h"
 #include "brave/browser/ai_chat/tools/wait_tool.h"
+#include "brave/browser/computer_use/computer_use_session_state.h"
+#include "brave/browser/computer_use/computer_use_session_state_factory.h"
 #include "brave/components/ai_chat/content/browser/page_content_blocks.h"
 #include "brave/components/ai_chat/core/browser/tools/tool.h"
 #include "brave/components/ai_chat/core/browser/tools/tool_provider.h"
 #include "brave/components/ai_chat/core/browser/tools/tool_utils.h"
 #include "brave/components/ai_chat/core/common/buildflags/buildflags.h"
 #include "brave/components/ai_chat/core/common/features.h"
+#include "build/build_config.h"
 #include "chrome/browser/actor/actor_keyed_service.h"
 #include "chrome/browser/actor/actor_proto_conversion.h"
 #include "chrome/browser/actor/actor_task.h"
@@ -105,6 +108,27 @@ std::vector<base::WeakPtr<Tool>> ContentAgentToolProvider::GetTools() {
   // capability here. But for now we don't need to as we only create the content
   // this class if we're allowed to have content agent tools (which is only
   // within agent profiles).
+#if BUILDFLAG(IS_WIN)
+  // These DOM/tab-automation tools (click/type/navigate/...) and
+  // BrowserToolProvider's RDP-aware tools (open_rdp_session, desktop_click,
+  // get_desktop_screenshot, ...) are both available to the same
+  // conversation with nothing to tell the model which to prefer. That's a
+  // real problem specifically while an RDP session is active: these tools
+  // are guaranteed wrong for it - GetOrCreateTabHandleForTask() always acts
+  // on a tab (creating a blank about:blank one if none exists yet, see its
+  // own comment), never the RDP session's own native window, so a model
+  // that picks these instead of the RDP-aware tools ends up silently
+  // observing/controlling an unrelated blank tab while believing it's
+  // working the remote session. Hiding this toolset entirely while RDP is
+  // connected removes that ambiguity at the source, rather than relying on
+  // tool descriptions alone to steer the model away from it.
+  auto* computer_use_state =
+      computer_use::ComputerUseSessionStateFactory::GetForBrowserContext(
+          profile_);
+  if (computer_use_state && computer_use_state->IsRdpActive()) {
+    return {};
+  }
+#endif
   std::vector<base::WeakPtr<Tool>> tool_ptrs;
   tool_ptrs.reserve(tools_.size());
   std::ranges::transform(tools_, std::back_inserter(tool_ptrs),

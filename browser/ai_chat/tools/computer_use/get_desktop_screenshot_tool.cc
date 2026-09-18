@@ -9,17 +9,30 @@
 
 #include "base/base64.h"
 #include "base/functional/bind.h"
+#include "base/json/json_reader.h"
 #include "base/strings/strcat.h"
 #include "brave/browser/computer_use/computer_use_session_state.h"
 #include "brave/browser/computer_use/computer_use_session_state_factory.h"
 #include "brave/browser/computer_use/desktop_capture_session.h"
+#include "brave/components/ai_chat/core/browser/tools/tool_input_properties.h"
 #include "brave/components/ai_chat/core/browser/tools/tool_utils.h"
 #include "brave/components/ai_chat/core/common/mojom/ai_chat.mojom.h"
 #include "brave/components/ai_chat/core/common/mojom/common.mojom.h"
+#include "build/build_config.h"
 #include "content/public/browser/browser_context.h"
 #include "url/gurl.h"
 
 namespace ai_chat {
+
+namespace {
+// Matches DesktopInputToolBase::kPropertyTarget/kTargetValueRdp/
+// kTargetValueLocalDesktop (desktop_input_tool_base.h) - kept as separate
+// literals here rather than a shared include, since that header (and RDP
+// itself) is Windows-only, while this tool is cross-platform.
+constexpr char kPropertyTarget[] = "target";
+constexpr char kTargetValueRdp[] = "rdp";
+constexpr char kTargetValueLocalDesktop[] = "local_desktop";
+}  // namespace
 
 GetDesktopScreenshotTool::GetDesktopScreenshotTool(
     content::BrowserContext* browser_context)
@@ -34,7 +47,10 @@ std::string_view GetDesktopScreenshotTool::Name() const {
 
 std::string_view GetDesktopScreenshotTool::Description() const {
   return "Captures a screenshot of the user's entire desktop - every "
-         "monitor, whatever app is on screen, not just this browser. Use "
+         "monitor, whatever app is on screen, not just this browser. If an "
+         "RDP session is currently open (see open_rdp_session), this "
+         "instead captures that remote session's own screen - use it for "
+         "that, not a browser tab screenshot, while RDP is active. Use "
          "this to see what's currently on screen before deciding on a "
          "computer-use action. Requires the user's one-time permission the "
          "first time it's used in a conversation.";
@@ -42,6 +58,19 @@ std::string_view GetDesktopScreenshotTool::Description() const {
 
 bool GetDesktopScreenshotTool::IsAgentTool() const {
   return true;
+}
+
+std::optional<base::DictValue> GetDesktopScreenshotTool::InputProperties()
+    const {
+  return CreateInputProperties({
+      {kPropertyTarget,
+       StringProperty(
+           "Which surface to capture - \"rdp\" for the active RDP "
+           "session, \"local_desktop\" for this machine's own desktop. "
+           "Omit to auto-target whichever is currently active.",
+           std::vector<std::string>{kTargetValueRdp,
+                                    kTargetValueLocalDesktop})},
+  });
 }
 
 std::variant<bool, mojom::PermissionChallengePtr>
@@ -72,20 +101,41 @@ void GetDesktopScreenshotTool::UserPermissionGranted(
 
 void GetDesktopScreenshotTool::UseTool(const std::string& input_json,
                                        UseToolCallback callback) {
+#if BUILDFLAG(IS_WIN)
   auto* state =
       computer_use::ComputerUseSessionStateFactory::GetForBrowserContext(
           browser_context_);
+  bool rdp_active = state->IsRdpActive();
+  bool use_rdp = rdp_active;
+  auto input = base::JSONReader::ReadDict(input_json,
+                                          base::JSON_PARSE_CHROMIUM_EXTENSIONS);
+  const std::string* target =
+      input ? input->FindString(kPropertyTarget) : nullptr;
+  if (target && *target == kTargetValueRdp) {
+    if (!rdp_active) {
+      std::move(callback).Run(
+          CreateContentBlocksForText(
+              "Error: target=\"rdp\" was requested but no RDP session is "
+              "currently active. Call open_rdp_session first."),
+          {});
+      return;
+    }
+    use_rdp = true;
+  } else if (target && *target == kTargetValueLocalDesktop) {
+    use_rdp = false;
+  }
   // While RDP is active, its session window is hidden (see rdp_session.h)
   // and never appears in a full-desktop capture at all - the RDP capture
   // timer (ComputerUseSessionState) already keeps a fresh, window-specific
   // capture of it (~5x/sec), so reuse that instead of taking a second,
   // redundant full-desktop capture that wouldn't show it anyway.
-  if (state->IsRdpActive() && !state->GetLatestFrameDataUrl().empty()) {
+  if (use_rdp && !state->GetLatestFrameDataUrl().empty()) {
     std::move(callback).Run(
         CreateContentBlocksForImage(GURL(state->GetLatestFrameDataUrl())),
         {});
     return;
   }
+#endif
   capture_session_->CaptureScreenshot(
       base::BindOnce(&GetDesktopScreenshotTool::OnScreenshotCaptured,
                      weak_ptr_factory_.GetWeakPtr(), std::move(callback)));

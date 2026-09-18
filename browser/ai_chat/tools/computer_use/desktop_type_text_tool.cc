@@ -42,6 +42,13 @@ std::string_view DesktopTypeTextTool::Description() const {
 std::optional<base::DictValue> DesktopTypeTextTool::InputProperties() const {
   return CreateInputProperties({
       {kPropertyText, StringProperty("The text to type")},
+      {kPropertyTarget,
+       StringProperty(
+           "Which surface to act on - \"rdp\" for the active RDP session, "
+           "\"local_desktop\" for this machine's own desktop. Omit to "
+           "auto-target whichever is currently active.",
+           std::vector<std::string>{kTargetValueRdp,
+                                    kTargetValueLocalDesktop})},
   });
 }
 
@@ -83,12 +90,20 @@ void DesktopTypeTextTool::UseTool(const std::string& input_json,
     return;
   }
 
+  const std::string* target_ptr =
+      input ? input->FindString(kPropertyTarget) : nullptr;
+  bool use_rdp = false;
+  if (auto error = ResolveTargetOverride(target_ptr, &use_rdp)) {
+    std::move(callback).Run(CreateContentBlocksForText(*error), {});
+    return;
+  }
+
   std::string process_name = GetForegroundTargetProcessName();
   auto* state =
       computer_use::ComputerUseSessionStateFactory::GetForBrowserContext(
           browser_context_);
   bool success;
-  if (state->IsRdpActive()) {
+  if (use_rdp) {
     std::u16string text16 = base::UTF8ToUTF16(*text);
     for (char16_t ch : text16) {
       if (ch == u'\n') {

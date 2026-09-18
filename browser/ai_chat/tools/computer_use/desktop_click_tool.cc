@@ -51,6 +51,13 @@ std::optional<base::DictValue> DesktopClickTool::InputProperties() const {
                       std::vector<std::string>{"left", "right", "middle"})},
       {kPropertyDoubleClick,
        BooleanProperty("Whether to double-click - defaults to false")},
+      {kPropertyTarget,
+       StringProperty(
+           "Which surface to act on - \"rdp\" for the active RDP session, "
+           "\"local_desktop\" for this machine's own desktop. Omit to "
+           "auto-target whichever is currently active.",
+           std::vector<std::string>{kTargetValueRdp,
+                                    kTargetValueLocalDesktop})},
   });
 }
 
@@ -97,12 +104,19 @@ void DesktopClickTool::UseTool(const std::string& input_json,
   std::string button = button_ptr ? *button_ptr : "left";
   bool double_click =
       input && input->FindBool(kPropertyDoubleClick).value_or(false);
+  const std::string* target_ptr =
+      input ? input->FindString(kPropertyTarget) : nullptr;
+  bool use_rdp = false;
+  if (auto error = ResolveTargetOverride(target_ptr, &use_rdp)) {
+    std::move(callback).Run(CreateContentBlocksForText(*error), {});
+    return;
+  }
 
   auto* state =
       computer_use::ComputerUseSessionStateFactory::GetForBrowserContext(
           browser_context_);
   bool success;
-  if (state->IsRdpActive()) {
+  if (use_rdp) {
     int button_bit = button == "right"    ? 2
                      : button == "middle" ? 4
                                           : 1;

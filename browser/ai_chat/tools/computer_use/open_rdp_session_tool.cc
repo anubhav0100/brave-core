@@ -57,7 +57,11 @@ std::string_view OpenRdpSessionTool::Description() const {
          "the RDP client's own prompt or the user's saved Windows "
          "credentials for that host. Once connected, get_desktop_screenshot "
          "and the desktop_* input tools work on the remote session like any "
-         "other on-screen window.";
+         "other on-screen window - use this tool, not page/tab navigation "
+         "or click tools, for any task that's about controlling or "
+         "administering the remote machine (e.g. \"open X on that server\", "
+         "\"install/configure Y there\"), since those other tools act on a "
+         "browser tab, never on the RDP session.";
 }
 
 bool OpenRdpSessionTool::IsAgentTool() const {

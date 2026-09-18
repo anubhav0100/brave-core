@@ -51,6 +51,13 @@ std::optional<base::DictValue> DesktopScrollTool::InputProperties() const {
       {kPropertyDeltaX,
        IntegerProperty("Horizontal scroll amount, positive = right - "
                        "defaults to 0")},
+      {kPropertyTarget,
+       StringProperty(
+           "Which surface to act on - \"rdp\" for the active RDP session, "
+           "\"local_desktop\" for this machine's own desktop. Omit to "
+           "auto-target whichever is currently active.",
+           std::vector<std::string>{kTargetValueRdp,
+                                    kTargetValueLocalDesktop})},
   });
 }
 
@@ -95,12 +102,19 @@ void DesktopScrollTool::UseTool(const std::string& input_json,
   }
   int delta_x = input ? input->FindInt(kPropertyDeltaX).value_or(0) : 0;
   int delta_y = input ? input->FindInt(kPropertyDeltaY).value_or(0) : 0;
+  const std::string* target_ptr =
+      input ? input->FindString(kPropertyTarget) : nullptr;
+  bool use_rdp = false;
+  if (auto error = ResolveTargetOverride(target_ptr, &use_rdp)) {
+    std::move(callback).Run(CreateContentBlocksForText(*error), {});
+    return;
+  }
 
   auto* state =
       computer_use::ComputerUseSessionStateFactory::GetForBrowserContext(
           browser_context_);
   bool success;
-  if (state->IsRdpActive()) {
+  if (use_rdp) {
     // RdpSession::SendMouseEvent only carries one wheel axis (matching
     // WM_MOUSEWHEEL) - horizontal scroll (delta_x) isn't forwarded to RDP
     // sessions.

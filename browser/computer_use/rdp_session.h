@@ -22,13 +22,12 @@ inline constexpr wchar_t kRdpSessionWindowClassName[] =
     L"BraveComputerUseRdpSession";
 
 // Hosts Microsoft's RDP ActiveX control (MsTscAx) in a real top-level
-// window titled "RDP: <host> - AI Automation Browser" - positioned at a
-// real, on-screen location but pushed to the bottom of the Z-order (see
-// Connect()), and created with WS_EX_TOOLWINDOW, so it never appears in
-// the taskbar or Alt+Tab and is normally covered by whatever else is on
-// screen (typically the browser window itself), without ever being
-// activated or stealing focus. This is the third design tried, after two
-// that each broke hardware-accelerated capture specifically: never
+// window titled "RDP: <host> - AI Automation Browser" - a layered window
+// (WS_EX_LAYERED) kept at alpha=1 (see kHiddenWindowAlpha in the .cc),
+// not alpha=0, and created with WS_EX_TOOLWINDOW so it never appears in
+// the taskbar or Alt+Tab. This is the fourth design tried. Three earlier
+// ones each broke hardware-accelerated capture, or turned out not to
+// actually keep the window hidden from the user in practice: never
 // showing the window at all leaves it with no renderable surface, so
 // window capture (GDI PrintWindow / the Windows Graphics Capture
 // fallback) permanently fails; positioning it entirely outside the
@@ -37,15 +36,25 @@ inline constexpr wchar_t kRdpSessionWindowClassName[] =
 // content needs) treats a window with zero on-screen presence as fully
 // occluded/cloaked and returns blank content, the same power-saving
 // behavior a minimized window gets; a fully-transparent layered window
-// (WS_EX_LAYERED, alpha 0) ALSO captured as solid black, since WGC
-// reflects the window's real alpha-blended visual result. Both of those
-// capture mechanisms fundamentally reflect "what a human would actually
-// see," so any technique that hides content from a human also hides it
-// from them - staying at the bottom of the Z-order on a real, valid
-// screen position is what keeps the window genuinely on-screen and
-// opaque (so capture gets real content) while still being invisible in
-// practice, without relying on a Windows mechanism that conflates
-// "invisible to a human" with "invisible to capture." True tab embedding
+// (alpha 0) ALSO captured as solid black, since WGC reflects the
+// window's real alpha-blended visual result. Both of those capture
+// mechanisms fundamentally reflect "what a human would actually see," so
+// alpha=0 hides content from capture exactly as much as from a human.
+// The fix is alpha=1: imperceptible to a human (indistinguishable from
+// fully transparent at normal viewing) but nonzero, so WGC still treats
+// the window as genuinely on-screen and captures its real content. This
+// replaced an earlier design that instead tried to keep the window
+// merely covered by other windows (bottom of the Z-order, at a real
+// on-screen position) - which looked sufficient in initial testing but
+// proved unreliable in practice: the RDP ActiveX control raises its own
+// top-level window on more triggers, and in more ways, than reactive
+// countermeasures (a repeating re-hide timer, message-order tricks, even
+// synchronously intercepting WM_WINDOWPOSCHANGING) could reliably keep
+// up with, and the browser window covering this one's screen position
+// wasn't even guaranteed to begin with (a resized/moved browser window
+// can simply not cover it). Z-order placement is kept as defense in
+// depth (see KeepBelowOtherWindows()) but the alpha is what actually
+// guarantees invisibility now, regardless of Z-order. True tab embedding
 // (making the control itself a child of a browser tab's native view
 // hierarchy) isn't something Chromium's tab strip supports - tabs are
 // WebContents, not arbitrary native views - so instead this window's

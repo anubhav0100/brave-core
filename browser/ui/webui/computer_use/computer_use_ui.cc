@@ -10,7 +10,6 @@
 
 #include "base/functional/bind.h"
 #include "base/strings/strcat.h"
-#include "brave/app/brave_command_ids.h"
 #include "brave/browser/computer_use/computer_use_session_state.h"
 #include "brave/browser/computer_use/computer_use_session_state_factory.h"
 #include "brave/browser/ui/webui/brave_webui_source.h"
@@ -18,9 +17,10 @@
 #include "brave/components/constants/webui_url_constants.h"
 #include "build/build_config.h"
 #include "chrome/browser/ui/browser.h"
-#include "chrome/browser/ui/browser_commands.h"
 #include "chrome/browser/ui/browser_window.h"
 #include "chrome/browser/ui/browser_window/public/global_browser_collection.h"
+#include "chrome/browser/ui/side_panel/side_panel_entry_id.h"
+#include "chrome/browser/ui/side_panel/side_panel_ui.h"
 #include "components/grit/brave_components_resources.h"
 #include "content/public/browser/web_contents.h"
 #include "content/public/browser/web_ui.h"
@@ -218,14 +218,24 @@ void ComputerUseUI::OnRdpStateChanged(bool rdp_active,
 }
 
 void ComputerUseUI::OnRdpOpenAiAssistantRequested() {
-  Browser* browser = GlobalBrowserCollection::GetInstance()->FindBrowserWithTab(
-      web_ui()->GetWebContents());
+  BrowserWindowInterface* browser_window =
+      GlobalBrowserCollection::GetInstance()->FindBrowserWithTab(
+          web_ui()->GetWebContents());
+  Browser* browser =
+      browser_window ? browser_window->GetBrowserForMigrationOnly() : nullptr;
   if (!browser) {
     return;
   }
   browser->window()->Activate();
   browser->window()->Show();
-  chrome::ExecuteCommand(browser, IDC_TOGGLE_AI_CHAT);
+  // Show(), not the IDC_TOGGLE_AI_CHAT command - this button's whole point
+  // is to get back to a panel this popup is covering, so it must always
+  // end up open. A toggle command would instead close it on every second
+  // click, which defeats that (the popup has no way to tell whether the
+  // panel happened to already be open).
+  if (SidePanelUI* side_panel_ui = SidePanelUI::From(browser_window)) {
+    side_panel_ui->Show(SidePanelEntryId::kChatUI);
+  }
 }
 
 WEB_UI_CONTROLLER_TYPE_IMPL(ComputerUseUI)
