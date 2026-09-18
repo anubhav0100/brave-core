@@ -355,6 +355,56 @@ std::optional<base::ListValue> ToolApiDefinitionsFromTools(
   return tools_list;
 }
 
+std::optional<base::ListValue> ToolApiDefinitionsFromToolsForResponsesApi(
+    const std::vector<base::WeakPtr<Tool>>& tools) {
+  if (tools.empty()) {
+    return std::nullopt;
+  }
+  base::ListValue tools_list;
+  for (const base::WeakPtr<Tool> tool : tools) {
+    if (!tool) {
+      DLOG(ERROR) << "Tool is null, skipping tool.";
+      continue;
+    }
+    if (tool->Name().empty()) {
+      DLOG(ERROR) << "Tool name is empty, skipping tool.";
+      continue;
+    }
+
+    bool type_is_function = tool->Type().empty() || tool->Type() == "function";
+    if (!type_is_function) {
+      // Non-function (remote-defined) tool types aren't a documented
+      // Responses API concept - skip rather than guess at a shape.
+      continue;
+    }
+
+    base::DictValue tool_dict;
+    tool_dict.Set("type", "function");
+    tool_dict.Set("name", tool->Name());
+    if (!tool->Description().empty()) {
+      tool_dict.Set("description", tool->Description());
+    }
+
+    auto input_schema = tool->InputProperties();
+    if (input_schema) {
+      base::DictValue parameters;
+      parameters.Set("type", "object");
+      parameters.Set("properties", std::move(input_schema.value()));
+      if (tool->RequiredProperties().has_value() &&
+          !tool->RequiredProperties()->empty()) {
+        base::ListValue required_properties;
+        for (const auto& property : tool->RequiredProperties().value()) {
+          required_properties.Append(property);
+        }
+        parameters.Set("required", std::move(required_properties));
+      }
+      tool_dict.Set("parameters", std::move(parameters));
+    }
+    tools_list.Append(std::move(tool_dict));
+  }
+  return tools_list;
+}
+
 const base::DictValue* GetOAIContentContainer(const base::DictValue& response) {
   const base::ListValue* choices = response.FindList("choices");
   if (!choices || choices->empty() || !choices->front().is_dict()) {
@@ -426,6 +476,88 @@ std::optional<EngineConsumer::GenerationResultData> ParseOAICompletionResponse(
       mojom::CompletionEvent::New(*content));
   return EngineConsumer::GenerationResultData(std::move(event),
                                               std::move(model_key));
+}
+
+std::optional<EngineConsumer::GenerationResultData>
+ParseResponsesApiCompletionResponse(const base::DictValue& response,
+                                    std::optional<std::string> model_key) {
+  // https://platform.openai.com/docs/api-reference/responses/object
+  const base::ListValue* output = response.FindList("output");
+  if (!output) {
+    VLOG(2) << "No 'output' list found in Responses API response.";
+    return std::nullopt;
+  }
+
+  std::string text;
+  for (const auto& item_value : *output) {
+    if (!item_value.is_dict()) {
+      continue;
+    }
+    const base::DictValue& item = item_value.GetDict();
+    const std::string* type = item.FindString("type");
+    if (!type || *type != "message") {
+      continue;
+    }
+    const base::ListValue* content = item.FindList("content");
+    if (!content) {
+      continue;
+    }
+    for (const auto& content_item_value : *content) {
+      if (!content_item_value.is_dict()) {
+        continue;
+      }
+      const base::DictValue& content_item = content_item_value.GetDict();
+      const std::string* content_type = content_item.FindString("type");
+      if (!content_type || *content_type != "output_text") {
+        continue;
+      }
+      if (const std::string* item_text = content_item.FindString("text")) {
+        text += *item_text;
+      }
+    }
+  }
+
+  if (text.empty()) {
+    return std::nullopt;
+  }
+
+  auto event = mojom::ConversationEntryEvent::NewCompletionEvent(
+      mojom::CompletionEvent::New(text));
+  return EngineConsumer::GenerationResultData(std::move(event),
+                                              std::move(model_key));
+}
+
+std::vector<EngineConsumer::GenerationResultData>
+ParseToolCallsFromResponsesApiResponse(const base::DictValue& response,
+                                       std::optional<std::string> model_key) {
+  std::vector<EngineConsumer::GenerationResultData> results;
+  const base::ListValue* output = response.FindList("output");
+  if (!output) {
+    return results;
+  }
+
+  for (const auto& item_value : *output) {
+    if (!item_value.is_dict()) {
+      continue;
+    }
+    const base::DictValue& item = item_value.GetDict();
+    const std::string* type = item.FindString("type");
+    if (!type || *type != "function_call") {
+      continue;
+    }
+    const std::string* call_id = item.FindString("call_id");
+    const std::string* name = item.FindString("name");
+    const std::string* arguments = item.FindString("arguments");
+    mojom::ToolUseEventPtr tool_use_event = mojom::ToolUseEvent::New(
+        name ? *name : "", call_id ? *call_id : "",
+        arguments ? *arguments : "{}", std::nullopt, std::nullopt, nullptr,
+        false);
+    auto tool_event = mojom::ConversationEntryEvent::NewToolUseEvent(
+        std::move(tool_use_event));
+    results.emplace_back(std::move(tool_event), model_key);
+  }
+
+  return results;
 }
 
 }  // namespace ai_chat

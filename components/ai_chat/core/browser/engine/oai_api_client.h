@@ -71,6 +71,16 @@ class OAIAPIClient {
       std::optional<base::ListValue> oai_tool_definitions,
       const std::optional<std::vector<std::string>>& stop_sequences);
 
+  // Builds a JSON request body for OpenAI's Responses API - always
+  // non-streaming (see CustomModelOptions.use_responses_api's own
+  // comment). `input` is already in the Responses API's own shape (see
+  // ConvertOAIMessagesToResponsesApiInput), and `tool_definitions` in its
+  // flat function-tool shape (see ToolApiDefinitionsFromToolsForResponsesApi).
+  static base::DictValue CreateResponsesAPIRequestBody(
+      base::ListValue input,
+      const std::string& model_request_name,
+      std::optional<base::ListValue> tool_definitions);
+
   // Maps an HTTP response code to an APIError using the same conventions as
   // OAI / Anthropic.
   static mojom::APIError MapResponseCodeToError(int response_code);
@@ -102,6 +112,18 @@ class OAIAPIClient {
  private:
   void OnQueryCompleted(GenerationCompletedCallback callback,
                         api_request_helper::APIRequestResult result);
+
+  // Like OnQueryCompleted, but for the Responses API path: that path is
+  // always non-streaming, so a single response carries both any tool
+  // calls (relayed via `data_received_callback`, mirroring how the SSE
+  // path relays them mid-stream) and the completion text/error (via
+  // `completed_callback`) - unlike Chat Completions' non-streaming
+  // handling, which (per HandleCompletion) doesn't parse tool calls at
+  // all, only completion text.
+  void OnResponsesAPIQueryCompleted(
+      GenerationDataCallback data_received_callback,
+      GenerationCompletedCallback completed_callback,
+      api_request_helper::APIRequestResult result);
 
   std::unique_ptr<api_request_helper::APIRequestHelper> api_request_helper_;
 

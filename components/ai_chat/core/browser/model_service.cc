@@ -67,6 +67,7 @@ constexpr char kCustomModelItemApiKey[] = "api_key";
 constexpr char kCustomModelItemKey[] = "key";
 constexpr char kCustomModelVisionSupport[] = "vision_support";
 constexpr char kCustomModelSupportsTools[] = "supports_tools";
+constexpr char kCustomModelUseResponsesApi[] = "use_responses_api";
 
 // When adding new models, especially for display, make sure to add the UI
 // strings to ai_chat_ui_strings.grdp and ai_chat/core/constants.cc.
@@ -583,6 +584,7 @@ base::DictValue ModelService::CustomModelToPrefDict(
   model_dict.Set(kCustomModelItemApiKey, EncryptAPIKey(options.api_key));
   model_dict.Set(kCustomModelContextSizeKey,
                  static_cast<int32_t>(options.context_size));
+  model_dict.Set(kCustomModelUseResponsesApi, options.use_responses_api);
 
   // Save system prompt (even if empty to allow clearing)
   if (options.model_system_prompt.has_value()) {
@@ -1142,6 +1144,8 @@ const std::vector<mojom::ModelPtr> ModelService::GetCustomModels() {
             .value_or(kDefaultCustomModelContextSize);
     custom_model_opts->api_key =
         DecryptAPIKey(*model_pref.FindString(kCustomModelItemApiKey));
+    custom_model_opts->use_responses_api =
+        model_pref.FindBool(kCustomModelUseResponsesApi).value_or(false);
 
     // Populate system prompt (if it exists)
     if (const std::string* model_system_prompt =

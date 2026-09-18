@@ -116,6 +116,21 @@ base::DictValue OAIAPIClient::CreateJSONRequestBody(
 }
 
 // static
+base::DictValue OAIAPIClient::CreateResponsesAPIRequestBody(
+    base::ListValue input,
+    const std::string& model_request_name,
+    std::optional<base::ListValue> tool_definitions) {
+  base::DictValue dict;
+  dict.Set("model", model_request_name);
+  dict.Set("input", std::move(input));
+  dict.Set("stream", false);
+  if (tool_definitions.has_value() && !tool_definitions->empty()) {
+    dict.Set("tools", std::move(tool_definitions.value()));
+  }
+  return dict;
+}
+
+// static
 mojom::APIError OAIAPIClient::MapResponseCodeToError(int response_code) {
   // https://platform.openai.com/docs/guides/error-codes
   // https://docs.anthropic.com/en/api/errors
@@ -360,14 +375,29 @@ void OAIAPIClient::PerformRequest(
     return;
   }
 
-  const bool is_sse_enabled =
-      ai_chat::features::kAIChatSSE.Get() && !data_received_callback.is_null();
+  // The Responses API has no documented streaming-request equivalent of
+  // this SSE integration yet (its own streaming protocol is a
+  // differently-shaped set of "response.*" events, not the same
+  // delta-chunk shape OnQueryDataReceived parses) - always request it
+  // non-streaming rather than silently mis-parsing an unsupported stream.
+  const bool is_sse_enabled = !opts.use_responses_api &&
+                              ai_chat::features::kAIChatSSE.Get() &&
+                              !data_received_callback.is_null();
   std::string request_body;
-  base::JSONWriter::Write(
-      CreateJSONRequestBody(SerializeOAIMessages(std::move(messages)),
-                            is_sse_enabled, opts.model_request_name,
-                            std::move(oai_tool_definitions), stop_sequences),
-      &request_body);
+  if (opts.use_responses_api) {
+    base::JSONWriter::Write(
+        CreateResponsesAPIRequestBody(
+            ConvertOAIMessagesToResponsesApiInput(
+                SerializeOAIMessages(std::move(messages))),
+            opts.model_request_name, std::move(oai_tool_definitions)),
+        &request_body);
+  } else {
+    base::JSONWriter::Write(
+        CreateJSONRequestBody(SerializeOAIMessages(std::move(messages)),
+                              is_sse_enabled, opts.model_request_name,
+                              std::move(oai_tool_definitions), stop_sequences),
+        &request_body);
+  }
   base::flat_map<std::string, std::string> headers;
   if (!opts.api_key.empty()) {
     // Azure OpenAI's key-based auth (as opposed to Azure AD/Entra ID token
@@ -403,6 +433,14 @@ void OAIAPIClient::PerformRequest(
                                     opts.endpoint, request_body,
                                     "application/json", std::move(on_received),
                                     std::move(on_complete), headers, {});
+  } else if (opts.use_responses_api) {
+    auto on_complete = base::BindOnce(
+        &OAIAPIClient::OnResponsesAPIQueryCompleted,
+        weak_ptr_factory_.GetWeakPtr(), std::move(data_received_callback),
+        std::move(completed_callback));
+    api_request_helper_->Request(
+        net::HttpRequestHeaders::kPostMethod, opts.endpoint, request_body,
+        "application/json", std::move(on_complete), headers, {});
   } else {
     auto on_complete = base::BindOnce(&OAIAPIClient::OnQueryCompleted,
                                       weak_ptr_factory_.GetWeakPtr(),
@@ -456,6 +494,66 @@ void OAIAPIClient::OnQueryCompleted(
   HandleCompletion(std::move(callback),
                    /*model_key=*/std::nullopt,
                    /*is_near_verified=*/std::nullopt, std::move(value));
+}
+
+void OAIAPIClient::OnResponsesAPIQueryCompleted(
+    GenerationDataCallback data_received_callback,
+    GenerationCompletedCallback completed_callback,
+    api_request_helper::APIRequestResult result) {
+  if (!result.Is2XXResponseCode()) {
+    const int status_code = result.IsResponseCodeValid()
+                                ? result.response_code()
+                                : result.error_code();
+    std::string error_type;
+    if (result.value_body().is_dict()) {
+      if (const std::string* message =
+              result.value_body().GetDict().FindStringByDottedPath(
+                  "error.message")) {
+        error_type = *message;
+      }
+    }
+    if (error_type.empty() && !result.value_body().is_none()) {
+      base::JSONWriter::Write(result.value_body(), &error_type);
+    }
+    auto details = mojom::APIErrorDetails::New(status_code, error_type,
+                                               /*inner_status_code=*/0);
+    std::move(completed_callback)
+        .Run(base::unexpected(EngineConsumer::Error(
+            MapResponseCodeToError(result.response_code()),
+            std::move(details))));
+    return;
+  }
+
+  base::Value body = std::move(result).TakeBody();
+  if (!body.is_dict()) {
+    HandleCompletion(std::move(completed_callback),
+                     /*model_key=*/std::nullopt,
+                     /*is_near_verified=*/std::nullopt, std::nullopt);
+    return;
+  }
+  const base::DictValue& response_dict = body.GetDict();
+
+  // Unlike the Chat Completions non-streaming path (HandleCompletion,
+  // which only ever parses completion text), this response is the only
+  // one this request will ever get - so tool calls have to be relayed
+  // here too, not just text, mirroring what OnQueryDataReceived +
+  // OnQueryCompleted do together for the SSE path.
+  if (!data_received_callback.is_null()) {
+    for (auto& tool_result : ParseToolCallsFromResponsesApiResponse(
+             response_dict, /*model_key=*/std::nullopt)) {
+      data_received_callback.Run(std::move(tool_result));
+    }
+  }
+
+  if (auto result_data = ParseResponsesApiCompletionResponse(
+          response_dict, /*model_key=*/std::nullopt)) {
+    std::move(completed_callback).Run(base::ok(std::move(*result_data)));
+    return;
+  }
+  auto event = mojom::ConversationEntryEvent::NewCompletionEvent(
+      mojom::CompletionEvent::New(""));
+  std::move(completed_callback).Run(base::ok(EngineConsumer::GenerationResultData(
+      std::move(event), /*model_key=*/std::nullopt)));
 }
 
 // static

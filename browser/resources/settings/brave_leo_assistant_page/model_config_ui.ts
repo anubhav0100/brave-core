@@ -109,6 +109,9 @@ export class ModelConfigUI extends ModelConfigUIBase {
       },
       supportsTools: {
         type: Boolean
+      },
+      useResponsesApi: {
+        type: Boolean
       }
     }
   }
@@ -131,6 +134,7 @@ export class ModelConfigUI extends ModelConfigUIBase {
   declare invalidUrlErrorMessage: string
   declare hasVisionSupport: boolean
   declare supportsTools: boolean
+  declare useResponsesApi: boolean
   declare fetchedModels_: string[]
   declare isFetchingModels_: boolean
   declare modelFetchError_: string
@@ -175,7 +179,8 @@ export class ModelConfigUI extends ModelConfigUIBase {
           longConversationWarningCharacterLimit: -1,
           modelSystemPrompt: this.modelSystemPrompt,
           endpoint: this.endpointUrl,
-          apiKey: this.apiKey
+          apiKey: this.apiKey,
+          useResponsesApi: this.useResponsesApi
         }
       },
       key: modelKey,
@@ -247,6 +252,10 @@ export class ModelConfigUI extends ModelConfigUIBase {
 
   onSupportsToolsChanged_(e: LeoToggleEvent) {
     this.supportsTools = e.checked
+  }
+
+  onUseResponsesApiChanged_(e: LeoToggleEvent) {
+    this.useResponsesApi = e.checked
   }
 
   private hasFetchedModels_(fetchedModels: string[]) {
@@ -325,6 +334,8 @@ export class ModelConfigUI extends ModelConfigUIBase {
         newValue.options.customModelOptions.modelSystemPrompt;
       this.hasVisionSupport = newValue.visionSupport;
       this.supportsTools = newValue.supportsTools
+      this.useResponsesApi =
+        newValue.options.customModelOptions.useResponsesApi
     }
     this.constructTokenEstimateString_()
   }

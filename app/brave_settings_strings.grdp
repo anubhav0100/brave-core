@@ -1809,6 +1809,12 @@
   <message name="IDS_SETTINGS_LEO_ASSISTANT_INPUT_MODEL_TOOL_SUPPORT_TOOLTIP_INFO" desc="A brief description for model tool support for adding a custom model.">
     If this model supports function calling / tool use
   </message>
+  <message name="IDS_SETTINGS_LEO_ASSISTANT_MODEL_USE_RESPONSES_API_TOGGLE" desc="A label for the toggle to use OpenAI's Responses API instead of Chat Completions for a custom model.">
+    Use Responses API
+  </message>
+  <message name="IDS_SETTINGS_LEO_ASSISTANT_INPUT_MODEL_USE_RESPONSES_API_TOOLTIP_INFO" desc="A brief description for the Responses API toggle for adding a custom model.">
+    Enable for OpenAI models that require the newer Responses API (POSTs to a /v1/responses-style endpoint) instead of Chat Completions - some reasoning models reject function tools otherwise. Streaming is disabled when this is on.
+  </message>
   <message name="IDS_SETTINGS_LEO_ASSISTANT_INPUT_MODEL_LABEL_TOOLTIP_INFO" desc="A brief description for the input title for adding a custom model">
     The name of the model as it will appear in the model selection menu
   </message>

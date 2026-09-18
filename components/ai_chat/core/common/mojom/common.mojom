@@ -651,6 +651,14 @@ struct CustomModelOptions {
   // the endpoint could be a local network address or a remote server
   url.mojom.Url endpoint;
   string api_key;
+  // Use OpenAI's Responses API (POST body shaped as {"input": [...]},
+  // response parsed from an "output" item array) instead of the Chat
+  // Completions API ({"messages": [...]}, response parsed from
+  // "choices"). Some models (reasoning-tier models combined with function
+  // tools) reject Chat Completions entirely and require this. Streaming
+  // is not yet supported in this mode - requests are always sent
+  // non-streaming.
+  bool use_responses_api = false;
 };
 
 union ModelOptions {

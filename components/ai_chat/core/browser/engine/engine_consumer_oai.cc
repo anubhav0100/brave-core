@@ -231,9 +231,18 @@ void EngineConsumerOAIRemote::GenerateAssistantResponse(
   messages.push_back(BuildSystemMessage(conversation_messages));
   std::ranges::move(conversation_messages, std::back_inserter(messages));
 
-  api_->PerformRequest(
-      *model_options_, std::move(messages), ToolApiDefinitionsFromTools(tools),
-      std::move(data_received_callback), std::move(completed_callback));
+  // The Responses API's function tool definitions are a flatter shape
+  // than Chat Completions' - see ToolApiDefinitionsFromToolsForResponsesApi's
+  // own comment.
+  auto tool_definitions =
+      model_options_->get_custom_model_options()->use_responses_api
+          ? ToolApiDefinitionsFromToolsForResponsesApi(tools)
+          : ToolApiDefinitionsFromTools(tools);
+
+  api_->PerformRequest(*model_options_, std::move(messages),
+                       std::move(tool_definitions),
+                       std::move(data_received_callback),
+                       std::move(completed_callback));
 }
 
 OAIMessage EngineConsumerOAIRemote::BuildSystemMessage(

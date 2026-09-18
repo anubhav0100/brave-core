@@ -49,6 +49,13 @@ std::optional<mojom::ContentBlockPtr> ParseContentBlockFromDict(
 std::optional<base::ListValue> ToolApiDefinitionsFromTools(
     const std::vector<base::WeakPtr<Tool>>& tools);
 
+// Like ToolApiDefinitionsFromTools, but for OpenAI's Responses API, whose
+// function tool definitions are flat ({"type":"function","name":...,
+// "description":...,"parameters":...}) rather than nested under a
+// "function" key the way Chat Completions' are.
+std::optional<base::ListValue> ToolApiDefinitionsFromToolsForResponsesApi(
+    const std::vector<base::WeakPtr<Tool>>& tools);
+
 // Extract the content container (delta or message) from an OpenAI response.
 // Returns nullptr if the response doesn't follow OpenAI format.
 const base::DictValue* GetOAIContentContainer(const base::DictValue& response);
@@ -67,6 +74,21 @@ std::vector<EngineConsumer::GenerationResultData> ParseToolCallsFromOAIResponse(
 std::optional<EngineConsumer::GenerationResultData> ParseOAICompletionResponse(
     const base::DictValue& response,
     std::optional<std::string> model_key);
+
+// Parses a non-streaming OpenAI Responses API response body (top-level
+// "output" array of items) into completion text - the "output_text"
+// content of the first "message"-typed output item found. See
+// platform.openai.com/docs/api-reference/responses/object.
+std::optional<EngineConsumer::GenerationResultData>
+ParseResponsesApiCompletionResponse(const base::DictValue& response,
+                                    std::optional<std::string> model_key);
+
+// Like ParseToolCallsFromOAIResponse, but for the Responses API's
+// "output" array of "function_call"-typed items (call_id/name/arguments)
+// rather than Chat Completions' choices[0].message.tool_calls.
+std::vector<EngineConsumer::GenerationResultData>
+ParseToolCallsFromResponsesApiResponse(const base::DictValue& response,
+                                       std::optional<std::string> model_key);
 
 }  // namespace ai_chat
 
