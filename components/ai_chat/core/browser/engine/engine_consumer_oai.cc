@@ -78,6 +78,8 @@ EngineConsumerOAIRemote::~EngineConsumerOAIRemote() = default;
 
 void EngineConsumerOAIRemote::ClearAllQueries() {
   api_->ClearAllQueries();
+  last_responses_api_response_id_ = std::nullopt;
+  last_responses_api_input_message_count_ = 0;
 }
 
 bool EngineConsumerOAIRemote::SupportsDeltaTextResponses() const {
@@ -96,6 +98,10 @@ void EngineConsumerOAIRemote::UpdateModelOptions(
   model_options_ = options.Clone();
   max_associated_content_length_ =
       model_options_->get_custom_model_options()->max_associated_content_length;
+  // A model switch invalidates any stored Responses API continuity state -
+  // it may point to a conversation on a different model/backend entirely.
+  last_responses_api_response_id_ = std::nullopt;
+  last_responses_api_input_message_count_ = 0;
 }
 
 void EngineConsumerOAIRemote::GenerateRewriteSuggestion(
@@ -231,18 +237,65 @@ void EngineConsumerOAIRemote::GenerateAssistantResponse(
   messages.push_back(BuildSystemMessage(conversation_messages));
   std::ranges::move(conversation_messages, std::back_inserter(messages));
 
+  const bool use_responses_api =
+      model_options_->get_custom_model_options()->use_responses_api;
+
   // The Responses API's function tool definitions are a flatter shape
   // than Chat Completions' - see ToolApiDefinitionsFromToolsForResponsesApi's
   // own comment.
-  auto tool_definitions =
-      model_options_->get_custom_model_options()->use_responses_api
-          ? ToolApiDefinitionsFromToolsForResponsesApi(tools)
-          : ToolApiDefinitionsFromTools(tools);
+  auto tool_definitions = use_responses_api
+                              ? ToolApiDefinitionsFromToolsForResponsesApi(tools)
+                              : ToolApiDefinitionsFromTools(tools);
 
-  api_->PerformRequest(*model_options_, std::move(messages),
-                       std::move(tool_definitions),
-                       std::move(data_received_callback),
-                       std::move(completed_callback));
+  if (!use_responses_api) {
+    api_->PerformRequest(*model_options_, std::move(messages),
+                         std::move(tool_definitions),
+                         std::move(data_received_callback),
+                         std::move(completed_callback));
+    return;
+  }
+
+  // Responses API continuity: if the previous assistant turn's response id
+  // is still valid for this history (the history has only grown, not been
+  // edited/regenerated to something shorter than or equal to what was
+  // already sent), send only the messages added since then plus
+  // `previous_response_id`, instead of the full history - matching the
+  // pattern OpenAI's docs give for gpt-6-astra multi-turn conversations.
+  const size_t full_message_count = messages.size();
+  std::optional<std::string> previous_response_id;
+  if (last_responses_api_response_id_.has_value() &&
+      full_message_count > last_responses_api_input_message_count_) {
+    previous_response_id = last_responses_api_response_id_;
+    messages.erase(messages.begin(),
+                   messages.begin() + last_responses_api_input_message_count_);
+  } else {
+    // History didn't grow past what was already sent (edit/regenerate/new
+    // conversation) - the stored response id no longer applies.
+    last_responses_api_response_id_ = std::nullopt;
+  }
+
+  api_->PerformRequest(
+      *model_options_, std::move(messages), std::move(tool_definitions),
+      std::move(data_received_callback),
+      base::BindOnce(&EngineConsumerOAIRemote::OnResponsesAssistantResponseCompleted,
+                     weak_ptr_factory_.GetWeakPtr(),
+                     std::move(completed_callback), full_message_count),
+      /*stop_sequences=*/std::nullopt, std::move(previous_response_id));
+}
+
+void EngineConsumerOAIRemote::OnResponsesAssistantResponseCompleted(
+    GenerationCompletedCallback completed_callback,
+    size_t sent_message_count,
+    GenerationResult result) {
+  if (result.has_value() && result->responses_api_response_id.has_value()) {
+    last_responses_api_response_id_ = result->responses_api_response_id;
+    last_responses_api_input_message_count_ = sent_message_count;
+  } else if (!result.has_value()) {
+    // The request failed - don't keep continuity state pointing at a
+    // response the server may not have actually produced/stored.
+    last_responses_api_response_id_ = std::nullopt;
+  }
+  std::move(completed_callback).Run(std::move(result));
 }
 
 OAIMessage EngineConsumerOAIRemote::BuildSystemMessage(

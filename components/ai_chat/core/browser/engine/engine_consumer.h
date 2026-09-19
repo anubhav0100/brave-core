@@ -58,6 +58,12 @@ class EngineConsumer {
     mojom::ConversationEntryEventPtr event;
     std::optional<std::string> model_key;
     std::optional<bool> is_near_verified;
+
+    // Only populated by the Responses API path (OAIAPIClient's
+    // OnResponsesAPIQueryCompleted) - the response `id` field, which a
+    // follow-up request can pass back as `previous_response_id` to continue
+    // this conversation server-side instead of resending full history.
+    std::optional<std::string> responses_api_response_id;
   };
 
   struct Error {

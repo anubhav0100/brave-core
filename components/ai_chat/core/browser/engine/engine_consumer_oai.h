@@ -99,8 +99,27 @@ class EngineConsumerOAIRemote : public EngineConsumer {
       base::expected<std::vector<std::string>, mojom::APIError> topics_result,
       GetSuggestedTopicsCallback callback) override;
 
+  // Captures the response id from a completed Responses API assistant-turn
+  // result into `last_responses_api_response_id_`/
+  // `last_responses_api_input_message_count_` before forwarding to the
+  // original caller - see GenerateAssistantResponse.
+  void OnResponsesAssistantResponseCompleted(
+      GenerationCompletedCallback completed_callback,
+      size_t sent_message_count,
+      GenerationResult result);
+
   std::unique_ptr<OAIAPIClient> api_ = nullptr;
   mojom::ModelOptionsPtr model_options_;
+
+  // Responses API multi-turn continuity state (see GenerateAssistantResponse
+  // and OnResponsesAssistantResponseCompleted). Only meaningful while
+  // model_options_ has use_responses_api set - reset whenever the model
+  // changes (UpdateModelOptions) or queries are cleared (ClearAllQueries),
+  // and whenever the conversation history no longer looks like a superset
+  // of what was last sent (edited/regenerated turns), since the stored
+  // response id would no longer be a valid continuation point.
+  std::optional<std::string> last_responses_api_response_id_;
+  size_t last_responses_api_input_message_count_ = 0;
 
   base::WeakPtrFactory<EngineConsumerOAIRemote> weak_ptr_factory_{this};
 };

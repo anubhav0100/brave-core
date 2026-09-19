@@ -217,7 +217,8 @@ void ObliviousHttpAPIClient::PerformRequest(
     std::optional<base::ListValue> oai_tool_definitions,
     GenerationDataCallback data_received_callback,
     GenerationCompletedCallback completed_callback,
-    const std::optional<std::vector<std::string>>& stop_sequences) {
+    const std::optional<std::vector<std::string>>& stop_sequences,
+    std::optional<std::string> previous_response_id) {
   CHECK(model_options.is_leo_model_options());
   const auto& leo_opts = *model_options.get_leo_model_options();
 

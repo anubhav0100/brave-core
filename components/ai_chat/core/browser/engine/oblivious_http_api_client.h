@@ -64,7 +64,9 @@ class ObliviousHttpAPIClient : public OAIAPIClient {
                       GenerationDataCallback data_received_callback,
                       GenerationCompletedCallback completed_callback,
                       const std::optional<std::vector<std::string>>&
-                          stop_sequences = std::nullopt) override;
+                          stop_sequences = std::nullopt,
+                      std::optional<std::string> previous_response_id =
+                          std::nullopt) override;
 
   void ClearAllQueries() override;
 

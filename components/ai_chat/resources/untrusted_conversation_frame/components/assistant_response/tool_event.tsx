@@ -112,9 +112,17 @@ function ToolEventContent(
 
   // Halt for permission challenge
   if (toolUseEvent.permissionChallenge) {
+    // An unresolved permission challenge (no output yet - see the mojom
+    // ToolUseEvent.output comment) must stay interactive regardless of
+    // isEntryActive: the AI is blocked waiting on this exact answer, so
+    // whatever positional "is this the active entry" logic normally gates
+    // interactivity elsewhere must not also disable the one control that
+    // can unblock it - that would deadlock the conversation with no way
+    // to respond (see the "yes/no but I'm not able to send" bug report).
+    const isPending = !toolUseEvent.output
     content.expandedContent = (
       <ToolPermissionChallenge
-        isInteractive={props.isEntryActive}
+        isInteractive={props.isEntryActive || isPending}
         toolUseEvent={toolUseEvent}
         toolLabel={content.toolLabel!}
       />

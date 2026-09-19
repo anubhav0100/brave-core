@@ -66,13 +66,19 @@ net::NetworkTrafficAnnotationTag GetNetworkTrafficAnnotationTag() {
     )");
 }
 
-// Reasoning-style models (OpenAI's o1/o3/o4 family and the gpt-5 family, on
-// both OpenAI and Azure OpenAI) reject any "temperature" other than their
-// fixed default (1) and return HTTP 400 if one is sent, so the field must be
-// omitted entirely for them rather than defaulted to Brave's usual 0.7.
+// Reasoning-style models (OpenAI's o1/o3/o4 family, and the gpt-5/gpt-6
+// families including gpt-6-astra, on both OpenAI and Azure OpenAI) reject
+// any "temperature" other than their fixed default (1) and return HTTP 400
+// if one is sent, so the field must be omitted entirely for them rather
+// than defaulted to Brave's usual 0.7. This was previously mistaken for a
+// Responses-API-only requirement for gpt-6-astra - confirmed via direct API
+// testing that plain (no "temperature") Chat Completions requests to it
+// succeed, including with image content, so Chat Completions works fine
+// for it as long as temperature is omitted the same way it already is for
+// o1/o3/o4/gpt-5.
 bool ModelSupportsCustomTemperature(const std::string& model_request_name) {
   static constexpr std::string_view kFixedTemperatureModelPrefixes[] = {
-      "o1", "o3", "o4", "gpt-5"};
+      "o1", "o3", "o4", "gpt-5", "gpt-6"};
   for (std::string_view prefix : kFixedTemperatureModelPrefixes) {
     if (base::StartsWith(model_request_name, prefix,
                           base::CompareCase::INSENSITIVE_ASCII)) {
@@ -119,13 +125,17 @@ base::DictValue OAIAPIClient::CreateJSONRequestBody(
 base::DictValue OAIAPIClient::CreateResponsesAPIRequestBody(
     base::ListValue input,
     const std::string& model_request_name,
-    std::optional<base::ListValue> tool_definitions) {
+    std::optional<base::ListValue> tool_definitions,
+    std::optional<std::string> previous_response_id) {
   base::DictValue dict;
   dict.Set("model", model_request_name);
   dict.Set("input", std::move(input));
   dict.Set("stream", false);
   if (tool_definitions.has_value() && !tool_definitions->empty()) {
     dict.Set("tools", std::move(tool_definitions.value()));
+  }
+  if (previous_response_id.has_value() && !previous_response_id->empty()) {
+    dict.Set("previous_response_id", std::move(previous_response_id.value()));
   }
   return dict;
 }
@@ -366,7 +376,8 @@ void OAIAPIClient::PerformRequest(
     std::optional<base::ListValue> oai_tool_definitions,
     GenerationDataCallback data_received_callback,
     GenerationCompletedCallback completed_callback,
-    const std::optional<std::vector<std::string>>& stop_sequences) {
+    const std::optional<std::vector<std::string>>& stop_sequences,
+    std::optional<std::string> previous_response_id) {
   CHECK(model_options.is_custom_model_options());
   const auto& opts = *model_options.get_custom_model_options();
 
@@ -389,7 +400,8 @@ void OAIAPIClient::PerformRequest(
         CreateResponsesAPIRequestBody(
             ConvertOAIMessagesToResponsesApiInput(
                 SerializeOAIMessages(std::move(messages))),
-            opts.model_request_name, std::move(oai_tool_definitions)),
+            opts.model_request_name, std::move(oai_tool_definitions),
+            std::move(previous_response_id)),
         &request_body);
   } else {
     base::JSONWriter::Write(
@@ -532,6 +544,13 @@ void OAIAPIClient::OnResponsesAPIQueryCompleted(
     return;
   }
   const base::DictValue& response_dict = body.GetDict();
+  // Top-level response id (see platform.openai.com/docs/api-reference/
+  // responses/object) - callers pass this back as `previous_response_id`
+  // to continue this conversation without resending full history.
+  std::optional<std::string> response_id;
+  if (const std::string* id = response_dict.FindString("id")) {
+    response_id = *id;
+  }
 
   // Unlike the Chat Completions non-streaming path (HandleCompletion,
   // which only ever parses completion text), this response is the only
@@ -547,13 +566,16 @@ void OAIAPIClient::OnResponsesAPIQueryCompleted(
 
   if (auto result_data = ParseResponsesApiCompletionResponse(
           response_dict, /*model_key=*/std::nullopt)) {
+    result_data->responses_api_response_id = response_id;
     std::move(completed_callback).Run(base::ok(std::move(*result_data)));
     return;
   }
   auto event = mojom::ConversationEntryEvent::NewCompletionEvent(
       mojom::CompletionEvent::New(""));
-  std::move(completed_callback).Run(base::ok(EngineConsumer::GenerationResultData(
-      std::move(event), /*model_key=*/std::nullopt)));
+  EngineConsumer::GenerationResultData result_data(std::move(event),
+                                                   /*model_key=*/std::nullopt);
+  result_data.responses_api_response_id = response_id;
+  std::move(completed_callback).Run(base::ok(std::move(result_data)));
 }
 
 // static

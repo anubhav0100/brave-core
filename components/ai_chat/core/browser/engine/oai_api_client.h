@@ -49,6 +49,13 @@ class OAIAPIClient {
   virtual ~OAIAPIClient();
 
   // |model_options| must hold a CustomModelOptions variant.
+  // |previous_response_id|, when set, is only meaningful for the Responses
+  // API path (CustomModelOptions.use_responses_api): it's sent as
+  // `previous_response_id` so the server continues that prior response's
+  // conversation state, and |messages| is expected to hold only the new
+  // messages since that response (see EngineConsumerOAIRemote's
+  // GenerateAssistantResponse, which tracks this continuity). Ignored on
+  // the Chat Completions path.
   virtual void PerformRequest(
       const mojom::ModelOptions& model_options,
       std::vector<OAIMessage> messages,
@@ -56,7 +63,8 @@ class OAIAPIClient {
       GenerationDataCallback data_received_callback,
       GenerationCompletedCallback completed_callback,
       const std::optional<std::vector<std::string>>& stop_sequences =
-          std::nullopt);
+          std::nullopt,
+      std::optional<std::string> previous_response_id = std::nullopt);
 
   virtual void ClearAllQueries();
 
@@ -79,7 +87,8 @@ class OAIAPIClient {
   static base::DictValue CreateResponsesAPIRequestBody(
       base::ListValue input,
       const std::string& model_request_name,
-      std::optional<base::ListValue> tool_definitions);
+      std::optional<base::ListValue> tool_definitions,
+      std::optional<std::string> previous_response_id);
 
   // Maps an HTTP response code to an APIError using the same conventions as
   // OAI / Anthropic.
