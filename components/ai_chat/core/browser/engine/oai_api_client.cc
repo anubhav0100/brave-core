@@ -68,24 +68,26 @@ net::NetworkTrafficAnnotationTag GetNetworkTrafficAnnotationTag() {
 
 // Reasoning-style models (OpenAI's o1/o3/o4 family, and the gpt-5/gpt-6
 // families including gpt-6-astra, on both OpenAI and Azure OpenAI) reject
-// any "temperature" other than their fixed default (1) and return HTTP 400
-// if one is sent, so the field must be omitted entirely for them rather
-// than defaulted to Brave's usual 0.7. This was previously mistaken for a
-// Responses-API-only requirement for gpt-6-astra - confirmed via direct API
-// testing that plain (no "temperature") Chat Completions requests to it
-// succeed, including with image content, so Chat Completions works fine
-// for it as long as temperature is omitted the same way it already is for
-// o1/o3/o4/gpt-5.
-bool ModelSupportsCustomTemperature(const std::string& model_request_name) {
-  static constexpr std::string_view kFixedTemperatureModelPrefixes[] = {
+// any "temperature" other than their fixed default (1), and separately
+// reject function tools combined with a non-"none" reasoning_effort on
+// Chat Completions (see CreateJSONRequestBody) - both return HTTP 400.
+// Confirmed via direct API testing that plain (no "temperature", no
+// tools) Chat Completions requests to gpt-6-astra succeed, including with
+// image content.
+bool IsReasoningTierModel(const std::string& model_request_name) {
+  static constexpr std::string_view kReasoningTierModelPrefixes[] = {
       "o1", "o3", "o4", "gpt-5", "gpt-6"};
-  for (std::string_view prefix : kFixedTemperatureModelPrefixes) {
+  for (std::string_view prefix : kReasoningTierModelPrefixes) {
     if (base::StartsWith(model_request_name, prefix,
                           base::CompareCase::INSENSITIVE_ASCII)) {
-      return false;
+      return true;
     }
   }
-  return true;
+  return false;
+}
+
+bool ModelSupportsCustomTemperature(const std::string& model_request_name) {
+  return !IsReasoningTierModel(model_request_name);
 }
 
 }  // namespace
@@ -106,7 +108,20 @@ base::DictValue OAIAPIClient::CreateJSONRequestBody(
   }
   dict.Set("model", model_request_name);
 
-  if (oai_tool_definitions.has_value() && !oai_tool_definitions->empty()) {
+  const bool has_tools =
+      oai_tool_definitions.has_value() && !oai_tool_definitions->empty();
+  if (has_tools) {
+    // Reasoning-tier models default to a non-"none" reasoning_effort that
+    // Chat Completions rejects outright when function tools are also
+    // present (HTTP 400: "Function tools with reasoning_effort are not
+    // supported for <model> in /v1/chat/completions. To use function
+    // tools, use /v1/responses or set reasoning_effort to 'none'.") -
+    // apply the API's own suggested fix rather than forcing every such
+    // model onto the Responses API. Omitted when there are no tools so
+    // plain chat still gets the model's normal (better) reasoning.
+    if (IsReasoningTierModel(model_request_name)) {
+      dict.Set("reasoning_effort", "none");
+    }
     dict.Set("tools", std::move(oai_tool_definitions.value()));
   }
 
