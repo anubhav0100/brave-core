@@ -111,16 +111,18 @@ base::DictValue OAIAPIClient::CreateJSONRequestBody(
   const bool has_tools =
       oai_tool_definitions.has_value() && !oai_tool_definitions->empty();
   if (has_tools) {
-    // Reasoning-tier models default to a non-"none" reasoning_effort that
-    // Chat Completions rejects outright when function tools are also
-    // present (HTTP 400: "Function tools with reasoning_effort are not
-    // supported for <model> in /v1/chat/completions. To use function
-    // tools, use /v1/responses or set reasoning_effort to 'none'.") -
-    // apply the API's own suggested fix rather than forcing every such
-    // model onto the Responses API. Omitted when there are no tools so
-    // plain chat still gets the model's normal (better) reasoning.
+    // Reasoning-tier models' default reasoning_effort is incompatible with
+    // function tools on Chat Completions (HTTP 400: "Function tools with
+    // reasoning_effort are not supported for <model> in
+    // /v1/chat/completions..."). The API's own suggested fallback value,
+    // "none", isn't actually accepted by every such model either (HTTP
+    // 400: "'reasoning_effort' does not support 'none' with this model.
+    // Supported values are: 'low', 'medium', 'high', and 'xhigh'.") - so
+    // an explicit, universally-supported value is sent instead. Omitted
+    // when there are no tools so plain chat still gets the model's normal
+    // reasoning_effort default.
     if (IsReasoningTierModel(model_request_name)) {
-      dict.Set("reasoning_effort", "none");
+      dict.Set("reasoning_effort", "high");
     }
     dict.Set("tools", std::move(oai_tool_definitions.value()));
   }
