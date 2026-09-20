@@ -94,9 +94,25 @@ std::optional<std::string> DesktopInputToolBase::ResolveTargetOverride(
           browser_context_);
   bool rdp_active = state->IsRdpActive();
 
+  // Full local-desktop control (real OS-level SendInput on this machine,
+  // capable of acting on any app) is a separate, persistent, explicit
+  // opt-in set from chrome://computer-use's Settings toggle - distinct
+  // from RDP, which already has its own per-connection consent via
+  // ConnectRdp/open_rdp_session_tool and needs no extra gate here. Only
+  // checked once a call is actually about to resolve to the local desktop.
+  auto check_local_desktop_allowed = [&]() -> std::optional<std::string> {
+    if (state->GetFullDesktopControlEnabled()) {
+      return std::nullopt;
+    }
+    return "Error: full desktop control is turned off. Ask the user to "
+           "turn on \"Allow full desktop control\" on "
+           "chrome://computer-use before desktop input tools can act on "
+           "the local desktop.";
+  };
+
   if (!target_argument || target_argument->empty()) {
     *out_use_rdp = rdp_active;
-    return std::nullopt;
+    return *out_use_rdp ? std::nullopt : check_local_desktop_allowed();
   }
   if (*target_argument == kTargetValueRdp) {
     if (!rdp_active) {
@@ -107,6 +123,9 @@ std::optional<std::string> DesktopInputToolBase::ResolveTargetOverride(
     return std::nullopt;
   }
   if (*target_argument == kTargetValueLocalDesktop) {
+    if (auto error = check_local_desktop_allowed()) {
+      return error;
+    }
     *out_use_rdp = false;
     return std::nullopt;
   }
@@ -114,7 +133,7 @@ std::optional<std::string> DesktopInputToolBase::ResolveTargetOverride(
   // it to the two values above - but fall back to auto rather than erroring
   // on an unrecognized value from a non-conforming caller.
   *out_use_rdp = rdp_active;
-  return std::nullopt;
+  return *out_use_rdp ? std::nullopt : check_local_desktop_allowed();
 }
 
 std::string DesktopInputToolBase::GetForegroundTargetProcessName() const {

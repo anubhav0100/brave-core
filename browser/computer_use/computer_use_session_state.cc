@@ -28,6 +28,8 @@ namespace computer_use {
 namespace {
 constexpr char kAlwaysAllowDesktopScreenshotPref[] =
     "brave.computer_use.always_allow_desktop_screenshot";
+constexpr char kFullDesktopControlEnabledPref[] =
+    "brave.computer_use.full_desktop_control_enabled";
 #if BUILDFLAG(IS_WIN)
 constexpr char kRdpHistoryPref[] = "brave.computer_use.rdp_history";
 constexpr char kHostKey[] = "host";
@@ -80,6 +82,7 @@ ComputerUseSessionState::~ComputerUseSessionState() = default;
 void ComputerUseSessionState::RegisterProfilePrefs(
     PrefRegistrySimple* registry) {
   registry->RegisterBooleanPref(kAlwaysAllowDesktopScreenshotPref, false);
+  registry->RegisterBooleanPref(kFullDesktopControlEnabledPref, false);
 #if BUILDFLAG(IS_WIN)
   registry->RegisterListPref(kRdpHistoryPref);
 #endif
@@ -113,6 +116,14 @@ void ComputerUseSessionState::SetAlwaysAllowDesktopScreenshot(
 
 bool ComputerUseSessionState::GetAlwaysAllowDesktopScreenshot() const {
   return prefs_->GetBoolean(kAlwaysAllowDesktopScreenshotPref);
+}
+
+void ComputerUseSessionState::SetFullDesktopControlEnabled(bool enabled) {
+  prefs_->SetBoolean(kFullDesktopControlEnabledPref, enabled);
+}
+
+bool ComputerUseSessionState::GetFullDesktopControlEnabled() const {
+  return prefs_->GetBoolean(kFullDesktopControlEnabledPref);
 }
 
 void ComputerUseSessionState::MarkAppInteracted(

@@ -63,6 +63,14 @@ interface PageHandler {
   GetAlwaysAllowDesktopScreenshot() => (bool always_allow);
   SetAlwaysAllowDesktopScreenshot(bool always_allow);
 
+  // Whether the desktop_* input tools (click/move/scroll/type/press_key)
+  // are allowed to act on this machine's own local desktop - real OS-level
+  // input capable of controlling any app, not just the browser. Off by
+  // default. Separate from RDP targeting (its own per-connection consent)
+  // and from the screenshot-only setting above (viewing isn't controlling).
+  GetFullDesktopControlEnabled() => (bool enabled);
+  SetFullDesktopControlEnabled(bool enabled);
+
   // Registers `page` to receive OnFrameCaptured() pushes for as long as the
   // page is open - the WebUI page's live view of the RDP session (see
   // rdp_session.h; RDP's window is hidden, so this push is the only way its

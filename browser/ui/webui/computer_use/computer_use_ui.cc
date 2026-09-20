@@ -145,6 +145,20 @@ void ComputerUseUI::SetAlwaysAllowDesktopScreenshot(bool always_allow) {
       ->SetAlwaysAllowDesktopScreenshot(always_allow);
 }
 
+void ComputerUseUI::GetFullDesktopControlEnabled(
+    GetFullDesktopControlEnabledCallback callback) {
+  std::move(callback).Run(
+      computer_use::ComputerUseSessionStateFactory::GetForBrowserContext(
+          web_ui()->GetWebContents()->GetBrowserContext())
+          ->GetFullDesktopControlEnabled());
+}
+
+void ComputerUseUI::SetFullDesktopControlEnabled(bool enabled) {
+  computer_use::ComputerUseSessionStateFactory::GetForBrowserContext(
+      web_ui()->GetWebContents()->GetBrowserContext())
+      ->SetFullDesktopControlEnabled(enabled);
+}
+
 void ComputerUseUI::BindPage(
     mojo::PendingRemote<computer_use::mojom::Page> page) {
   page_.reset();

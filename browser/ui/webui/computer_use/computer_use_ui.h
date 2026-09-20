@@ -50,6 +50,9 @@ class ComputerUseUI : public content::WebUIController,
   void GetAlwaysAllowDesktopScreenshot(
       GetAlwaysAllowDesktopScreenshotCallback callback) override;
   void SetAlwaysAllowDesktopScreenshot(bool always_allow) override;
+  void GetFullDesktopControlEnabled(
+      GetFullDesktopControlEnabledCallback callback) override;
+  void SetFullDesktopControlEnabled(bool enabled) override;
   void BindPage(
       mojo::PendingRemote<computer_use::mojom::Page> page) override;
   void SendRdpMouseEvent(int32_t x,

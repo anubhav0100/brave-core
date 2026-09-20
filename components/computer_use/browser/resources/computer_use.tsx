@@ -409,6 +409,7 @@ function App() {
   const [rdpConnecting, setRdpConnecting] = React.useState(false)
   const [rdpHistory, setRdpHistory] = React.useState<RdpHistoryEntry[]>([])
   const [alwaysAllowScreenshot, setAlwaysAllowScreenshot] = React.useState(false)
+  const [fullDesktopControlEnabled, setFullDesktopControlEnabled] = React.useState(false)
   const rdpCanvasRef = React.useRef<HTMLCanvasElement>(null)
 
   const refreshAlwaysAllowScreenshot = React.useCallback(() => {
@@ -423,6 +424,20 @@ function App() {
     const next = !alwaysAllowScreenshot
     setAlwaysAllowScreenshot(next)
     API.setAlwaysAllowDesktopScreenshot(next)
+  }
+
+  const refreshFullDesktopControlEnabled = React.useCallback(() => {
+    API.getFullDesktopControlEnabled().then(
+      (r: { enabled: boolean }) => {
+        setFullDesktopControlEnabled(r.enabled)
+      }
+    )
+  }, [])
+
+  const toggleFullDesktopControlEnabled = () => {
+    const next = !fullDesktopControlEnabled
+    setFullDesktopControlEnabled(next)
+    API.setFullDesktopControlEnabled(next)
   }
 
   const refresh = React.useCallback(() => {
@@ -465,7 +480,9 @@ function App() {
     refresh()
     refreshRdpHistory()
     refreshAlwaysAllowScreenshot()
-  }, [refresh, refreshRdpHistory, refreshAlwaysAllowScreenshot])
+    refreshFullDesktopControlEnabled()
+  }, [refresh, refreshRdpHistory, refreshAlwaysAllowScreenshot,
+      refreshFullDesktopControlEnabled])
 
   // Live RDP view: pushed by ComputerUseUI's Page interface (see
   // computer_use_ui.mojom) - a fresh frame roughly every 200ms while an RDP
@@ -700,6 +717,25 @@ function App() {
               Skips the "Security warning" permission prompt in every new
               conversation. Off by default - the AI Assistant will keep
               asking once per conversation unless you turn this on.
+            </ToggleDesc>
+          </ToggleText>
+        </ToggleRow>
+        <ToggleRow>
+          <ToggleCheckbox
+            type="checkbox"
+            checked={fullDesktopControlEnabled}
+            onChange={toggleFullDesktopControlEnabled}
+          />
+          <ToggleText>
+            <span>Allow full desktop control</span>
+            <ToggleDesc>
+              Lets the AI Assistant click, type, scroll, and move the mouse
+              anywhere on this machine's desktop - not just inside the
+              browser - to control any app. Off by default. This is beyond
+              an RDP session (which has its own separate connection step)
+              and beyond screenshot access (which only lets the AI see the
+              screen, not act on it). Turning this off immediately blocks
+              all further desktop input actions on the local desktop.
             </ToggleDesc>
           </ToggleText>
         </ToggleRow>

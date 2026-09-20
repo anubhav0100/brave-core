@@ -93,6 +93,19 @@ class ComputerUseSessionState : public KeyedService {
   void SetAlwaysAllowDesktopScreenshot(bool always_allow);
   bool GetAlwaysAllowDesktopScreenshot() const;
 
+  // Persisted (survives restart, applies to every new conversation)
+  // explicit opt-in for the desktop_* input tools (click/move/scroll/type/
+  // press_key) to act on this machine's own local desktop - real OS-level
+  // input via InputInjector's SendInput, capable of controlling any app,
+  // not just the browser. Off by default. Deliberately separate from, and
+  // does not affect, RDP targeting (open_rdp_session/ConnectRdp already has
+  // its own explicit per-connection consent) or get_desktop_screenshot's
+  // own always-allow setting above (viewing is not controlling). Set from
+  // the computer-use WebUI's Settings toggle. Enforced in
+  // DesktopInputToolBase::ResolveTargetOverride.
+  void SetFullDesktopControlEnabled(bool enabled);
+  bool GetFullDesktopControlEnabled() const;
+
   // Apps the AI has already acted on this session, keyed by lowercase
   // process image name (e.g. "notepad.exe") - used by the risk classifier
   // to flag the *first* action against a not-yet-seen app as risky (see
