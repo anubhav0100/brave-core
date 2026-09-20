@@ -731,11 +731,16 @@ function App() {
             <ToggleDesc>
               Lets the AI Assistant click, type, scroll, and move the mouse
               anywhere on this machine's desktop - not just inside the
-              browser - to control any app. Off by default. This is beyond
-              an RDP session (which has its own separate connection step)
-              and beyond screenshot access (which only lets the AI see the
-              screen, not act on it). Turning this off immediately blocks
-              all further desktop input actions on the local desktop.
+              browser - to control any app, continuously across as many
+              steps as a task needs, without re-asking for this permission
+              every conversation. Off by default. This is beyond an RDP
+              session (which has its own separate connection step) and
+              beyond screenshot access (which only lets the AI see the
+              screen, not act on it). Individual risky actions (like typing
+              into an app for the first time) still ask for confirmation
+              regardless. Turning this off immediately blocks all further
+              desktop input actions on the local desktop - use the Stop
+              button above to halt an in-progress task at any time.
             </ToggleDesc>
           </ToggleText>
         </ToggleRow>

@@ -33,7 +33,17 @@ DesktopInputToolBase::RequiresUserInteractionBeforeHandling(
   auto* state =
       computer_use::ComputerUseSessionStateFactory::GetForBrowserContext(
           browser_context_);
-  if (!state->HasInputConsent()) {
+  // The persistent "Allow full desktop control" setting (chrome://
+  // computer-use's Settings toggle) is itself an explicit, standing
+  // consent to this whole feature - skip the one-time in-conversation
+  // challenge below when it's on, the same way AlwaysAllowDesktopScreenshot
+  // already skips get_desktop_screenshot's own per-conversation prompt.
+  // Per-action risk reconfirmation (below) is a distinct, ongoing safety
+  // layer and still applies regardless, so this alone doesn't let anything
+  // risky through silently - it only removes the redundant "are you sure
+  // you want this feature at all" ask once the user has already answered
+  // that persistently.
+  if (!state->HasInputConsent() && !state->GetFullDesktopControlEnabled()) {
     // First-ever use of any desktop_* tool this conversation. The
     // user-facing wording lives in get_tool_permission_implications.tsx.
     return mojom::PermissionChallenge::New(/*assessment=*/std::nullopt,
