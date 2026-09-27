@@ -11,6 +11,7 @@
 #include "brave/browser/brave_browser_features.h"
 #include "brave/browser/brave_shields/brave_shields_web_contents_observer.h"
 #include "brave/browser/computer_use/computer_use_session_state.h"
+#include "brave/browser/ai_chat/tools/leadflow/leadflow_api_client.h"
 #include "brave/browser/lead_research/lead_research_state.h"
 #include "brave/browser/new_tab/new_tab_shows_options.h"
 #include "brave/browser/search_engines/search_engine_tracker.h"
@@ -585,6 +586,7 @@ void RegisterProfilePrefs(user_prefs::PrefRegistrySyncable* registry) {
   ai_chat::WorkflowRepository::RegisterProfilePrefs(registry);
   ai_chat::AiChatContentIndex::RegisterProfilePrefs(registry);
   ai_chat::N8nProcessManager::RegisterProfilePrefs(registry);
+  ai_chat::leadflow::LeadFlowApiClient::RegisterProfilePrefs(registry);
 #endif
 
 #if BUILDFLAG(ENABLE_LOCAL_AI)

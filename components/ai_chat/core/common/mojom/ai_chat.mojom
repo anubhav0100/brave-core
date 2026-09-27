@@ -71,6 +71,19 @@ const string kListLeadsToolName = "list_leads";
 const string kCalculateLeadScoreToolName = "calculate_lead_score";
 const string kExportLeadsToolName = "export_leads";
 
+// LeadFlow tools (browser/ai_chat/tools/leadflow/) - call a separately
+// self-hosted LeadFlow API server (leadflow-api/ at the repo root, see
+// marketing-panel-spec.md), not the local Lead Research tools above.
+const string kLeadflowConfigureApiToolName = "leadflow_configure_api";
+const string kLeadflowAddLeadToolName = "leadflow_add_lead";
+const string kLeadflowSearchLeadsToolName = "leadflow_search_leads";
+const string kLeadflowUpdateLeadToolName = "leadflow_update_lead";
+const string kLeadflowSendWhatsAppMessageToolName =
+    "leadflow_send_whatsapp_message";
+const string kLeadflowSendWhatsAppTemplateToolName =
+    "leadflow_send_whatsapp_template";
+const string kLeadflowGetLeadMessagesToolName = "leadflow_get_lead_messages";
+
 // Server side tools
 const string kBraveNewsSearchToolName = "brave_news_search";
 const string kBraveWebSearchToolName = "brave_web_search";

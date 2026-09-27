@@ -28,6 +28,8 @@
 #include "brave/browser/ai_chat/tools/lead_research/open_linkedin_handoff_tool.h"
 #include "brave/browser/ai_chat/tools/lead_research/open_maps_search_tool.h"
 #include "brave/browser/ai_chat/tools/lead_research/save_lead_tool.h"
+#include "brave/browser/ai_chat/tools/leadflow/configure_leadflow_api_tool.h"
+#include "brave/browser/ai_chat/tools/leadflow/leadflow_tools.h"
 #if BUILDFLAG(IS_WIN)
 #include "brave/browser/ai_chat/tools/computer_use/close_rdp_session_tool.h"
 #include "brave/browser/ai_chat/tools/computer_use/desktop_click_tool.h"
@@ -135,6 +137,27 @@ std::vector<base::WeakPtr<Tool>> BrowserToolProvider::GetTools() {
   }
   if (export_leads_tool_) {
     tool_ptrs.push_back(export_leads_tool_->GetWeakPtr());
+  }
+  if (configure_leadflow_api_tool_) {
+    tool_ptrs.push_back(configure_leadflow_api_tool_->GetWeakPtr());
+  }
+  if (leadflow_add_lead_tool_) {
+    tool_ptrs.push_back(leadflow_add_lead_tool_->GetWeakPtr());
+  }
+  if (leadflow_search_leads_tool_) {
+    tool_ptrs.push_back(leadflow_search_leads_tool_->GetWeakPtr());
+  }
+  if (leadflow_update_lead_tool_) {
+    tool_ptrs.push_back(leadflow_update_lead_tool_->GetWeakPtr());
+  }
+  if (leadflow_send_message_tool_) {
+    tool_ptrs.push_back(leadflow_send_message_tool_->GetWeakPtr());
+  }
+  if (leadflow_send_template_tool_) {
+    tool_ptrs.push_back(leadflow_send_template_tool_->GetWeakPtr());
+  }
+  if (leadflow_get_messages_tool_) {
+    tool_ptrs.push_back(leadflow_get_messages_tool_->GetWeakPtr());
   }
 #if BUILDFLAG(IS_WIN)
   if (desktop_move_mouse_tool_) {
@@ -316,6 +339,22 @@ void BrowserToolProvider::CreateTools(
   calculate_lead_score_tool_ =
       std::make_unique<CalculateLeadScoreTool>(browser_context);
   export_leads_tool_ = std::make_unique<ExportLeadsTool>(browser_context);
+  // LeadFlow tools call the separately hosted Docker API. They are available
+  // in normal Leo conversations and remain inert until explicitly configured.
+  configure_leadflow_api_tool_ =
+      std::make_unique<ConfigureLeadflowApiTool>(browser_context);
+  leadflow_add_lead_tool_ = std::make_unique<LeadflowTool>(
+      browser_context, LeadflowOperation::kAddLead);
+  leadflow_search_leads_tool_ = std::make_unique<LeadflowTool>(
+      browser_context, LeadflowOperation::kSearchLeads);
+  leadflow_update_lead_tool_ = std::make_unique<LeadflowTool>(
+      browser_context, LeadflowOperation::kUpdateLead);
+  leadflow_send_message_tool_ = std::make_unique<LeadflowTool>(
+      browser_context, LeadflowOperation::kSendWhatsAppMessage);
+  leadflow_send_template_tool_ = std::make_unique<LeadflowTool>(
+      browser_context, LeadflowOperation::kSendWhatsAppTemplate);
+  leadflow_get_messages_tool_ = std::make_unique<LeadflowTool>(
+      browser_context, LeadflowOperation::kGetLeadMessages);
 
   // Computer-use tools (screenshot, desktop input, RDP) all read/write
   // per-profile state via ComputerUseSessionState - restricted to the

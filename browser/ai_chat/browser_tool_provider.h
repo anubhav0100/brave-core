@@ -47,6 +47,8 @@ class ListLeadsTool;
 class OpenLinkedInHandoffTool;
 class OpenMapsSearchTool;
 class SaveLeadTool;
+class ConfigureLeadflowApiTool;
+class LeadflowTool;
 #if BUILDFLAG(IS_WIN)
 class CloseRdpSessionTool;
 class DesktopClickTool;
@@ -168,6 +170,13 @@ class BrowserToolProvider : public ToolProvider {
   std::unique_ptr<ListLeadsTool> list_leads_tool_;
   std::unique_ptr<CalculateLeadScoreTool> calculate_lead_score_tool_;
   std::unique_ptr<ExportLeadsTool> export_leads_tool_;
+  std::unique_ptr<ConfigureLeadflowApiTool> configure_leadflow_api_tool_;
+  std::unique_ptr<LeadflowTool> leadflow_add_lead_tool_;
+  std::unique_ptr<LeadflowTool> leadflow_search_leads_tool_;
+  std::unique_ptr<LeadflowTool> leadflow_update_lead_tool_;
+  std::unique_ptr<LeadflowTool> leadflow_send_message_tool_;
+  std::unique_ptr<LeadflowTool> leadflow_send_template_tool_;
+  std::unique_ptr<LeadflowTool> leadflow_get_messages_tool_;
 #if BUILDFLAG(IS_WIN)
   std::unique_ptr<DesktopMoveMouseTool> desktop_move_mouse_tool_;
   std::unique_ptr<DesktopClickTool> desktop_click_tool_;
