@@ -26,6 +26,7 @@
 #include "brave/browser/ai_chat/tools/lead_research/export_leads_tool.h"
 #include "brave/browser/ai_chat/tools/lead_research/list_leads_tool.h"
 #include "brave/browser/ai_chat/tools/lead_research/open_linkedin_handoff_tool.h"
+#include "brave/browser/ai_chat/tools/lead_research/extract_maps_listings_tool.h"
 #include "brave/browser/ai_chat/tools/lead_research/open_maps_search_tool.h"
 #include "brave/browser/ai_chat/tools/lead_research/save_lead_tool.h"
 #include "brave/browser/ai_chat/tools/leadflow/configure_leadflow_api_tool.h"
@@ -122,6 +123,9 @@ std::vector<base::WeakPtr<Tool>> BrowserToolProvider::GetTools() {
   }
   if (open_maps_search_tool_) {
     tool_ptrs.push_back(open_maps_search_tool_->GetWeakPtr());
+  }
+  if (extract_maps_listings_tool_) {
+    tool_ptrs.push_back(extract_maps_listings_tool_->GetWeakPtr());
   }
   if (open_linkedin_handoff_tool_) {
     tool_ptrs.push_back(open_linkedin_handoff_tool_->GetWeakPtr());
@@ -332,6 +336,8 @@ void BrowserToolProvider::CreateTools(
       std::make_unique<CreateLeadCampaignTool>(browser_context);
   open_maps_search_tool_ =
       std::make_unique<OpenMapsSearchTool>(browser_context);
+  extract_maps_listings_tool_ =
+      std::make_unique<ExtractMapsListingsTool>(browser_context);
   open_linkedin_handoff_tool_ =
       std::make_unique<OpenLinkedInHandoffTool>(browser_context);
   save_lead_tool_ = std::make_unique<SaveLeadTool>(browser_context);

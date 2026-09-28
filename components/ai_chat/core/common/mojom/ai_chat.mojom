@@ -65,6 +65,7 @@ const string kCloseRdpSessionToolName = "close_rdp_session";
 // Brave_AI_Lead_Assistant_Development_Blueprint.md.
 const string kCreateLeadCampaignToolName = "create_lead_campaign";
 const string kOpenMapsSearchToolName = "open_maps_search";
+const string kExtractMapsListingsToolName = "extract_maps_listings";
 const string kOpenLinkedInHandoffToolName = "open_linkedin_handoff";
 const string kSaveLeadToolName = "save_lead";
 const string kListLeadsToolName = "list_leads";

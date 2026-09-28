@@ -71,6 +71,19 @@ constexpr std::array<const char*, 17> kSensitiveKeywords = {
     "takeown", "cipher /w",
 };
 
+// Common office/productivity apps exempted from the "first time touching
+// this app" check below - editing a document/spreadsheet/presentation is
+// routine, not inherently risky, so re-confirming on first contact is pure
+// friction for these specifically. Apps NOT on this list (a banking app, a
+// password manager, anything neither this list nor kSensitiveProcessNames
+// anticipated) still get the first-contact confirmation - this carve-out
+// is deliberately narrow rather than a blanket "trust everything" change.
+constexpr std::array<const char*, 11> kTrustedProductivityProcessNames = {
+    "winword.exe", "excel.exe",     "powerpnt.exe", "onenote.exe",
+    "outlook.exe", "notepad.exe",   "notepad++.exe", "wordpad.exe",
+    "acrobat.exe", "acrord32.exe",  "soffice.bin",
+};
+
 }  // namespace
 
 std::string GetProcessNameAtPoint(int x, int y) {
@@ -100,7 +113,15 @@ RiskAssessment ClassifyDesktopAction(const std::string& process_name,
     }
   }
 
-  if (!process_name.empty() && state &&
+  bool is_trusted_productivity_app = false;
+  for (const char* trusted : kTrustedProductivityProcessNames) {
+    if (process_name == trusted) {
+      is_trusted_productivity_app = true;
+      break;
+    }
+  }
+
+  if (!process_name.empty() && state && !is_trusted_productivity_app &&
       !state->HasInteractedWithApp(process_name)) {
     return {true,
            "first action this session directed at an app the AI hasn't "

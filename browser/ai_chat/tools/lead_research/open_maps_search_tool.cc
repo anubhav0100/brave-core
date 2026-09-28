@@ -47,13 +47,11 @@ std::string_view OpenMapsSearchTool::Name() const {
 
 std::string_view OpenMapsSearchTool::Description() const {
   return "Opens a Google Maps search (e.g. \"industrial equipment "
-         "manufacturers Faridabad\") in a new tab for the user's own "
-         "visual lead research. This only opens the search - it never "
-         "scrolls through, reads, or extracts the Maps results itself "
-         "(Google's Maps Platform terms restrict copying listing data "
-         "into a database). Look at what the user reports seeing, or ask "
-         "them to share company names/details from the results, then use "
-         "save_lead to record ones that fit the campaign.";
+         "manufacturers Faridabad\") in a new tab for lead research. "
+         "Follow immediately with extract_maps_listings_tool to read the "
+         "actual results (business names, ratings, phone numbers), then "
+         "use save_lead to record the ones that fit the campaign before "
+         "moving to the next query.";
 }
 
 std::optional<base::DictValue> OpenMapsSearchTool::InputProperties() const {
@@ -101,9 +99,8 @@ void OpenMapsSearchTool::UseTool(const std::string& input_json,
   std::move(callback).Run(
       CreateContentBlocksForText(base::StrCat(
           {"Opened a Maps search for \"", *query,
-           "\" in a new tab. This tool doesn't read the results itself - "
-           "ask the user what they see, or use save_lead once a company is "
-           "identified."})),
+           "\" in a new tab. Call extract_maps_listings_tool next to read "
+           "the results."})),
       {});
 }
 

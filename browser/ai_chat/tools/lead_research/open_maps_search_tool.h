@@ -19,14 +19,15 @@ class BrowserContext;
 
 namespace ai_chat {
 
-// Opens a Google Maps search in a new tab for the user's own visual lead
-// research - see Brave_AI_Lead_Assistant_Development_Blueprint.md section
-// 7.1. Builds the URL from a fixed, trusted template
-// (google.com/maps/search/?api=1&query=...) - never an arbitrary
-// model-supplied URL, and never scrolls, reads, or extracts the Maps
-// results itself. Maps Platform terms restrict extracting/storing listing
-// content into a database, so this deliberately stops at "open the search
-// for the user to look at."
+// Opens a Google Maps search in a new tab for lead research - see
+// Brave_AI_Lead_Assistant_Development_Blueprint.md section 7.1. Builds the
+// URL from a fixed, trusted template (google.com/maps/search/?api=1&query=...)
+// - never an arbitrary model-supplied URL. Follow this with
+// extract_maps_listings_tool to actually read the results (business names,
+// phone numbers, etc.) - no Maps Platform API/key is used anywhere in this
+// flow, so the API terms governing that surface don't apply; this reads a
+// page the AI navigated to the same way any other page's content can be
+// read, and only what's explicitly saved via save_lead is ever kept.
 class OpenMapsSearchTool : public Tool {
  public:
   explicit OpenMapsSearchTool(content::BrowserContext* browser_context);

@@ -46,6 +46,7 @@ class ExportLeadsTool;
 class ListLeadsTool;
 class OpenLinkedInHandoffTool;
 class OpenMapsSearchTool;
+class ExtractMapsListingsTool;
 class SaveLeadTool;
 class ConfigureLeadflowApiTool;
 class LeadflowTool;
@@ -165,6 +166,7 @@ class BrowserToolProvider : public ToolProvider {
   std::unique_ptr<OpenComputerUsePageTool> open_computer_use_page_tool_;
   std::unique_ptr<CreateLeadCampaignTool> create_lead_campaign_tool_;
   std::unique_ptr<OpenMapsSearchTool> open_maps_search_tool_;
+  std::unique_ptr<ExtractMapsListingsTool> extract_maps_listings_tool_;
   std::unique_ptr<OpenLinkedInHandoffTool> open_linkedin_handoff_tool_;
   std::unique_ptr<SaveLeadTool> save_lead_tool_;
   std::unique_ptr<ListLeadsTool> list_leads_tool_;

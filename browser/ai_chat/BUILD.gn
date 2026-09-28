@@ -94,6 +94,8 @@ static_library("ai_chat") {
     "tools/lead_research/list_leads_tool.h",
     "tools/lead_research/open_linkedin_handoff_tool.cc",
     "tools/lead_research/open_linkedin_handoff_tool.h",
+    "tools/lead_research/extract_maps_listings_tool.cc",
+    "tools/lead_research/extract_maps_listings_tool.h",
     "tools/lead_research/open_maps_search_tool.cc",
     "tools/lead_research/open_maps_search_tool.h",
     "tools/lead_research/save_lead_tool.cc",
