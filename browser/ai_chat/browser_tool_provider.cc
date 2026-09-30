@@ -14,6 +14,7 @@
 #include "brave/browser/ai_chat/content_index/ai_chat_content_index_factory.h"
 #include "brave/browser/ai_chat/page_capture_session.h"
 #include "brave/browser/ai_chat/response_memory_session.h"
+#include "brave/browser/ai_chat/spreadsheet_memory_session.h"
 #include "brave/browser/ai_chat/tools/code_execution_tool.h"
 #include "brave/browser/ai_chat/tools/content_index_tools.h"
 #include "brave/browser/ai_chat/tools/create_presentation_tool.h"
@@ -51,6 +52,7 @@
 #include "brave/browser/ai_chat/tools/scheduled_task_tools.h"
 #include "brave/browser/ai_chat/tools/read_word_document_tool.h"
 #include "brave/browser/ai_chat/tools/response_memory_tools.h"
+#include "brave/browser/ai_chat/tools/spreadsheet_memory_tools.h"
 #include "brave/browser/ai_chat/tools/run_workflow_tool.h"
 #include "brave/browser/ai_chat/tools/subagent_tool.h"
 #include "brave/browser/ai_chat/tools/youtube_seo_tool.h"
@@ -211,6 +213,15 @@ std::vector<base::WeakPtr<Tool>> BrowserToolProvider::GetTools() {
   }
   if (clear_response_memory_tool_) {
     tool_ptrs.push_back(clear_response_memory_tool_->GetWeakPtr());
+  }
+  if (add_spreadsheet_row_tool_) {
+    tool_ptrs.push_back(add_spreadsheet_row_tool_->GetWeakPtr());
+  }
+  if (download_spreadsheet_tool_) {
+    tool_ptrs.push_back(download_spreadsheet_tool_->GetWeakPtr());
+  }
+  if (clear_spreadsheet_tool_) {
+    tool_ptrs.push_back(clear_spreadsheet_tool_->GetWeakPtr());
   }
   if (search_indexed_content_tool_) {
     tool_ptrs.push_back(search_indexed_content_tool_->GetWeakPtr());
@@ -411,6 +422,14 @@ void BrowserToolProvider::CreateTools(
           response_memory_session_.get());
   clear_response_memory_tool_ = std::make_unique<ClearResponseMemoryTool>(
       response_memory_session_.get());
+  spreadsheet_memory_session_ =
+      std::make_unique<SpreadsheetMemorySession>(browser_context);
+  add_spreadsheet_row_tool_ = std::make_unique<AddSpreadsheetRowTool>(
+      spreadsheet_memory_session_.get());
+  download_spreadsheet_tool_ = std::make_unique<DownloadSpreadsheetTool>(
+      spreadsheet_memory_session_.get());
+  clear_spreadsheet_tool_ = std::make_unique<ClearSpreadsheetTool>(
+      spreadsheet_memory_session_.get());
   search_indexed_content_tool_ =
       std::make_unique<SearchIndexedContentTool>(
           AiChatContentIndexFactory::GetForBrowserContext(browser_context));

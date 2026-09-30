@@ -79,6 +79,10 @@ class N8nProcessManager;
 class OpenN8nTool;
 class PageCaptureSession;
 class ResponseMemorySession;
+class SpreadsheetMemorySession;
+class AddSpreadsheetRowTool;
+class DownloadSpreadsheetTool;
+class ClearSpreadsheetTool;
 class RollbackN8nWorkflowTool;
 class RunN8nWorkflowTool;
 class SetN8nApiKeyTool;
@@ -131,6 +135,10 @@ class BrowserToolProvider : public ToolProvider {
   std::unique_ptr<SaveResponseMemoryAsWordDocumentTool>
       save_response_memory_as_word_document_tool_;
   std::unique_ptr<ClearResponseMemoryTool> clear_response_memory_tool_;
+  std::unique_ptr<SpreadsheetMemorySession> spreadsheet_memory_session_;
+  std::unique_ptr<AddSpreadsheetRowTool> add_spreadsheet_row_tool_;
+  std::unique_ptr<DownloadSpreadsheetTool> download_spreadsheet_tool_;
+  std::unique_ptr<ClearSpreadsheetTool> clear_spreadsheet_tool_;
   std::unique_ptr<SearchIndexedContentTool> search_indexed_content_tool_;
   std::unique_ptr<IndexBookmarksTool> index_bookmarks_tool_;
 #if !BUILDFLAG(IS_ANDROID)

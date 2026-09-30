@@ -149,10 +149,16 @@ std::string_view CreateSpreadsheetTool::Name() const {
 
 std::string_view CreateSpreadsheetTool::Description() const {
   return "Create an Excel (.xlsx) spreadsheet from a 2D grid of cell "
-         "values and download it to the user's device. Each cell is a "
-         "string; values that parse as a number are stored as numbers, "
-         "everything else as text. Single sheet only - no formulas, "
-         "multiple sheets, or charts.";
+         "values and download it to the user's device in one call. Each "
+         "cell is a string; values that parse as a number are stored as "
+         "numbers, everything else as text. Single sheet only - no "
+         "formulas, multiple sheets, or charts. Use this only when you "
+         "already have every row in hand at once. If you're gathering rows "
+         "one at a time across multiple steps (e.g. researching leads "
+         "across several tabs) and want to keep appending until the user "
+         "asks for the file, use add_spreadsheet_row and "
+         "download_spreadsheet instead - they accumulate rows across calls "
+         "and support multiple named sheets.";
 }
 
 std::optional<base::DictValue> CreateSpreadsheetTool::InputProperties()
