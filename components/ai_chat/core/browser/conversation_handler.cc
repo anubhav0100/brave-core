@@ -666,9 +666,14 @@ void ConversationHandler::GetIsRequestInProgress(
 void ConversationHandler::SubmitHumanConversationEntry(
     const std::string& input,
     std::optional<std::vector<mojom::UploadedFilePtr>> uploaded_files) {
-  DCHECK(!is_request_in_progress_)
-      << "Should not be able to submit more"
-      << "than a single human conversation turn at a time.";
+  // Don't crash if a request is already in progress - the
+  // ConversationTurnPtr overload below already handles this case
+  // gracefully by queuing the entry as pending_conversation_entry_, so let
+  // it do that instead of asserting here. A crash-level DCHECK on this
+  // exact, already-handled race (e.g. the user submitting a follow-up from
+  // the omnibox/context menu while a prior turn is still streaming or
+  // running tools) previously took down the whole browser process instead
+  // of just queueing the new message like the UI already expects.
 
   // Auto-switch to vision model if needed
   MaybeSwitchModelForSubmission(uploaded_files);
